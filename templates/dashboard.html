@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOPGEE Investment Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1>🏦 TOPGEE CAPITAL - Investment Management</h1>
+            <div class="nav-links">
+                <a href="{{ url_for('dashboard') }}" class="active">Dashboard</a>
+                <a href="{{ url_for('sales_reps') }}">Sales Team</a>
+                {% if is_admin %}
+                <a href="{{ url_for('add_investor') }}" class="btn-primary">+ Add Investor</a>
+                {% endif %}
+                <a href="{{ url_for('logout') }}" class="btn-secondary">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Search Bar -->
+        <div class="search-container">
+            <form method="GET" action="{{ url_for('dashboard') }}" class="search-form">
+                <input type="text" name="search" placeholder="🔍 Search investors by name, category, or notes..." value="{{ search_query or '' }}" class="search-input">
+                <button type="submit" class="btn-search">Search</button>
+                {% if search_query %}
+                <a href="{{ url_for('dashboard') }}" class="btn-clear">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+
+        <div class="month-indicator">
+            <h2>{{ stats.current_month }} Overview</h2>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-content">
+                    <h3>Total Investors</h3>
+                    <p class="stat-value">{{ stats.total_investors }}</p>
+                    <p class="stat-sub">Active clients</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-content">
+                    <h3>Total Investment</h3>
+                    <p class="stat-value">{{ '{:,.0f}'.format(stats.total_investment) }} AED</p>
+                    <p class="stat-sub">Portfolio value</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <h3>Monthly Revenue</h3>
+                    <p class="stat-value">{{ '{:,.2f}'.format(stats.monthly_revenue) }} AED</p>
+                    <p class="stat-sub">{{ stats.current_month }}</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-content">
+                    <h3>ROI Distributed</h3>
+                    <p class="stat-value">{{ '{:,.2f}'.format(stats.monthly_roi_distributed) }} AED</p>
+                    <p class="stat-sub">This month</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">💼</div>
+                <div class="stat-content">
+                    <h3>Sales Team Earnings</h3>
+                    <p class="stat-value">{{ '{:,.2f}'.format(stats.sales_earnings) }} AED</p>
+                    <p class="stat-sub">{{ stats.current_month }}</p>
+                </div>
+            </div>
+
+            {% if stats.partner_distribution %}
+            <div class="stat-card">
+                <div class="stat-icon">🤝</div>
+                <div class="stat-content">
+                    <h3>Partner Profit Pool</h3>
+                    <p class="stat-value">{{ '{:,.2f}'.format(stats.partner_distribution.remaining_profit) }} AED</p>
+                    <p class="stat-sub">After ROI distribution</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Partner Distribution -->
+        {% if stats.partner_distribution %}
+        <div class="section">
+            <h2>🤝 Partner Profit Distribution - {{ stats.current_month }}</h2>
+            <div class="partners-grid">
+                <div class="partner-card">
+                    <h3>Mr. Shafaqat</h3>
+                    <p class="large-number">{{ '{:,.2f}'.format(stats.partner_distribution.shafaqat_amount) }} AED</p>
+                    <p class="sub-text">{{ '{:.2f}%'.format(stats.partner_distribution.shafaqat_percent) }}</p>
+                </div>
+                <div class="partner-card">
+                    <h3>Mr. Shubham</h3>
+                    <p class="large-number">{{ '{:,.2f}'.format(stats.partner_distribution.shubham_amount) }} AED</p>
+                    <p class="sub-text">{{ '{:.2f}%'.format(stats.partner_distribution.shubham_percent) }}</p>
+                </div>
+                <div class="partner-card">
+                    <h3>Mr. Kay</h3>
+                    <p class="large-number">{{ '{:,.2f}'.format(stats.partner_distribution.kay_amount) }} AED</p>
+                    <p class="sub-text">{{ '{:.2f}%'.format(stats.partner_distribution.kay_percent) }}</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- All Investors -->
+        <div class="section">
+            <h2>📋 All Investors</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Investment</th>
+                            <th>Sales Rep</th>
+                            <th>ROI Split</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for investor in investors %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><a href="{{ url_for('investor_detail', investor_id=investor.id) }}" class="client-link">{{ investor.name }}</a></td>
+                            <td>{{ investor.category }}</td>
+                            <td>{{ '{:,.0f}'.format(investor.investment_amount) }} AED</td>
+                            <td>{{ investor.sales_rep.name if investor.sales_rep else '-' }}</td>
+                            <td>Inv: {{ investor.investor_roi_percent }}% | Sales: {{ investor.sales_roi_percent }}%</td>
+                            <td><span class="badge badge-{{ 'success' if investor.status == 'Active' else 'inactive' }}">{{ investor.status }}</span></td>
+                            <td>
+                                <a href="{{ url_for('investor_detail', investor_id=investor.id) }}" class="btn-sm">View</a>
+                                {% if is_admin %}
+                                <a href="{{ url_for('edit_investor', investor_id=investor.id) }}" class="btn-sm">Edit</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>TOPGEE Capital Investment Management System | {{ stats.current_month }}</p>
+    </footer>
+</body>
+</html>

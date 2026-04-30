@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit {{ investor.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1>🏦 TOPGEE CAPITAL</h1>
+            <div class="nav-links">
+                <a href="{{ url_for('investor_detail', investor_id=investor.id) }}">← Back</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="form-container">
+            <h1>✏️ Edit: {{ investor.name }}</h1>
+            
+            <form method="POST">
+                <div class="form-group">
+                    <label>Investor Name *</label>
+                    <input type="text" name="name" required value="{{ investor.name }}">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Category *</label>
+                        <select name="category" required>
+                            <option value="Individual" {% if investor.category == 'Individual' %}selected{% endif %}>Individual</option>
+                            <option value="Company" {% if investor.category == 'Company' %}selected{% endif %}>Company</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select name="status">
+                            <option value="Active" {% if investor.status == 'Active' %}selected{% endif %}>🟢 Active</option>
+                            <option value="Inactive" {% if investor.status != 'Active' %}selected{% endif %}>⚫ Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Currency *</label>
+                        <select name="currency" id="currency" onchange="convertCurrency()">
+                            <option value="AED">AED (Dirham)</option>
+                            <option value="USD">USD (Dollar)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label id="amount-label">Investment Amount (AED) *</label>
+                        <input type="number" name="investment_amount" id="amount" step="0.01" required value="{{ investor.investment_amount }}" onkeyup="showConversion()">
+                        <small id="conversion-text" style="color: var(--text-secondary); margin-top: 0.5rem; display: none;"></small>
+                    </div>
+                </div>
+                <div class="form-row" style="display: none;" id="conversion-row">
+                    <div class="form-group">
+                        <label>AED Amount</label>
+                        <input type="text" id="aed-display" readonly disabled style="background: var(--bg-hover);">
+                    </div>
+                    <div class="form-group">
+                        <label>USD Amount</label>
+                        <input type="text" id="usd-display" readonly disabled style="background: var(--bg-hover);">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Investment Date *</label>
+                        <input type="date" name="investment_date" required value="{{ investor.investment_date.strftime('%Y-%m-%d') }}">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Sales Representative *</label>
+                    <select name="sales_rep_id" required>
+                        {% for rep in sales_reps %}
+                        <option value="{{ rep.id }}" {% if investor.sales_rep_id == rep.id %}selected{% endif %}>{{ rep.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <h3 style="margin-top: 30px;">📈 ROI Split (Total: 5%)</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Investor ROI % *</label>
+                        <input type="number" name="investor_roi_percent" step="0.1" value="{{ investor.investor_roi_percent }}" required min="0" max="5">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Sales ROI % *</label>
+                        <input type="number" name="sales_roi_percent" step="0.1" value="{{ investor.sales_roi_percent }}" required min="0" max="5">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea name="notes" rows="3">{{ investor.notes or '' }}</textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                    <a href="{{ url_for('investor_detail', investor_id=investor.id) }}" class="btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>TOPGEE Capital Investment Management System</p>
+    </footer>
+
+    <script>
+        const EXCHANGE_RATE = 3.68;
+
+        function convertCurrency() {
+            const currency = document.getElementById('currency').value;
+            const label = document.getElementById('amount-label');
+            
+            if (currency === 'USD') {
+                label.textContent = 'Investment Amount (USD) *';
+            } else {
+                label.textContent = 'Investment Amount (AED) *';
+            }
+            showConversion();
+        }
+
+        function showConversion() {
+            const currency = document.getElementById('currency').value;
+            const amount = parseFloat(document.getElementById('amount').value) || 0;
+            const conversionText = document.getElementById('conversion-text');
+            const conversionRow = document.getElementById('conversion-row');
+            const aedDisplay = document.getElementById('aed-display');
+            const usdDisplay = document.getElementById('usd-display');
+
+            if (amount > 0) {
+                conversionRow.style.display = 'grid';
+                
+                if (currency === 'USD') {
+                    const aed = amount * EXCHANGE_RATE;
+                    aedDisplay.value = aed.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' AED';
+                    usdDisplay.value = amount.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' USD';
+                    conversionText.textContent = `= ${aed.toLocaleString('en-US', {minimumFractionDigits: 2})} AED @ rate ${EXCHANGE_RATE}`;
+                } else {
+                    const usd = amount / EXCHANGE_RATE;
+                    aedDisplay.value = amount.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' AED';
+                    usdDisplay.value = usd.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' USD';
+                    conversionText.textContent = `= ${usd.toLocaleString('en-US', {minimumFractionDigits: 2})} USD @ rate ${EXCHANGE_RATE}`;
+                }
+                conversionText.style.display = 'block';
+            } else {
+                conversionText.style.display = 'none';
+                conversionRow.style.display = 'none';
+            }
+        }
+        
+        // Show conversion on page load
+        window.addEventListener('load', showConversion);
+    </script>
+</body>
+</html>

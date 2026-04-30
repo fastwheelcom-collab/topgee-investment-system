@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Team Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1>🏦 TOPGEE CAPITAL</h1>
+            <div class="nav-links">
+                <a href="{{ url_for('dashboard') }}">← Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="section-header">
+            <h1>💼 Sales Team Management</h1>
+            <button onclick="showAddForm()" class="btn-primary">+ Add Sales Rep</button>
+        </div>
+
+        <!-- Add Form (hidden) -->
+        <div id="addForm" style="display: none; margin-bottom: 30px;">
+            <div class="form-container" style="max-width: 600px;">
+                <h3>Add New Sales Representative</h3>
+                <form method="POST" action="{{ url_for('add_sales_rep') }}">
+                    <div class="form-group">
+                        <label>Name *</label>
+                        <input type="text" name="name" required placeholder="John Smith">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" placeholder="john@topgee.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="text" name="phone" placeholder="+971 50 123 4567">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Save</button>
+                        <button type="button" onclick="hideAddForm()" class="btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sales Reps Table -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Investors</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rep in sales_reps %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><strong>{{ rep.name }}</strong></td>
+                        <td>{{ rep.email or '-' }}</td>
+                        <td>{{ rep.phone or '-' }}</td>
+                        <td>{{ rep.investors|length }} investor(s)</td>
+                        <td><span class="badge badge-{{ 'success' if rep.active else 'inactive' }}">{{ 'Active' if rep.active else 'Inactive' }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        <p>TOPGEE Capital Investment Management System</p>
+    </footer>
+
+    <script>
+        function showAddForm() { document.getElementById('addForm').style.display = 'block'; }
+        function hideAddForm() { document.getElementById('addForm').style.display = 'none'; }
+    </script>
+</body>
+</html>

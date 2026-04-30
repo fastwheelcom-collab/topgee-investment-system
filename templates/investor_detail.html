@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ investor.name }} - Investor Profile</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1>🏦 TOPGEE CAPITAL</h1>
+            <div class="nav-links">
+                <a href="{{ url_for('dashboard') }}">← Dashboard</a>
+                {% if is_admin %}
+                <a href="{{ url_for('edit_investor', investor_id=investor.id) }}" class="btn-primary">Edit</a>
+                {% endif %}
+                <a href="{{ url_for('download_investor_ledger', investor_id=investor.id) }}" class="btn-primary">📄 Download Ledger</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="client-header">
+            <h1>{{ investor.name }}</h1>
+            <span class="badge badge-{{ 'success' if investor.status == 'Active' else 'inactive' }}">{{ investor.status }}</span>
+        </div>
+
+        <!-- Investor Details -->
+        <div class="details-grid">
+            <div class="detail-card">
+                <h3>💰 Investment Amount</h3>
+                <p class="large-number">{{ '{:,.2f}'.format(investor.investment_amount) }} AED</p>
+                <p class="sub-text">{{ '{:,.2f}'.format(investor.investment_amount / exchange_rate) }} USD | Since {{ investor.investment_date.strftime('%d-%b-%Y') }}</p>
+            </div>
+
+            <div class="detail-card">
+                <h3>👤 Category</h3>
+                <p class="large-number">{{ investor.category }}</p>
+                <p class="sub-text">Sales Rep: {{ investor.sales_rep.name if investor.sales_rep else 'N/A' }}</p>
+            </div>
+
+            <div class="detail-card">
+                <h3>📈 ROI Structure (5% total)</h3>
+                <p class="large-number">{{ investor.investor_roi_percent }}% + {{ investor.sales_roi_percent }}%</p>
+                <p class="sub-text">Investor + Sales Rep</p>
+            </div>
+
+            <div class="detail-card">
+                <h3>💵 Monthly ROI</h3>
+                <p class="large-number">{{ '{:,.2f}'.format(investor.monthly_investor_roi) }} AED</p>
+                <p class="sub-text">Your share ({{ investor.investor_roi_percent }}%)</p>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-grid">
+            <div class="summary-card">
+                <h4>Total Revenue Generated</h4>
+                <p>{{ '{:,.2f}'.format(total_revenue) }} AED</p>
+            </div>
+            <div class="summary-card">
+                <h4>Total ROI Paid to You</h4>
+                <p>{{ '{:,.2f}'.format(total_investor_roi) }} AED</p>
+            </div>
+            <div class="summary-card">
+                <h4>Total Sales Commission</h4>
+                <p>{{ '{:,.2f}'.format(total_sales_roi) }} AED</p>
+            </div>
+        </div>
+
+        <!-- Add Monthly Record Button -->
+        <div class="section">
+            <div class="section-header">
+                <h2>📅 Monthly Ledger (Last 12 Months)</h2>
+                {% if is_admin %}
+                <button onclick="showAddRecordForm()" class="btn-primary">+ Add Monthly Record</button>
+                {% endif %}
+            </div>
+
+            <!-- Add Record Form (hidden) -->
+            <div id="addRecordForm" style="display: none; margin-bottom: 20px;">
+                <form method="POST" action="{{ url_for('add_monthly_record') }}" class="record-form">
+                    <input type="hidden" name="investor_id" value="{{ investor.id }}">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Month</label>
+                            <select name="month" required>
+                                {% for m in range(1, 13) %}
+                                <option value="{{ m }}">{{ ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m-1] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Year</label>
+                            <select name="year" required>
+                                <option value="2025">2025</option>
+                                <option value="2026" selected>2026</option>
+                                <option value="2027">2027</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Revenue Generated (AED) *</label>
+                            <input type="number" name="revenue_generated" step="0.01" required placeholder="50000.00">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Payment Date</label>
+                            <input type="date" name="payment_date">
+                        </div>
+                        <div class="form-group">
+                            <label>Payment Method</label>
+                            <select name="payment_method">
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Cheque">Cheque</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <input type="text" name="notes" placeholder="Optional notes">
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Save Record</button>
+                        <button type="button" onclick="hideAddRecordForm()" class="btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Monthly Records Table -->
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Revenue Generated</th>
+                            <th>Your ROI ({{ investor.investor_roi_percent }}%)</th>
+                            <th>Sales ROI ({{ investor.sales_roi_percent }}%)</th>
+                            <th>Payment Date</th>
+                            <th>Method</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if records %}
+                            {% for record in records %}
+                            <tr>
+                                <td><strong>{{ record.month_name }}</strong></td>
+                                <td>{{ '{:,.2f}'.format(record.revenue_generated) }} AED</td>
+                                <td class="highlight">{{ '{:,.2f}'.format(record.investor_roi_paid) }} AED</td>
+                                <td>{{ '{:,.2f}'.format(record.sales_roi_paid) }} AED</td>
+                                <td>{{ record.payment_date.strftime('%d-%b-%Y') if record.payment_date else '-' }}</td>
+                                <td>{{ record.payment_method or '-' }}</td>
+                                <td>{{ record.notes or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: #999;">No monthly records yet. Add your first record above.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Danger Zone (Admin Only) -->
+        {% if is_admin %}
+        <div class="section danger-zone">
+            <h3>⚠️ Danger Zone</h3>
+            <form method="POST" action="{{ url_for('delete_investor', investor_id=investor.id) }}" onsubmit="return confirm('Delete {{ investor.name }}? This cannot be undone!');">
+                <button type="submit" class="btn-danger">Delete Investor</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <footer>
+        <p>TOPGEE Capital Investment Management System</p>
+    </footer>
+
+    <script>
+        function showAddRecordForm() {
+            document.getElementById('addRecordForm').style.display = 'block';
+        }
+        function hideAddRecordForm() {
+            document.getElementById('addRecordForm').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
