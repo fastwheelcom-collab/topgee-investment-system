@@ -529,8 +529,10 @@ def init_db():
         
         print("✅ Database ready")
 
+# Initialize database on startup
+init_db()
+
 if __name__ == '__main__':
-    init_db()
     port = int(os.environ.get('PORT', 5001))
     print("\n" + "="*60)
     print("🚀 TOPGEE INVESTMENT MANAGEMENT SYSTEM")
