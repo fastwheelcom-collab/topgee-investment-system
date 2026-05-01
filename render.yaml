@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: topgee-investment-system
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.3
+      - key: DATABASE_URL
+        fromDatabase:
+          name: topgee-db
+          property: connectionString
+
+databases:
+  - name: topgee-db
+    plan: free
