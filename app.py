@@ -169,12 +169,26 @@ def ensure_db_ready():
     """Ensure database tables exist before handling any request"""
     if not hasattr(app, '_db_initialized'):
         try:
-            with app.app_context():
-                db.create_all()
-                app._db_initialized = True
-                print("✅ Database tables created")
+            db.create_all()
+            
+            # Add sample sales reps if none exist
+            if SalesRep.query.count() == 0:
+                reps = [
+                    SalesRep(name="John Smith", email="john@topgee.com"),
+                    SalesRep(name="Sarah Johnson", email="sarah@topgee.com"),
+                    SalesRep(name="Ahmed Ali", email="ahmed@topgee.com")
+                ]
+                for rep in reps:
+                    db.session.add(rep)
+                db.session.commit()
+                print(f"✅ Added {len(reps)} sample sales reps")
+            
+            app._db_initialized = True
+            print("✅ Database initialized successfully")
         except Exception as e:
-            print(f"⚠️ DB init on request failed: {e}")
+            print(f"⚠️ DB init failed: {e}")
+            import traceback
+            traceback.print_exc()
 
 # ============= ROUTES =============
 
@@ -524,34 +538,7 @@ def add_sales_rep():
     db.session.commit()
     return redirect(url_for('sales_reps'))
 
-def init_db():
-    """Initialize database with sample data"""
-    try:
-        with app.app_context():
-            db.create_all()
-            
-            if SalesRep.query.count() == 0:
-                print("Creating sample sales reps...")
-                reps = [
-                    SalesRep(name="John Smith", email="john@topgee.com"),
-                    SalesRep(name="Sarah Johnson", email="sarah@topgee.com"),
-                    SalesRep(name="Ahmed Ali", email="ahmed@topgee.com")
-                ]
-                for rep in reps:
-                    db.session.add(rep)
-                db.session.commit()
-                print(f"✅ Added {len(reps)} sales reps")
-            
-            print("✅ Database ready")
-    except Exception as e:
-        print(f"⚠️ Database initialization error: {e}")
-        print("Database will be initialized on first request")
-
-# Initialize database on startup (safe with error handling)
-try:
-    init_db()
-except Exception as e:
-    print(f"Startup DB init failed (will retry): {e}")
+# Database will be initialized on first request via @app.before_request
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
