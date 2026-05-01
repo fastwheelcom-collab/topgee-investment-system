@@ -15,18 +15,22 @@ import csv
 app = Flask(__name__)
 
 # Use PostgreSQL in production, SQLite locally
-if os.environ.get('DATABASE_URL'):
+database_url = os.environ.get('DATABASE_URL')
+if database_url:
     # Render provides DATABASE_URL for PostgreSQL
-    database_url = os.environ.get('DATABASE_URL')
+    print(f"🔵 Using PostgreSQL: {database_url[:50]}...")
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 else:
     # Local SQLite
+    print("⚠️ WARNING: DATABASE_URL not found! Using SQLite (will fail on Render)")
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(os.path.abspath(os.path.dirname(__file__)), 'data', 'investments.db')
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'topgee-investment-system-2026')
+
+print(f"✅ Database configured: {app.config['SQLALCHEMY_DATABASE_URI'][:60]}...")
 
 db = SQLAlchemy(app)
 
