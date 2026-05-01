@@ -169,10 +169,12 @@ def ensure_db_ready():
     """Ensure database tables exist before handling any request"""
     if not hasattr(app, '_db_initialized'):
         try:
-            db.create_all()
-            app._db_initialized = True
+            with app.app_context():
+                db.create_all()
+                app._db_initialized = True
+                print("✅ Database tables created")
         except Exception as e:
-            print(f"DB init on request failed: {e}")
+            print(f"⚠️ DB init on request failed: {e}")
 
 # ============= ROUTES =============
 
