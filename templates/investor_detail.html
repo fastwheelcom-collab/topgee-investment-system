@@ -296,6 +296,131 @@
 
         <!-- Add Monthly Record Button -->
         <div class="section">
+        <!-- NEW: 12-Month ROI Ledger -->
+        <div class="section">
+            <div class="section-header">
+                <h2>📊 12-Month ROI Ledger ({{ current_year }})</h2>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">Enter monthly profit → System auto-distributes: 5% to investor/sales, 95% to partners</p>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Total ROI Generated</th>
+                            <th>Investor Share (5%)</th>
+                            <th>Sales Share (5%)</th>
+                            <th>Partners Get (95%)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for month_data in ledger %}
+                        <tr>
+                            <td><strong>{{ month_data.month_name }}</strong></td>
+                            {% if month_data.record %}
+                            <td>{{ '{:,.2f}'.format(month_data.record.total_roi_generated) }} AED</td>
+                            <td class="highlight">{{ '{:,.2f}'.format(month_data.record.investor_share) }} AED</td>
+                            <td>{{ '{:,.2f}'.format(month_data.record.sales_share) }} AED</td>
+                            <td style="color: #10b981; font-weight: bold;">{{ '{:,.2f}'.format(month_data.record.total_roi_generated * 0.95) }} AED</td>
+                            <td>
+                                {% if is_admin %}
+                                <button onclick="editROI({{ month_data.month }}, {{ month_data.record.total_roi_generated }}, '{{ month_data.record.notes or '' }}')" class="btn-sm" style="margin-right: 0.5rem; background: #3b82f6;">✏️ Edit</button>
+                                <button onclick="deleteROI({{ month_data.month }}, '{{ month_data.month_name }}')" class="btn-sm" style="background: #ef4444;">🗑️ Delete</button>
+                                {% endif %}
+                            </td>
+                            {% else %}
+                            <td colspan="4" style="color: #999; text-align: center;">No entry yet</td>
+                            <td>
+                                {% if is_admin %}
+                                <button onclick="addROI({{ month_data.month }})" class="btn-primary btn-sm">+ Add ROI</button>
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ROI Entry Modal -->
+        <div id="roiModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 1000; min-width: 450px; border: 1px solid #e5e7eb;">
+            <h3 id="modalTitle" style="margin: 0 0 1.5rem 0; color: #111827;">Add Monthly ROI</h3>
+            <form method="POST" action="{{ url_for('add_manual_roi', investor_id=investor.id) }}">
+                <input type="hidden" name="year" value="{{ current_year }}">
+                <input type="hidden" name="month" id="modalMonth">
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Total Monthly ROI/Profit (AED) *</label>
+                    <input type="number" name="total_roi_generated" id="modalAmount" step="0.01" required placeholder="100000.00" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px;">
+                    <small style="display: block; margin-top: 0.5rem; color: #6b7280;">
+                        System distributes: 5% → Investor ({{ investor.investor_roi_percent }}%) + Sales ({{ investor.sales_roi_percent }}%), 95% → Partners
+                    </small>
+                </div>
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Notes (optional)</label>
+                    <input type="text" name="notes" id="modalNotes" placeholder="Optional notes" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px;">
+                </div>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn-primary" style="flex: 1; padding: 0.75rem;">💾 Save</button>
+                    <button type="button" onclick="closeROIModal()" class="btn-secondary" style="flex: 1; padding: 0.75rem;">✖️ Cancel</button>
+                </div>
+            </form>
+        </div>
+        <div id="modalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 999;" onclick="closeROIModal()"></div>
+
+        <script>
+        function addROI(month) {
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            document.getElementById('modalTitle').textContent = 'Add Monthly ROI - ' + months[month-1];
+            document.getElementById('modalMonth').value = month;
+            document.getElementById('modalAmount').value = '';
+            document.getElementById('modalNotes').value = '';
+            document.getElementById('roiModal').style.display = 'block';
+            document.getElementById('modalOverlay').style.display = 'block';
+        }
+        
+        function editROI(month, currentAmount, currentNotes) {
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            document.getElementById('modalTitle').textContent = 'Edit Monthly ROI - ' + months[month-1];
+            document.getElementById('modalMonth').value = month;
+            document.getElementById('modalAmount').value = currentAmount;
+            document.getElementById('modalNotes').value = currentNotes;
+            document.getElementById('roiModal').style.display = 'block';
+            document.getElementById('modalOverlay').style.display = 'block';
+        }
+        
+        function deleteROI(month, monthName) {
+            if (confirm('Delete ROI entry for ' + monthName + '?')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = "{{ url_for('delete_manual_roi', investor_id=investor.id) }}";
+                const yearInput = document.createElement('input');
+                yearInput.type = 'hidden';
+                yearInput.name = 'year';
+                yearInput.value = {{ current_year }};
+                form.appendChild(yearInput);
+                const monthInput = document.createElement('input');
+                monthInput.type = 'hidden';
+                monthInput.name = 'month';
+                monthInput.value = month;
+                form.appendChild(monthInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+        
+        function closeROIModal() {
+            document.getElementById('roiModal').style.display = 'none';
+            document.getElementById('modalOverlay').style.display = 'none';
+        }
+        </script>
+
+        <!-- OLD SYSTEM for reference -->
             <div class="section-header">
                 <h2>📅 Monthly Ledger (Last 12 Months)</h2>
                 {% if is_admin %}

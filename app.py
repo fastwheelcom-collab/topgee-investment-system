@@ -131,6 +131,7 @@ class Investor(db.Model):
     
     monthly_records = db.relationship('MonthlyRecord', backref='investor', lazy=True, cascade='all, delete-orphan')
     investment_transactions = db.relationship('InvestmentTransaction', backref='investor', lazy=True, cascade='all, delete-orphan')
+    manual_roi_records = db.relationship('ManualROI', backref='investor', lazy=True, cascade='all, delete-orphan')
     
     @property
     def total_capital(self):
@@ -224,6 +225,28 @@ class PartnerDistribution(db.Model):
     def month_name(self):
         return datetime(self.year, self.month, 1).strftime('%B %Y')
 
+
+class ManualROI(db.Model):
+    """Manual monthly ROI entry with automatic distribution"""
+    id = db.Column(db.Integer, primary_key=True)
+    investor_id = db.Column(db.Integer, db.ForeignKey('investor.id'), nullable=False)
+    
+    year = db.Column(db.Integer, nullable=False)
+    month = db.Column(db.Integer, nullable=False)
+    
+    total_roi_generated = db.Column(db.Float, nullable=False)
+    investor_share = db.Column(db.Float, default=0)
+    sales_share = db.Column(db.Float, default=0)
+    
+    entry_date = db.Column(db.DateTime, default=datetime.utcnow)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    @property
+    def month_name(self):
+        months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                  'July', 'August', 'September', 'October', 'November', 'December']
+        return f"{months[self.month-1]} {self.year}"
 # ============= DATABASE INITIALIZATION =============
 
 @app.before_request
@@ -340,45 +363,63 @@ def dashboard():
 @app.route('/investor/<int:investor_id>')
 @login_required
 def investor_detail(investor_id):
-    """Individual investor profile with 12-month ledger"""
     investor = Investor.query.get_or_404(investor_id)
-    
-    # Get all monthly records (ALL TIME for cumulative totals)
-    all_records = MonthlyRecord.query.filter_by(investor_id=investor.id).all()
-    
-    # Get last 12 months for display
     now = datetime.now()
-    records = MonthlyRecord.query.filter_by(investor_id=investor.id).order_by(
-        MonthlyRecord.year.desc(), MonthlyRecord.month.desc()
-    ).limit(12).all()
+    current_year = now.year
     
-    # Get investment transactions (deposits/withdrawals)
+    # Get manual ROI records for current year
+    manual_records = ManualROI.query.filter_by(investor_id=investor.id, year=current_year).all()
+    
+    # Build 12-month ledger
+    months = ['January', 'February', 'March', 'April', 'May', 'June',
+              'July', 'August', 'September', 'October', 'November', 'December']
+    ledger = []
+    for month_num in range(1, 13):
+        record = next((r for r in manual_records if r.month == month_num), None)
+        ledger.append({'month': month_num, 'month_name': months[month_num-1], 'record': record})
+    
+    # Get all manual ROI records for totals
+    all_manual_records = ManualROI.query.filter_by(investor_id=investor.id).all()
+    total_roi_generated = sum(r.total_roi_generated for r in all_manual_records)
+    total_investor_share = sum(r.investor_share for r in all_manual_records)
+    total_sales_share = sum(r.sales_share for r in all_manual_records)
+    
+    # Get transactions
     transactions = InvestmentTransaction.query.filter_by(investor_id=investor.id).order_by(
         InvestmentTransaction.transaction_date.desc()
     ).all()
     
-    # Calculate totals (ALL TIME)
-    total_revenue = sum(r.revenue_generated for r in all_records)
-    total_investor_roi = sum(r.investor_roi_paid for r in all_records)  # NEW: Cumulative
-    total_sales_roi = sum(r.sales_roi_paid for r in all_records)       # NEW: Cumulative
-    
-    # Capital summary
     deposits = sum(t.amount for t in transactions if t.transaction_type == 'Deposit')
     withdrawals = sum(t.amount for t in transactions if t.transaction_type == 'Withdrawal')
     net_capital = investor.investment_amount + deposits - withdrawals
     
+    # Get old monthly records (legacy)
+    records = MonthlyRecord.query.filter_by(investor_id=investor.id).order_by(
+        MonthlyRecord.year.desc(), MonthlyRecord.month.desc()
+    ).limit(12).all()
+    
+    total_revenue = sum(r.revenue_generated for r in records)
+    total_investor_roi = sum(r.investor_roi_paid for r in records)
+    total_sales_roi = sum(r.sales_roi_paid for r in records)
+    
     return render_template('investor_detail.html',
                          investor=investor,
-                         records=records,
+                         ledger=ledger,
                          transactions=transactions,
-                         total_revenue=total_revenue,
-                         total_investor_roi=total_investor_roi,
-                         total_sales_roi=total_sales_roi,
                          deposits=deposits,
                          withdrawals=withdrawals,
                          net_capital=net_capital,
+                         total_roi_generated=total_roi_generated,
+                         total_investor_share=total_investor_share,
+                         total_sales_share=total_sales_share,
+                         records=records,
+                         total_revenue=total_revenue,
+                         total_investor_roi=total_investor_roi,
+                         total_sales_roi=total_sales_roi,
+                         current_year=current_year,
                          is_admin=session.get('is_admin', False),
                          exchange_rate=EXCHANGE_RATE)
+
 
 @app.route('/investor/add', methods=['GET', 'POST'])
 @admin_required
@@ -1100,6 +1141,49 @@ def download_transaction_evidence(investor_id, transaction_id):
         return redirect(url_for('investor_detail', investor_id=investor_id))
 
 # Database will be initialized on first request via @app.before_request
+
+
+@app.route('/investor/<int:investor_id>/manual-roi/add', methods=['POST'])
+@admin_required
+def add_manual_roi(investor_id):
+    investor = Investor.query.get_or_404(investor_id)
+    year = int(request.form['year'])
+    month = int(request.form['month'])
+    total_roi = float(request.form['total_roi_generated'])
+    record = ManualROI.query.filter_by(investor_id=investor_id, year=year, month=month).first()
+    if not record:
+        record = ManualROI(investor_id=investor_id, year=year, month=month)
+        db.session.add(record)
+    record.total_roi_generated = total_roi
+    record.notes = request.form.get('notes', '')
+    five_percent = total_roi * 0.05
+    investor_percentage = investor.investor_roi_percent
+    sales_percentage = investor.sales_roi_percent
+    total_percentage = investor_percentage + sales_percentage
+    if total_percentage > 0:
+        record.investor_share = five_percent * (investor_percentage / total_percentage)
+        record.sales_share = five_percent * (sales_percentage / total_percentage)
+    else:
+        record.investor_share = five_percent * 0.5
+        record.sales_share = five_percent * 0.5
+    db.session.commit()
+    flash(f"ROI entry added: {total_roi:,.2f} AED → Investor: {record.investor_share:,.2f} AED, Sales: {record.sales_share:,.2f} AED", 'success')
+    return redirect(url_for('investor_detail', investor_id=investor_id))
+
+@app.route('/investor/<int:investor_id>/manual-roi/delete', methods=['POST'])
+@admin_required
+def delete_manual_roi(investor_id):
+    year = int(request.form['year'])
+    month = int(request.form['month'])
+    record = ManualROI.query.filter_by(investor_id=investor_id, year=year, month=month).first()
+    if record:
+        db.session.delete(record)
+        db.session.commit()
+        flash(f"ROI entry for {record.month_name} deleted successfully!", 'success')
+    else:
+        flash('ROI entry not found', 'error')
+    return redirect(url_for('investor_detail', investor_id=investor_id))
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
