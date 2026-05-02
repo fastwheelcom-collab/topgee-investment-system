@@ -133,19 +133,26 @@ class Investor(db.Model):
     investment_transactions = db.relationship('InvestmentTransaction', backref='investor', lazy=True, cascade='all, delete-orphan')
     
     @property
+    def total_capital(self):
+        """Total capital (initial + deposits - withdrawals)"""
+        deposits = sum(t.amount for t in self.investment_transactions if t.transaction_type == 'Deposit')
+        withdrawals = sum(t.amount for t in self.investment_transactions if t.transaction_type == 'Withdrawal')
+        return self.investment_amount + deposits - withdrawals
+    
+    @property
     def total_roi_pool(self):
-        """5% of investment amount"""
-        return self.investment_amount * 0.05
+        """5% of TOTAL investment (including deposits/withdrawals)"""
+        return self.total_capital * 0.05
     
     @property
     def monthly_investor_roi(self):
-        """Investor's share of ROI"""
-        return self.investment_amount * (self.investor_roi_percent / 100)
+        """Investor's share of ROI (based on total capital)"""
+        return self.total_capital * (self.investor_roi_percent / 100)
     
     @property
     def monthly_sales_roi(self):
-        """Sales rep's share of ROI"""
-        return self.investment_amount * (self.sales_roi_percent / 100)
+        """Sales rep's share of ROI (based on total capital)"""
+        return self.total_capital * (self.sales_roi_percent / 100)
     
     @property
     def contract_expiry_warning(self):
@@ -154,13 +161,6 @@ class Investor(db.Model):
             return False
         days_remaining = (self.contract_end - date.today()).days
         return 0 <= days_remaining <= 90
-    
-    @property
-    def total_capital(self):
-        """Total capital (initial + deposits - withdrawals)"""
-        deposits = sum(t.amount for t in self.investment_transactions if t.transaction_type == 'Deposit')
-        withdrawals = sum(t.amount for t in self.investment_transactions if t.transaction_type == 'Withdrawal')
-        return self.investment_amount + deposits - withdrawals
 
 class InvestmentTransaction(db.Model):
     """Track deposits and withdrawals for each investor"""

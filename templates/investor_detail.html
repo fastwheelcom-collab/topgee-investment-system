@@ -29,9 +29,9 @@
         <!-- Investor Details -->
         <div class="details-grid">
             <div class="detail-card">
-                <h3>💰 Investment Amount</h3>
-                <p class="large-number">{{ '{:,.2f}'.format(investor.investment_amount) }} AED</p>
-                <p class="sub-text">{{ '{:,.2f}'.format(investor.investment_amount / exchange_rate) }} USD | Since {{ investor.investment_date.strftime('%d-%b-%Y') }}</p>
+                <h3>💰 Total Investment</h3>
+                <p class="large-number">{{ '{:,.2f}'.format(investor.total_capital) }} AED</p>
+                <p class="sub-text">{{ '{:,.2f}'.format(investor.total_capital / exchange_rate) }} USD | Since {{ investor.investment_date.strftime('%d-%b-%Y') }}</p>
             </div>
 
             <div class="detail-card">
@@ -61,23 +61,22 @@
         </div>
         {% endif %}
 
-        <!-- Capital Summary -->
+        <!-- Capital Breakdown -->
         <div class="summary-grid">
             <div class="summary-card">
                 <h4>💼 Initial Investment</h4>
                 <p>{{ '{:,.2f}'.format(investor.investment_amount) }} AED</p>
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem;">{{ investor.investment_date.strftime('%d %b %Y') }}</p>
             </div>
             <div class="summary-card">
-                <h4>➕ Total Deposits</h4>
+                <h4>➕ Additional Deposits</h4>
                 <p>{{ '{:,.2f}'.format(deposits) }} AED</p>
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem;">{{ transactions|selectattr('transaction_type', 'equalto', 'Deposit')|list|length }} transaction(s)</p>
             </div>
             <div class="summary-card">
                 <h4>➖ Total Withdrawals</h4>
                 <p>{{ '{:,.2f}'.format(withdrawals) }} AED</p>
-            </div>
-            <div class="summary-card" style="background: #e8f5e9;">
-                <h4>💰 Net Capital</h4>
-                <p><strong>{{ '{:,.2f}'.format(net_capital) }} AED</strong></p>
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem;">{{ transactions|selectattr('transaction_type', 'equalto', 'Withdrawal')|list|length }} transaction(s)</p>
             </div>
         </div>
 
