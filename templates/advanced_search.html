@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Search - TopGee It</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1>🏦 TopGee It</h1>
+            <div class="nav-links">
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('advanced_search') }}" class="active">Advanced Search</a>
+                <a href="{{ url_for('reports_dashboard') }}">Reports</a>
+                <a href="{{ url_for('monthly_grid') }}">Monthly Grid</a>
+                <a href="{{ url_for('logout') }}" class="btn-secondary">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h2>🔍 Advanced Search & Filters</h2>
+
+        <!-- Advanced Filter Form -->
+        <div class="filter-panel">
+            <form method="GET" action="{{ url_for('advanced_search') }}">
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <label>Investment Amount Range (AED)</label>
+                        <div class="range-inputs">
+                            <input type="number" name="min_amount" placeholder="Min" value="{{ filters.min_amount or '' }}" step="1000">
+                            <span>to</span>
+                            <input type="number" name="max_amount" placeholder="Max" value="{{ filters.max_amount or '' }}" step="1000">
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Category</label>
+                        <select name="category">
+                            <option value="">All Categories</option>
+                            <option value="Individual" {% if filters.category == 'Individual' %}selected{% endif %}>Individual</option>
+                            <option value="Company" {% if filters.category == 'Company' %}selected{% endif %}>Company</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Investor ROI % Range</label>
+                        <div class="range-inputs">
+                            <input type="number" name="min_roi" placeholder="Min" value="{{ filters.min_roi or '' }}" step="0.1">
+                            <span>to</span>
+                            <input type="number" name="max_roi" placeholder="Max" value="{{ filters.max_roi or '' }}" step="0.1">
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Investment Date Range</label>
+                        <div class="range-inputs">
+                            <input type="date" name="date_from" value="{{ filters.date_from or '' }}">
+                            <span>to</span>
+                            <input type="date" name="date_to" value="{{ filters.date_to or '' }}">
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Sales Representative</label>
+                        <select name="sales_rep_id">
+                            <option value="">All Sales Reps</option>
+                            {% for rep in sales_reps %}
+                            <option value="{{ rep.id }}" {% if filters.sales_rep_id|int == rep.id %}selected{% endif %}>{{ rep.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn-primary">🔍 Apply Filters</button>
+                    <a href="{{ url_for('advanced_search') }}" class="btn-secondary">Clear All</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Results Summary -->
+        <div class="results-summary">
+            <h3>Search Results</h3>
+            <div class="stats-mini">
+                <div class="stat-mini">
+                    <strong>{{ total_investors }}</strong> investors found
+                </div>
+                <div class="stat-mini">
+                    <strong>{{ "{:,.0f}".format(total_investment) }}</strong> AED total
+                </div>
+                <div class="stat-mini">
+                    <strong>{{ "{:,.0f}".format(total_investment / exchange_rate) }}</strong> USD
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Table -->
+        <table class="investor-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Investment (AED)</th>
+                    <th>Investment (USD)</th>
+                    <th>Date</th>
+                    <th>ROI Split</th>
+                    <th>Sales Rep</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for investor in investors %}
+                <tr>
+                    <td><strong>{{ investor.name }}</strong></td>
+                    <td><span class="badge-{{ investor.category.lower() }}">{{ investor.category }}</span></td>
+                    <td>{{ "{:,.0f}".format(investor.investment_amount) }} AED</td>
+                    <td>{{ "{:,.0f}".format(investor.investment_amount / exchange_rate) }} USD</td>
+                    <td>{{ investor.investment_date.strftime('%d %b %Y') }}</td>
+                    <td>{{ investor.investor_roi_percent }}% / {{ investor.sales_roi_percent }}%</td>
+                    <td>{{ investor.sales_rep.name if investor.sales_rep else 'Unassigned' }}</td>
+                    <td>
+                        <a href="{{ url_for('investor_detail', investor_id=investor.id) }}" class="btn-view">View</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="no-results">No investors found matching your criteria</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <footer>
+        <p>TopGee It</p>
+    </footer>
+</body>
+</html>

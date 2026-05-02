@@ -145,6 +145,7 @@
                             <th>Payment Date</th>
                             <th>Method</th>
                             <th>Notes</th>
+                            <th>Report</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -158,11 +159,17 @@
                                 <td>{{ record.payment_date.strftime('%d-%b-%Y') if record.payment_date else '-' }}</td>
                                 <td>{{ record.payment_method or '-' }}</td>
                                 <td>{{ record.notes or '-' }}</td>
+                                <td>
+                                    <a href="{{ url_for('customer_monthly_report', investor_id=investor.id, year=record.year, month=record.month) }}" 
+                                       class="btn-view" title="Download customer report">
+                                        📄 PDF
+                                    </a>
+                                </td>
                             </tr>
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="7" style="text-align: center; color: #999;">No monthly records yet. Add your first record above.</td>
+                                <td colspan="8" style="text-align: center; color: #999;">No monthly records yet. Add your first record above.</td>
                             </tr>
                         {% endif %}
                     </tbody>

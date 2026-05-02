@@ -542,6 +542,209 @@ def add_sales_rep():
     db.session.commit()
     return redirect(url_for('sales_reps'))
 
+@app.route('/advanced-search')
+@login_required
+def advanced_search():
+    """Advanced search with filters"""
+    # Get filter parameters
+    min_amount = request.args.get('min_amount', type=float)
+    max_amount = request.args.get('max_amount', type=float)
+    category = request.args.get('category', '')
+    min_roi = request.args.get('min_roi', type=float)
+    max_roi = request.args.get('max_roi', type=float)
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    sales_rep_id = request.args.get('sales_rep_id', type=int)
+    
+    # Start with all investors
+    query = Investor.query
+    
+    # Apply filters
+    if min_amount:
+        query = query.filter(Investor.investment_amount >= min_amount)
+    if max_amount:
+        query = query.filter(Investor.investment_amount <= max_amount)
+    if category:
+        query = query.filter(Investor.category == category)
+    if min_roi:
+        query = query.filter(Investor.investor_roi_percent >= min_roi)
+    if max_roi:
+        query = query.filter(Investor.investor_roi_percent <= max_roi)
+    if date_from:
+        query = query.filter(Investor.investment_date >= datetime.strptime(date_from, '%Y-%m-%d'))
+    if date_to:
+        query = query.filter(Investor.investment_date <= datetime.strptime(date_to, '%Y-%m-%d'))
+    if sales_rep_id:
+        query = query.filter(Investor.sales_rep_id == sales_rep_id)
+    
+    investors = query.all()
+    sales_reps = SalesRep.query.filter_by(active=True).all()
+    
+    # Calculate totals for filtered results
+    total_investment = sum(i.investment_amount for i in investors)
+    total_investors = len(investors)
+    
+    return render_template('advanced_search.html',
+                         investors=investors,
+                         sales_reps=sales_reps,
+                         total_investment=total_investment,
+                         total_investors=total_investors,
+                         filters=request.args,
+                         exchange_rate=EXCHANGE_RATE)
+
+@app.route('/monthly-grid')
+@login_required
+def monthly_grid():
+    """Monthly grid view for all investors"""
+    # Get year (default to current)
+    year = request.args.get('year', datetime.now().year, type=int)
+    
+    # Get all investors
+    investors = Investor.query.all()
+    
+    # Get all monthly records for this year
+    records = MonthlyRecord.query.filter_by(year=year).all()
+    
+    # Build grid data: investor -> month -> record
+    grid_data = {}
+    for investor in investors:
+        grid_data[investor.id] = {
+            'investor': investor,
+            'months': {}
+        }
+        for month in range(1, 13):
+            record = next((r for r in records if r.investor_id == investor.id and r.month == month), None)
+            grid_data[investor.id]['months'][month] = record
+    
+    return render_template('monthly_grid.html',
+                         grid_data=grid_data,
+                         year=year,
+                         months=range(1, 13))
+
+@app.route('/reports/customer/<int:investor_id>/monthly/<int:year>/<int:month>')
+@login_required
+def customer_monthly_report(investor_id, year, month):
+    """Generate professional monthly report for customer"""
+    investor = Investor.query.get_or_404(investor_id)
+    record = MonthlyRecord.query.filter_by(
+        investor_id=investor_id,
+        year=year,
+        month=month
+    ).first()
+    
+    # Create PDF
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    elements = []
+    styles = getSampleStyleSheet()
+    
+    # Title
+    title = Paragraph(f"<b>TopGee It - Monthly Investment Report</b>", styles['Title'])
+    elements.append(title)
+    elements.append(Spacer(1, 0.3*inch))
+    
+    # Header info
+    month_name = datetime(year, month, 1).strftime('%B %Y')
+    header_data = [
+        ['Investor:', investor.name],
+        ['Report Period:', month_name],
+        ['Investment Amount:', f"{investor.investment_amount:,.2f} AED"],
+        ['Investment Date:', investor.investment_date.strftime('%d %B %Y')],
+    ]
+    header_table = Table(header_data, colWidths=[2*inch, 4*inch])
+    header_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 11),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 0.3*inch))
+    
+    # Monthly performance
+    if record:
+        perf_data = [
+            ['Monthly Performance', ''],
+            ['Revenue Generated:', f"{record.revenue_generated:,.2f} AED"],
+            ['Your ROI ({:.1f}%):".format(investor.investor_roi_percent), f"{record.investor_roi_paid:,.2f} AED"],
+            ['Payment Date:', record.payment_date.strftime('%d %B %Y') if record.payment_date else 'Pending'],
+            ['Payment Method:', record.payment_method or 'N/A'],
+        ]
+    else:
+        perf_data = [
+            ['Monthly Performance', ''],
+            ['Status:', 'No activity recorded for this month'],
+        ]
+    
+    perf_table = Table(perf_data, colWidths=[2*inch, 4*inch])
+    perf_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 13),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+        ('FONTSIZE', (0, 1), (-1, -1), 11),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    elements.append(perf_table)
+    elements.append(Spacer(1, 0.3*inch))
+    
+    # Footer
+    footer = Paragraph("<i>Thank you for your investment with TopGee It</i>", styles['Normal'])
+    elements.append(footer)
+    
+    doc.build(elements)
+    buffer.seek(0)
+    
+    filename = f"TopGeeIt_{investor.name.replace(' ', '_')}_{month_name.replace(' ', '_')}.pdf"
+    return send_file(buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+
+@app.route('/reports/dashboard')
+@login_required
+def reports_dashboard():
+    """Advanced reporting dashboard"""
+    # Get date range from request
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    category = request.args.get('category', '')
+    
+    # Build query
+    query = Investor.query
+    if date_from:
+        query = query.filter(Investor.investment_date >= datetime.strptime(date_from, '%Y-%m-%d'))
+    if date_to:
+        query = query.filter(Investor.investment_date <= datetime.strptime(date_to, '%Y-%m-%d'))
+    if category:
+        query = query.filter(Investor.category == category)
+    
+    investors = query.all()
+    
+    # Calculate stats
+    total_investment = sum(i.investment_amount for i in investors)
+    total_investors = len(investors)
+    individual_count = len([i for i in investors if i.category == 'Individual'])
+    company_count = len([i for i in investors if i.category == 'Company'])
+    
+    # Get monthly records for the filtered investors
+    investor_ids = [i.id for i in investors]
+    monthly_records = MonthlyRecord.query.filter(MonthlyRecord.investor_id.in_(investor_ids)).all() if investor_ids else []
+    
+    total_revenue = sum(r.revenue_generated for r in monthly_records)
+    total_roi_paid = sum(r.investor_roi_paid + r.sales_roi_paid for r in monthly_records)
+    
+    stats = {
+        'total_investment': total_investment,
+        'total_investors': total_investors,
+        'individual_count': individual_count,
+        'company_count': company_count,
+        'total_revenue': total_revenue,
+        'total_roi_paid': total_roi_paid,
+    }
+    
+    return render_template('reports_dashboard.html',
+                         investors=investors,
+                         stats=stats,
+                         filters=request.args,
+                         exchange_rate=EXCHANGE_RATE)
+
 # Database will be initialized on first request via @app.before_request
 
 if __name__ == '__main__':

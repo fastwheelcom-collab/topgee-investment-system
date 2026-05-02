@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports Dashboard - TopGee It</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1>🏦 TopGee It</h1>
+            <div class="nav-links">
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('advanced_search') }}">Advanced Search</a>
+                <a href="{{ url_for('reports_dashboard') }}" class="active">Reports</a>
+                <a href="{{ url_for('monthly_grid') }}">Monthly Grid</a>
+                <a href="{{ url_for('logout') }}" class="btn-secondary">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h2>📊 Advanced Reports Dashboard</h2>
+
+        <!-- Filter Panel -->
+        <div class="filter-panel">
+            <h3>Report Filters</h3>
+            <form method="GET" action="{{ url_for('reports_dashboard') }}">
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <label>Date Range</label>
+                        <div class="range-inputs">
+                            <input type="date" name="date_from" value="{{ filters.date_from or '' }}">
+                            <span>to</span>
+                            <input type="date" name="date_to" value="{{ filters.date_to or '' }}">
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Category</label>
+                        <select name="category">
+                            <option value="">All Categories</option>
+                            <option value="Individual" {% if filters.category == 'Individual' %}selected{% endif %}>Individual</option>
+                            <option value="Company" {% if filters.category == 'Company' %}selected{% endif %}>Company</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn-primary">Generate Report</button>
+                    <a href="{{ url_for('reports_dashboard') }}" class="btn-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Statistics Summary -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-content">
+                    <h3>Total Investors</h3>
+                    <p class="stat-value">{{ stats.total_investors }}</p>
+                    <p class="stat-sub">{{ stats.individual_count }} Individual | {{ stats.company_count }} Company</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-content">
+                    <h3>Total Investment</h3>
+                    <p class="stat-value">{{ "{:,.0f}".format(stats.total_investment) }} AED</p>
+                    <p class="stat-sub">{{ "{:,.0f}".format(stats.total_investment / exchange_rate) }} USD</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-content">
+                    <h3>Total Revenue</h3>
+                    <p class="stat-value">{{ "{:,.0f}".format(stats.total_revenue) }} AED</p>
+                    <p class="stat-sub">From tracked periods</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">💸</div>
+                <div class="stat-content">
+                    <h3>ROI Distributed</h3>
+                    <p class="stat-value">{{ "{:,.0f}".format(stats.total_roi_paid) }} AED</p>
+                    <p class="stat-sub">To investors & sales</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Investor List -->
+        <div style="margin-top: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3>Investor Details</h3>
+                <div>
+                    <button onclick="window.print()" class="btn-secondary">🖨️ Print Report</button>
+                    <button onclick="downloadCSV()" class="btn-primary">📥 Download CSV</button>
+                </div>
+            </div>
+
+            <table class="investor-table" id="reportTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Investment (AED)</th>
+                        <th>Investment (USD)</th>
+                        <th>Investment Date</th>
+                        <th>ROI Split (%)</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for investor in investors %}
+                    <tr>
+                        <td><strong>{{ investor.name }}</strong></td>
+                        <td><span class="badge-{{ investor.category.lower() }}">{{ investor.category }}</span></td>
+                        <td>{{ "{:,.0f}".format(investor.investment_amount) }}</td>
+                        <td>{{ "{:,.0f}".format(investor.investment_amount / exchange_rate) }}</td>
+                        <td>{{ investor.investment_date.strftime('%d %b %Y') }}</td>
+                        <td>{{ investor.investor_roi_percent }}% / {{ investor.sales_roi_percent }}%</td>
+                        <td><span class="badge-active">{{ investor.status }}</span></td>
+                        <td>
+                            <a href="{{ url_for('investor_detail', investor_id=investor.id) }}" class="btn-view">View</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="no-results">No investors found for selected filters</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr style="background: #f8f9fa; font-weight: bold;">
+                        <td colspan="2">TOTALS</td>
+                        <td>{{ "{:,.0f}".format(stats.total_investment) }} AED</td>
+                        <td>{{ "{:,.0f}".format(stats.total_investment / exchange_rate) }} USD</td>
+                        <td colspan="4">{{ stats.total_investors }} Investors</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        <p>TopGee It</p>
+    </footer>
+
+    <script>
+        function downloadCSV() {
+            const table = document.getElementById('reportTable');
+            let csv = [];
+            
+            // Headers
+            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+            csv.push(headers.join(','));
+            
+            // Rows
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const cells = Array.from(row.querySelectorAll('td')).map(td => {
+                    let text = td.textContent.trim();
+                    // Remove commas for CSV
+                    text = text.replace(/,/g, '');
+                    return '"' + text + '"';
+                });
+                if (cells.length > 0) {
+                    csv.push(cells.join(','));
+                }
+            });
+            
+            // Download
+            const csvContent = csv.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'TopGeeIt_Report_' + new Date().toISOString().split('T')[0] + '.csv';
+            a.click();
+        }
+    </script>
+</body>
+</html>

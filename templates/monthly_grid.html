@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Grid - TopGee It</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .grid-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        .month-grid {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .month-grid th {
+            background: #2c3e50;
+            color: white;
+            padding: 10px 5px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .month-grid th.investor-name {
+            text-align: left;
+            min-width: 150px;
+        }
+        .month-grid td {
+            border: 1px solid #ddd;
+            padding: 8px 5px;
+            text-align: center;
+        }
+        .month-grid td.investor-name {
+            text-align: left;
+            font-weight: bold;
+            background: #f8f9fa;
+            position: sticky;
+            left: 0;
+            z-index: 5;
+        }
+        .month-cell {
+            min-width: 80px;
+        }
+        .month-cell.has-data {
+            background: #d4edda;
+            cursor: pointer;
+        }
+        .month-cell.no-data {
+            background: #f8d7da;
+        }
+        .revenue-amount {
+            font-weight: bold;
+            color: #28a745;
+        }
+        .roi-amount {
+            font-size: 11px;
+            color: #666;
+        }
+        .year-selector {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .year-selector button {
+            margin: 0 10px;
+            padding: 8px 15px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1>🏦 TopGee It</h1>
+            <div class="nav-links">
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('advanced_search') }}">Advanced Search</a>
+                <a href="{{ url_for('reports_dashboard') }}">Reports</a>
+                <a href="{{ url_for('monthly_grid') }}" class="active">Monthly Grid</a>
+                <a href="{{ url_for('logout') }}" class="btn-secondary">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h2>📅 Monthly Activity Grid - {{ year }}</h2>
+
+        <!-- Year Selector -->
+        <div class="year-selector">
+            <a href="{{ url_for('monthly_grid', year=year-1) }}" class="btn-secondary">← {{ year - 1 }}</a>
+            <strong style="font-size: 20px;">{{ year }}</strong>
+            <a href="{{ url_for('monthly_grid', year=year+1) }}" class="btn-secondary">{{ year + 1 }} →</a>
+        </div>
+
+        <!-- Monthly Grid -->
+        <div class="grid-container">
+            <table class="month-grid">
+                <thead>
+                    <tr>
+                        <th class="investor-name">Investor</th>
+                        <th>Jan</th>
+                        <th>Feb</th>
+                        <th>Mar</th>
+                        <th>Apr</th>
+                        <th>May</th>
+                        <th>Jun</th>
+                        <th>Jul</th>
+                        <th>Aug</th>
+                        <th>Sep</th>
+                        <th>Oct</th>
+                        <th>Nov</th>
+                        <th>Dec</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for investor_id, data in grid_data.items() %}
+                    <tr>
+                        <td class="investor-name">
+                            <a href="{{ url_for('investor_detail', investor_id=data.investor.id) }}">
+                                {{ data.investor.name }}
+                            </a>
+                        </td>
+                        {% for month in months %}
+                        {% set record = data.months[month] %}
+                        <td class="month-cell {% if record %}has-data{% else %}no-data{% endif %}">
+                            {% if record %}
+                            <div class="revenue-amount">{{ "{:,.0f}".format(record.revenue_generated) }}</div>
+                            <div class="roi-amount">ROI: {{ "{:,.0f}".format(record.investor_roi_paid) }}</div>
+                            {% else %}
+                            <span style="color: #999;">—</span>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+            <p><strong>Legend:</strong></p>
+            <p>🟢 Green cells = Activity recorded | 🔴 Red cells = No activity</p>
+            <p>Click investor name to view detailed profile</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>TopGee It</p>
+    </footer>
+</body>
+</html>
