@@ -47,6 +47,39 @@
             </div>
         </div>
 
+        <!-- Edit Form (hidden) -->
+        <div id="editForm" style="display: none; margin-bottom: 30px;">
+            <div class="form-container" style="max-width: 600px;">
+                <h3>Edit Sales Representative</h3>
+                <form method="POST" id="editFormElement" action="">
+                    <input type="hidden" name="rep_id" id="edit_rep_id">
+                    <div class="form-group">
+                        <label>Name *</label>
+                        <input type="text" name="name" id="edit_name" required placeholder="John Smith">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" id="edit_email" placeholder="john@topgee.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="text" name="phone" id="edit_phone" placeholder="+971 50 123 4567">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select name="active" id="edit_active">
+                            <option value="true">Active</option>
+                            <option value="false">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Update</button>
+                        <button type="button" onclick="hideEditForm()" class="btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Sales Reps Table -->
         <div class="table-container">
             <table>
@@ -58,17 +91,28 @@
                         <th>Phone</th>
                         <th>Investors</th>
                         <th>Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for rep in sales_reps %}
-                    <tr>
+                    <tr id="rep-{{ rep.id }}">
                         <td>{{ loop.index }}</td>
                         <td><strong>{{ rep.name }}</strong></td>
                         <td>{{ rep.email or '-' }}</td>
                         <td>{{ rep.phone or '-' }}</td>
                         <td>{{ rep.investors|length }} investor(s)</td>
                         <td><span class="badge badge-{{ 'success' if rep.active else 'inactive' }}">{{ 'Active' if rep.active else 'Inactive' }}</span></td>
+                        <td>
+                            {% if is_admin %}
+                            <button onclick="showEditForm({{ rep.id }}, '{{ rep.name }}', '{{ rep.email or '' }}', '{{ rep.phone or '' }}', {{ 'true' if rep.active else 'false' }})" class="btn-view" style="margin-right: 5px;">✏️ Edit</button>
+                            <form method="POST" action="{{ url_for('delete_sales_rep', rep_id=rep.id) }}" style="display: inline;" onsubmit="return confirm('Delete {{ rep.name }}? This will unassign {{ rep.investors|length }} investor(s).')">
+                                <button type="submit" class="btn-delete">🗑️ Delete</button>
+                            </form>
+                            {% else %}
+                            <span style="color: #999;">—</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -81,8 +125,28 @@
     </footer>
 
     <script>
-        function showAddForm() { document.getElementById('addForm').style.display = 'block'; }
-        function hideAddForm() { document.getElementById('addForm').style.display = 'none'; }
+        function showAddForm() {
+            document.getElementById('addForm').style.display = 'block';
+            document.getElementById('editForm').style.display = 'none';
+        }
+        function hideAddForm() {
+            document.getElementById('addForm').style.display = 'none';
+        }
+        function showEditForm(id, name, email, phone, active) {
+            document.getElementById('editForm').style.display = 'block';
+            document.getElementById('addForm').style.display = 'none';
+            document.getElementById('edit_rep_id').value = id;
+            document.getElementById('edit_name').value = name;
+            document.getElementById('edit_email').value = email;
+            document.getElementById('edit_phone').value = phone;
+            document.getElementById('edit_active').value = active ? 'true' : 'false';
+            document.getElementById('editFormElement').action = '/sales-rep/' + id + '/edit';
+            // Scroll to form
+            document.getElementById('editForm').scrollIntoView({ behavior: 'smooth' });
+        }
+        function hideEditForm() {
+            document.getElementById('editForm').style.display = 'none';
+        }
     </script>
 </body>
 </html>

@@ -528,7 +528,9 @@ def download_investor_ledger(investor_id):
 def sales_reps():
     """Manage sales representatives"""
     reps = SalesRep.query.all()
-    return render_template('sales_reps.html', sales_reps=reps)
+    return render_template('sales_reps.html', 
+                         sales_reps=reps,
+                         is_admin=session.get('is_admin', False))
 
 @app.route('/sales-rep/add', methods=['POST'])
 @admin_required
@@ -540,6 +542,34 @@ def add_sales_rep():
     )
     db.session.add(rep)
     db.session.commit()
+    flash('Sales representative added successfully!', 'success')
+    return redirect(url_for('sales_reps'))
+
+@app.route('/sales-rep/<int:rep_id>/edit', methods=['POST'])
+@admin_required
+def edit_sales_rep(rep_id):
+    rep = SalesRep.query.get_or_404(rep_id)
+    rep.name = request.form['name']
+    rep.email = request.form.get('email', '')
+    rep.phone = request.form.get('phone', '')
+    rep.active = request.form.get('active', 'true') == 'true'
+    db.session.commit()
+    flash(f'Sales representative "{rep.name}" updated successfully!', 'success')
+    return redirect(url_for('sales_reps'))
+
+@app.route('/sales-rep/<int:rep_id>/delete', methods=['POST'])
+@admin_required
+def delete_sales_rep(rep_id):
+    rep = SalesRep.query.get_or_404(rep_id)
+    rep_name = rep.name
+    
+    # Unassign all investors from this rep
+    for investor in rep.investors:
+        investor.sales_rep_id = None
+    
+    db.session.delete(rep)
+    db.session.commit()
+    flash(f'Sales representative "{rep_name}" deleted successfully!', 'success')
     return redirect(url_for('sales_reps'))
 
 @app.route('/advanced-search')
