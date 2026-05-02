@@ -665,7 +665,7 @@ def customer_monthly_report(investor_id, year, month):
         perf_data = [
             ['Monthly Performance', ''],
             ['Revenue Generated:', f"{record.revenue_generated:,.2f} AED"],
-            ['Your ROI ({:.1f}%):".format(investor.investor_roi_percent), f"{record.investor_roi_paid:,.2f} AED"],
+            [f'Your ROI ({investor.investor_roi_percent:.1f}%):', f"{record.investor_roi_paid:,.2f} AED"],
             ['Payment Date:', record.payment_date.strftime('%d %B %Y') if record.payment_date else 'Pending'],
             ['Payment Method:', record.payment_method or 'N/A'],
         ]
