@@ -71,6 +71,30 @@ PARTNERS = {
     'kay': 'Mr. Kay'
 }
 
+# Countries list (standard)
+COUNTRIES = [
+    'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan',
+    'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia',
+    'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon',
+    'Canada', 'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo',
+    'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic',
+    'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Ethiopia', 'Fiji', 'Finland', 'France',
+    'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana',
+    'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica',
+    'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kosovo', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon',
+    'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Macedonia', 'Madagascar', 'Malawi', 'Malaysia',
+    'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco',
+    'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand',
+    'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama',
+    'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda',
+    'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines', 'Samoa', 'San Marino', 'Sao Tome and Principe',
+    'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands',
+    'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Swaziland', 'Sweden',
+    'Switzerland', 'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Timor-Leste', 'Togo', 'Tonga', 'Trinidad and Tobago',
+    'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States',
+    'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe'
+]
+
 # ============= DATABASE MODELS =============
 
 class SalesRep(db.Model):
@@ -87,6 +111,7 @@ class Investor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
     category = db.Column(db.String(50))  # Individual or Company
+    country = db.Column(db.String(100))  # NEW: Country field
     investment_amount = db.Column(db.Float, nullable=False)
     investment_date = db.Column(db.Date, nullable=False)
     sales_rep_id = db.Column(db.Integer, db.ForeignKey('sales_rep.id'))
@@ -95,11 +120,17 @@ class Investor(db.Model):
     investor_roi_percent = db.Column(db.Float, default=2.5)  # 2-3%
     sales_roi_percent = db.Column(db.Float, default=2.5)     # 2-3%
     
+    # Contract Management
+    contract_start = db.Column(db.Date)  # NEW: Contract start date
+    contract_end = db.Column(db.Date)    # NEW: Contract end date (auto-calculated as +1 year)
+    contract_file = db.Column(db.Text)   # NEW: Base64 encoded contract PDF
+    
     status = db.Column(db.String(50), default='Active')
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     monthly_records = db.relationship('MonthlyRecord', backref='investor', lazy=True, cascade='all, delete-orphan')
+    investment_transactions = db.relationship('InvestmentTransaction', backref='investor', lazy=True, cascade='all, delete-orphan')
     
     @property
     def total_roi_pool(self):
@@ -115,6 +146,32 @@ class Investor(db.Model):
     def monthly_sales_roi(self):
         """Sales rep's share of ROI"""
         return self.investment_amount * (self.sales_roi_percent / 100)
+    
+    @property
+    def contract_expiry_warning(self):
+        """Check if contract expires in 90 days"""
+        if not self.contract_end:
+            return False
+        days_remaining = (self.contract_end - date.today()).days
+        return 0 <= days_remaining <= 90
+    
+    @property
+    def total_capital(self):
+        """Total capital (initial + deposits - withdrawals)"""
+        deposits = sum(t.amount for t in self.investment_transactions if t.transaction_type == 'Deposit')
+        withdrawals = sum(t.amount for t in self.investment_transactions if t.transaction_type == 'Withdrawal')
+        return self.investment_amount + deposits - withdrawals
+
+class InvestmentTransaction(db.Model):
+    """Track deposits and withdrawals for each investor"""
+    id = db.Column(db.Integer, primary_key=True)
+    investor_id = db.Column(db.Integer, db.ForeignKey('investor.id'), nullable=False)
+    
+    transaction_type = db.Column(db.String(20), nullable=False)  # Deposit or Withdrawal
+    amount = db.Column(db.Float, nullable=False)
+    transaction_date = db.Column(db.Date, nullable=False)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class MonthlyRecord(db.Model):
     """Tracks monthly revenue and distributions per investor"""
@@ -285,23 +342,40 @@ def investor_detail(investor_id):
     """Individual investor profile with 12-month ledger"""
     investor = Investor.query.get_or_404(investor_id)
     
-    # Get all monthly records (last 12 months)
+    # Get all monthly records (ALL TIME for cumulative totals)
+    all_records = MonthlyRecord.query.filter_by(investor_id=investor.id).all()
+    
+    # Get last 12 months for display
     now = datetime.now()
     records = MonthlyRecord.query.filter_by(investor_id=investor.id).order_by(
         MonthlyRecord.year.desc(), MonthlyRecord.month.desc()
     ).limit(12).all()
     
-    # Calculate totals
-    total_revenue = sum(r.revenue_generated for r in records)
-    total_investor_roi = sum(r.investor_roi_paid for r in records)
-    total_sales_roi = sum(r.sales_roi_paid for r in records)
+    # Get investment transactions (deposits/withdrawals)
+    transactions = InvestmentTransaction.query.filter_by(investor_id=investor.id).order_by(
+        InvestmentTransaction.transaction_date.desc()
+    ).all()
+    
+    # Calculate totals (ALL TIME)
+    total_revenue = sum(r.revenue_generated for r in all_records)
+    total_investor_roi = sum(r.investor_roi_paid for r in all_records)  # NEW: Cumulative
+    total_sales_roi = sum(r.sales_roi_paid for r in all_records)       # NEW: Cumulative
+    
+    # Capital summary
+    deposits = sum(t.amount for t in transactions if t.transaction_type == 'Deposit')
+    withdrawals = sum(t.amount for t in transactions if t.transaction_type == 'Withdrawal')
+    net_capital = investor.investment_amount + deposits - withdrawals
     
     return render_template('investor_detail.html',
                          investor=investor,
                          records=records,
+                         transactions=transactions,
                          total_revenue=total_revenue,
                          total_investor_roi=total_investor_roi,
                          total_sales_roi=total_sales_roi,
+                         deposits=deposits,
+                         withdrawals=withdrawals,
+                         net_capital=net_capital,
                          is_admin=session.get('is_admin', False),
                          exchange_rate=EXCHANGE_RATE)
 
@@ -318,14 +392,25 @@ def add_investor():
         else:
             investment_aed = amount
         
+        # Contract dates (default 1 year)
+        contract_start = datetime.strptime(request.form['contract_start'], '%Y-%m-%d').date() if request.form.get('contract_start') else None
+        contract_end = None
+        if contract_start:
+            # Auto-calculate end date (1 year from start)
+            from dateutil.relativedelta import relativedelta
+            contract_end = contract_start + relativedelta(years=1)
+        
         investor = Investor(
             name=request.form['name'],
             category=request.form['category'],
+            country=request.form.get('country', ''),
             investment_amount=investment_aed,
             investment_date=datetime.strptime(request.form['investment_date'], '%Y-%m-%d'),
             sales_rep_id=int(request.form['sales_rep_id']) if request.form.get('sales_rep_id') else None,
             investor_roi_percent=float(request.form.get('investor_roi_percent', 2.5)),
             sales_roi_percent=float(request.form.get('sales_roi_percent', 2.5)),
+            contract_start=contract_start,
+            contract_end=contract_end,
             status=request.form.get('status', 'Active'),
             notes=request.form.get('notes', '')
         )
@@ -334,7 +419,7 @@ def add_investor():
         return redirect(url_for('dashboard'))
     
     sales_reps = SalesRep.query.filter_by(active=True).all()
-    return render_template('add_investor.html', sales_reps=sales_reps)
+    return render_template('add_investor.html', sales_reps=sales_reps, countries=COUNTRIES)
 
 @app.route('/investor/<int:investor_id>/edit', methods=['GET', 'POST'])
 @admin_required
@@ -351,13 +436,23 @@ def edit_investor(investor_id):
         else:
             investment_aed = amount
         
+        # Contract dates
+        contract_start = datetime.strptime(request.form['contract_start'], '%Y-%m-%d').date() if request.form.get('contract_start') else None
+        contract_end = None
+        if contract_start:
+            from dateutil.relativedelta import relativedelta
+            contract_end = contract_start + relativedelta(years=1)
+        
         investor.name = request.form['name']
         investor.category = request.form['category']
+        investor.country = request.form.get('country', '')
         investor.investment_amount = investment_aed
         investor.investment_date = datetime.strptime(request.form['investment_date'], '%Y-%m-%d')
         investor.sales_rep_id = int(request.form['sales_rep_id']) if request.form.get('sales_rep_id') else None
         investor.investor_roi_percent = float(request.form.get('investor_roi_percent', 2.5))
         investor.sales_roi_percent = float(request.form.get('sales_roi_percent', 2.5))
+        investor.contract_start = contract_start
+        investor.contract_end = contract_end
         investor.status = request.form.get('status', 'Active')
         investor.notes = request.form.get('notes', '')
         
@@ -365,7 +460,7 @@ def edit_investor(investor_id):
         return redirect(url_for('investor_detail', investor_id=investor.id))
     
     sales_reps = SalesRep.query.filter_by(active=True).all()
-    return render_template('edit_investor.html', investor=investor, sales_reps=sales_reps)
+    return render_template('edit_investor.html', investor=investor, sales_reps=sales_reps, countries=COUNTRIES)
 
 @app.route('/investor/<int:investor_id>/delete', methods=['POST'])
 @admin_required
@@ -774,6 +869,96 @@ def reports_dashboard():
                          stats=stats,
                          filters=request.args,
                          exchange_rate=EXCHANGE_RATE)
+
+@app.route('/investor/<int:investor_id>/transaction/add', methods=['POST'])
+@admin_required
+def add_transaction(investor_id):
+    """Add deposit or withdrawal"""
+    investor = Investor.query.get_or_404(investor_id)
+    
+    transaction = InvestmentTransaction(
+        investor_id=investor_id,
+        transaction_type=request.form['transaction_type'],  # Deposit or Withdrawal
+        amount=float(request.form['amount']),
+        transaction_date=datetime.strptime(request.form['transaction_date'], '%Y-%m-%d').date(),
+        notes=request.form.get('notes', '')
+    )
+    db.session.add(transaction)
+    db.session.commit()
+    
+    flash(f"{transaction.transaction_type} of {transaction.amount:,.2f} AED added successfully!", 'success')
+    return redirect(url_for('investor_detail', investor_id=investor_id))
+
+@app.route('/investor/<int:investor_id>/contract/upload', methods=['POST'])
+@admin_required
+def upload_contract(investor_id):
+    """Upload signed contract"""
+    investor = Investor.query.get_or_404(investor_id)
+    
+    file = request.files.get('contract_file')
+    if file and file.filename:
+        import base64
+        # Read and encode file as base64
+        file_data = file.read()
+        encoded = base64.b64encode(file_data).decode('utf-8')
+        
+        # Store with mimetype prefix
+        investor.contract_file = f"data:{file.mimetype};base64,{encoded}"
+        db.session.commit()
+        
+        flash('Contract uploaded successfully!', 'success')
+    else:
+        flash('No file selected', 'error')
+    
+    return redirect(url_for('investor_detail', investor_id=investor_id))
+
+@app.route('/investor/<int:investor_id>/contract/download')
+@login_required
+def download_contract(investor_id):
+    """Download signed contract"""
+    investor = Investor.query.get_or_404(investor_id)
+    
+    if not investor.contract_file:
+        flash('No contract file available', 'error')
+        return redirect(url_for('investor_detail', investor_id=investor_id))
+    
+    import base64
+    import re
+    
+    # Extract base64 data
+    match = re.match(r'data:(.+);base64,(.+)', investor.contract_file)
+    if match:
+        mimetype = match.group(1)
+        encoded_data = match.group(2)
+        file_data = base64.b64decode(encoded_data)
+        
+        buffer = BytesIO(file_data)
+        buffer.seek(0)
+        
+        extension = 'pdf' if 'pdf' in mimetype else 'jpg'
+        filename = f"{investor.name.replace(' ', '_')}_contract.{extension}"
+        
+        return send_file(buffer, as_attachment=True, download_name=filename, mimetype=mimetype)
+    else:
+        flash('Invalid contract file format', 'error')
+        return redirect(url_for('investor_detail', investor_id=investor_id))
+
+@app.route('/investor/<int:investor_id>/contract/renew', methods=['POST'])
+@admin_required
+def renew_contract(investor_id):
+    """Renew contract for another year"""
+    investor = Investor.query.get_or_404(investor_id)
+    
+    if investor.contract_end:
+        from dateutil.relativedelta import relativedelta
+        # Extend by 1 year from current end date
+        investor.contract_end = investor.contract_end + relativedelta(years=1)
+        db.session.commit()
+        flash(f"Contract renewed until {investor.contract_end.strftime('%d %B %Y')}", 'success')
+    else:
+        flash('No contract end date set', 'error')
+    
+    return redirect(url_for('investor_detail', investor_id=investor_id))
 
 # Database will be initialized on first request via @app.before_request
 

@@ -36,6 +36,16 @@
                     </div>
 
                     <div class="form-group">
+                        <label>Country *</label>
+                        <select name="country" required>
+                            <option value="">-- Select Country --</option>
+                            {% for country in countries %}
+                            <option value="{{ country }}">{{ country }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
                         <label>Status</label>
                         <select name="status">
                             <option value="Active">🟢 Active</option>
@@ -72,6 +82,12 @@
                         <label>Investment Date *</label>
                         <input type="date" name="investment_date" required>
                     </div>
+                    
+                    <div class="form-group">
+                        <label>Contract Start Date *</label>
+                        <input type="date" name="contract_start" required>
+                        <small>Contract end will be auto-calculated (+1 year)</small>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -88,15 +104,15 @@
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Investor ROI % *</label>
+                        <label>Investor Share % *</label>
                         <input type="number" name="investor_roi_percent" step="0.1" value="2.5" required min="0" max="5">
-                        <small>Customer's monthly ROI (2-3% typical)</small>
+                        <small>Investor's monthly ROI (2-5% typical)</small>
                     </div>
 
                     <div class="form-group">
-                        <label>Sales ROI % *</label>
+                        <label>Sales Share % *</label>
                         <input type="number" name="sales_roi_percent" step="0.1" value="2.5" required min="0" max="5">
-                        <small>Sales rep's monthly commission (2-3% typical)</small>
+                        <small>Sales rep's monthly commission (0-3% typical)</small>
                     </div>
                 </div>
 

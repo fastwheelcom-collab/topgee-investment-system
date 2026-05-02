@@ -655,3 +655,21 @@ footer {
         width: 100%;
     }
 }
+
+/* Alert Boxes */
+.alert {
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    font-weight: 500;
+}
+
+.alert-warning {
+    background: #fff3cd;
+    border-left: 4px solid #ff9800;
+    color: #856404;
+}
+
+.alert strong {
+    font-weight: 700;
+}

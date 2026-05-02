@@ -37,13 +37,13 @@
             <div class="detail-card">
                 <h3>👤 Category</h3>
                 <p class="large-number">{{ investor.category }}</p>
-                <p class="sub-text">Sales Rep: {{ investor.sales_rep.name if investor.sales_rep else 'N/A' }}</p>
+                <p class="sub-text">{{ investor.country or 'N/A' }} | Sales Rep: {{ investor.sales_rep.name if investor.sales_rep else 'N/A' }}</p>
             </div>
 
             <div class="detail-card">
                 <h3>📈 ROI Structure (5% total)</h3>
                 <p class="large-number">{{ investor.investor_roi_percent }}% + {{ investor.sales_roi_percent }}%</p>
-                <p class="sub-text">Investor + Sales Rep</p>
+                <p class="sub-text">Investor Share + Sales Share</p>
             </div>
 
             <div class="detail-card">
@@ -53,19 +53,149 @@
             </div>
         </div>
 
-        <!-- Summary Cards -->
+        <!-- Contract Warning (if expiring soon) -->
+        {% if investor.contract_expiry_warning %}
+        <div class="alert alert-warning">
+            ⚠️ <strong>Contract Expiry Warning:</strong> Contract expires on {{ investor.contract_end.strftime('%d %B %Y') }} 
+            ({{ (investor.contract_end - investor.investment_date).days }} days remaining)
+        </div>
+        {% endif %}
+
+        <!-- Capital Summary -->
         <div class="summary-grid">
             <div class="summary-card">
-                <h4>Total Revenue Generated</h4>
+                <h4>💼 Initial Investment</h4>
+                <p>{{ '{:,.2f}'.format(investor.investment_amount) }} AED</p>
+            </div>
+            <div class="summary-card">
+                <h4>➕ Total Deposits</h4>
+                <p>{{ '{:,.2f}'.format(deposits) }} AED</p>
+            </div>
+            <div class="summary-card">
+                <h4>➖ Total Withdrawals</h4>
+                <p>{{ '{:,.2f}'.format(withdrawals) }} AED</p>
+            </div>
+            <div class="summary-card" style="background: #e8f5e9;">
+                <h4>💰 Net Capital</h4>
+                <p><strong>{{ '{:,.2f}'.format(net_capital) }} AED</strong></p>
+            </div>
+        </div>
+
+        <!-- ROI Summary -->
+        <div class="summary-grid">
+            <div class="summary-card">
+                <h4>📊 Total Revenue Generated</h4>
                 <p>{{ '{:,.2f}'.format(total_revenue) }} AED</p>
             </div>
-            <div class="summary-card">
-                <h4>Total ROI Paid to You</h4>
-                <p>{{ '{:,.2f}'.format(total_investor_roi) }} AED</p>
+            <div class="summary-card" style="background: #e3f2fd;">
+                <h4>💵 Total ROI Paid to Investor</h4>
+                <p><strong>{{ '{:,.2f}'.format(total_investor_roi) }} AED</strong></p>
             </div>
             <div class="summary-card">
-                <h4>Total Sales Commission</h4>
+                <h4>🤝 Total Paid to Sales Team</h4>
                 <p>{{ '{:,.2f}'.format(total_sales_roi) }} AED</p>
+            </div>
+        </div>
+
+        <!-- Contract Management Section -->
+        {% if is_admin %}
+        <div class="section">
+            <h2>📑 Contract Management</h2>
+            <div class="details-grid">
+                <div class="detail-card">
+                    <h4>Contract Duration</h4>
+                    <p>{% if investor.contract_start %}{{ investor.contract_start.strftime('%d %b %Y') }} - {{ investor.contract_end.strftime('%d %b %Y') }}{% else %}Not set{% endif %}</p>
+                    {% if investor.contract_end %}
+                    <form method="POST" action="{{ url_for('renew_contract', investor_id=investor.id) }}" style="margin-top: 10px;">
+                        <button type="submit" class="btn-primary" onclick="return confirm('Extend contract by 1 year?')">🔄 Renew Contract (+1 year)</button>
+                    </form>
+                    {% endif %}
+                </div>
+                <div class="detail-card">
+                    <h4>Signed Agreement</h4>
+                    {% if investor.contract_file %}
+                    <p>✅ Contract uploaded</p>
+                    <a href="{{ url_for('download_contract', investor_id=investor.id) }}" class="btn-primary">📥 Download Contract</a>
+                    {% else %}
+                    <p>❌ No contract uploaded</p>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('upload_contract', investor_id=investor.id) }}" enctype="multipart/form-data" style="margin-top: 10px;">
+                        <input type="file" name="contract_file" accept=".pdf,.jpg,.jpeg,.png" required>
+                        <button type="submit" class="btn-primary">📤 Upload Contract</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Investment Transactions (Deposits/Withdrawals) -->
+        <div class="section">
+            <div class="section-header">
+                <h2>💳 Capital Transactions</h2>
+                {% if is_admin %}
+                <button onclick="showTransactionForm()" class="btn-primary">+ Add Transaction</button>
+                {% endif %}
+            </div>
+
+            <!-- Add Transaction Form (hidden) -->
+            <div id="transactionForm" style="display: none; margin-bottom: 20px;">
+                <form method="POST" action="{{ url_for('add_transaction', investor_id=investor.id) }}" class="record-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Type *</label>
+                            <select name="transaction_type" required>
+                                <option value="Deposit">Deposit</option>
+                                <option value="Withdrawal">Withdrawal</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Amount (AED) *</label>
+                            <input type="number" name="amount" step="0.01" required placeholder="10000.00">
+                        </div>
+                        <div class="form-group">
+                            <label>Date *</label>
+                            <input type="date" name="transaction_date" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <input type="text" name="notes" placeholder="Optional notes">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Save Transaction</button>
+                        <button type="button" onclick="hideTransactionForm()" class="btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Transactions Table -->
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if transactions %}
+                            {% for tx in transactions %}
+                            <tr>
+                                <td>{{ tx.transaction_date.strftime('%d-%b-%Y') }}</td>
+                                <td><span class="badge badge-{{ 'success' if tx.transaction_type == 'Deposit' else 'inactive' }}">{{ tx.transaction_type }}</span></td>
+                                <td class="{{ 'highlight' if tx.transaction_type == 'Deposit' else '' }}">{{ '{:,.2f}'.format(tx.amount) }} AED</td>
+                                <td>{{ tx.notes or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" style="text-align: center; color: #999;">No additional transactions yet.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -140,8 +270,8 @@
                         <tr>
                             <th>Month</th>
                             <th>Revenue Generated</th>
-                            <th>Your ROI ({{ investor.investor_roi_percent }}%)</th>
-                            <th>Sales ROI ({{ investor.sales_roi_percent }}%)</th>
+                            <th>Investor Share ({{ investor.investor_roi_percent }}%)</th>
+                            <th>Sales Share ({{ investor.sales_roi_percent }}%)</th>
                             <th>Payment Date</th>
                             <th>Method</th>
                             <th>Notes</th>
@@ -198,6 +328,12 @@
         }
         function hideAddRecordForm() {
             document.getElementById('addRecordForm').style.display = 'none';
+        }
+        function showTransactionForm() {
+            document.getElementById('transactionForm').style.display = 'block';
+        }
+        function hideTransactionForm() {
+            document.getElementById('transactionForm').style.display = 'none';
         }
     </script>
 </body>
