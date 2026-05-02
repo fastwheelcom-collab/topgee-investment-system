@@ -954,6 +954,21 @@ def download_contract(investor_id):
         flash('Invalid contract file format', 'error')
         return redirect(url_for('investor_detail', investor_id=investor_id))
 
+@app.route('/investor/<int:investor_id>/contract/delete', methods=['POST'])
+@admin_required
+def delete_contract(investor_id):
+    """Delete signed contract"""
+    investor = Investor.query.get_or_404(investor_id)
+    
+    if investor.contract_file:
+        investor.contract_file = None
+        db.session.commit()
+        flash('Contract deleted successfully!', 'success')
+    else:
+        flash('No contract file to delete', 'error')
+    
+    return redirect(url_for('investor_detail', investor_id=investor_id))
+
 @app.route('/investor/<int:investor_id>/contract/renew', methods=['POST'])
 @admin_required
 def renew_contract(investor_id):
