@@ -547,7 +547,7 @@ def add_sales_rep():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     print("\n" + "="*60)
-    print("🚀 TOPGEE INVESTMENT MANAGEMENT SYSTEM")
+    print("🚀 TOPGEE IT")
     print("="*60)
     print(f"📊 Dashboard: http://localhost:{port}")
     print("="*60 + "\n")
