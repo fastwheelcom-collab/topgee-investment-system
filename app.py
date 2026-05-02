@@ -971,6 +971,36 @@ def renew_contract(investor_id):
     
     return redirect(url_for('investor_detail', investor_id=investor_id))
 
+@app.route('/investor/<int:investor_id>/transaction/<int:transaction_id>/edit', methods=['POST'])
+@admin_required
+def edit_transaction(investor_id, transaction_id):
+    """Edit an existing transaction"""
+    transaction = InvestmentTransaction.query.get_or_404(transaction_id)
+    
+    # Verify transaction belongs to this investor
+    if transaction.investor_id != investor_id:
+        flash('Invalid transaction', 'error')
+        return redirect(url_for('investor_detail', investor_id=investor_id))
+    
+    # Update transaction fields
+    transaction.transaction_type = request.form['transaction_type']
+    transaction.amount = float(request.form['amount'])
+    transaction.transaction_date = datetime.strptime(request.form['transaction_date'], '%Y-%m-%d').date()
+    transaction.notes = request.form.get('notes', '')
+    
+    # Handle payment evidence upload (optional - only if new file provided)
+    file = request.files.get('payment_evidence')
+    if file and file.filename:
+        import base64
+        file_data = file.read()
+        encoded = base64.b64encode(file_data).decode('utf-8')
+        transaction.payment_evidence = f"data:{file.mimetype};base64,{encoded}"
+    
+    db.session.commit()
+    
+    flash(f"{transaction.transaction_type} of {transaction.amount:,.2f} AED updated successfully!", 'success')
+    return redirect(url_for('investor_detail', investor_id=investor_id))
+
 @app.route('/investor/<int:investor_id>/transaction/<int:transaction_id>/delete', methods=['POST'])
 @admin_required
 def delete_transaction(investor_id, transaction_id):
