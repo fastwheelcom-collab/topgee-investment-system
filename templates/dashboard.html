@@ -146,7 +146,7 @@
                             <td>{{ loop.index }}</td>
                             <td><a href="{{ url_for('investor_detail', investor_id=investor.id) }}" class="client-link">{{ investor.name }}</a></td>
                             <td>{{ investor.category }}</td>
-                            <td>{{ '{:,.0f}'.format(investor.investment_amount) }} AED</td>
+                            <td>{{ '{:,.0f}'.format(investor.total_capital) }} AED</td>
                             <td>{{ investor.sales_rep.name if investor.sales_rep else '-' }}</td>
                             <td>Inv: {{ investor.investor_roi_percent }}% | Sales: {{ investor.sales_roi_percent }}%</td>
                             <td><span class="badge badge-{{ 'success' if investor.status == 'Active' else 'inactive' }}">{{ investor.status }}</span></td>

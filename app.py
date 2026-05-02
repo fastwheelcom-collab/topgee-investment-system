@@ -171,6 +171,7 @@ class InvestmentTransaction(db.Model):
     amount = db.Column(db.Float, nullable=False)
     transaction_date = db.Column(db.Date, nullable=False)
     notes = db.Column(db.Text)
+    payment_evidence = db.Column(db.Text)  # Base64 encoded receipt/bank transfer proof
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class MonthlyRecord(db.Model):
@@ -294,7 +295,7 @@ def dashboard():
     
     # Calculate totals
     total_investors = len(investors)
-    total_investment = sum(i.investment_amount for i in investors)
+    total_investment = sum(i.total_capital for i in investors)
     
     # Current month totals
     monthly_revenue = sum(r.revenue_generated for r in current_records)
@@ -876,12 +877,22 @@ def add_transaction(investor_id):
     """Add deposit or withdrawal"""
     investor = Investor.query.get_or_404(investor_id)
     
+    # Handle payment evidence upload
+    payment_evidence = None
+    file = request.files.get('payment_evidence')
+    if file and file.filename:
+        import base64
+        file_data = file.read()
+        encoded = base64.b64encode(file_data).decode('utf-8')
+        payment_evidence = f"data:{file.mimetype};base64,{encoded}"
+    
     transaction = InvestmentTransaction(
         investor_id=investor_id,
         transaction_type=request.form['transaction_type'],  # Deposit or Withdrawal
         amount=float(request.form['amount']),
         transaction_date=datetime.strptime(request.form['transaction_date'], '%Y-%m-%d').date(),
-        notes=request.form.get('notes', '')
+        notes=request.form.get('notes', ''),
+        payment_evidence=payment_evidence
     )
     db.session.add(transaction)
     db.session.commit()
@@ -959,6 +970,57 @@ def renew_contract(investor_id):
         flash('No contract end date set', 'error')
     
     return redirect(url_for('investor_detail', investor_id=investor_id))
+
+@app.route('/investor/<int:investor_id>/transaction/<int:transaction_id>/delete', methods=['POST'])
+@admin_required
+def delete_transaction(investor_id, transaction_id):
+    """Delete a transaction (for test entries)"""
+    transaction = InvestmentTransaction.query.get_or_404(transaction_id)
+    
+    # Verify transaction belongs to this investor
+    if transaction.investor_id != investor_id:
+        flash('Invalid transaction', 'error')
+        return redirect(url_for('investor_detail', investor_id=investor_id))
+    
+    tx_type = transaction.transaction_type
+    tx_amount = transaction.amount
+    
+    db.session.delete(transaction)
+    db.session.commit()
+    
+    flash(f"{tx_type} of {tx_amount:,.2f} AED deleted successfully!", 'success')
+    return redirect(url_for('investor_detail', investor_id=investor_id))
+
+@app.route('/investor/<int:investor_id>/transaction/<int:transaction_id>/evidence')
+@login_required
+def download_transaction_evidence(investor_id, transaction_id):
+    """Download payment evidence for a transaction"""
+    transaction = InvestmentTransaction.query.get_or_404(transaction_id)
+    
+    if not transaction.payment_evidence:
+        flash('No payment evidence uploaded', 'error')
+        return redirect(url_for('investor_detail', investor_id=investor_id))
+    
+    import base64
+    import re
+    
+    # Extract base64 data
+    match = re.match(r'data:(.+);base64,(.+)', transaction.payment_evidence)
+    if match:
+        mimetype = match.group(1)
+        encoded_data = match.group(2)
+        file_data = base64.b64decode(encoded_data)
+        
+        buffer = BytesIO(file_data)
+        buffer.seek(0)
+        
+        extension = 'pdf' if 'pdf' in mimetype else 'jpg'
+        filename = f"payment_evidence_{transaction.id}_{transaction.transaction_date.strftime('%Y%m%d')}.{extension}"
+        
+        return send_file(buffer, as_attachment=True, download_name=filename, mimetype=mimetype)
+    else:
+        flash('Invalid evidence file format', 'error')
+        return redirect(url_for('investor_detail', investor_id=investor_id))
 
 # Database will be initialized on first request via @app.before_request
 

@@ -138,7 +138,7 @@
 
             <!-- Add Transaction Form (hidden) -->
             <div id="transactionForm" style="display: none; margin-bottom: 20px;">
-                <form method="POST" action="{{ url_for('add_transaction', investor_id=investor.id) }}" class="record-form">
+                <form method="POST" action="{{ url_for('add_transaction', investor_id=investor.id) }}" class="record-form" enctype="multipart/form-data">
                     <div class="form-row">
                         <div class="form-group">
                             <label>Type *</label>
@@ -160,6 +160,11 @@
                         <label>Notes</label>
                         <input type="text" name="notes" placeholder="Optional notes">
                     </div>
+                    <div class="form-group">
+                        <label>📎 Payment Evidence (Optional)</label>
+                        <input type="file" name="payment_evidence" accept=".pdf,.jpg,.jpeg,.png">
+                        <small>Upload receipt or bank transfer proof (PDF, JPG, PNG)</small>
+                    </div>
                     <div class="form-actions">
                         <button type="submit" class="btn-primary">Save Transaction</button>
                         <button type="button" onclick="hideTransactionForm()" class="btn-secondary">Cancel</button>
@@ -176,6 +181,10 @@
                             <th>Type</th>
                             <th>Amount</th>
                             <th>Notes</th>
+                            <th>Evidence</th>
+                            {% if is_admin %}
+                            <th>Actions</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -186,11 +195,27 @@
                                 <td><span class="badge badge-{{ 'success' if tx.transaction_type == 'Deposit' else 'inactive' }}">{{ tx.transaction_type }}</span></td>
                                 <td class="{{ 'highlight' if tx.transaction_type == 'Deposit' else '' }}">{{ '{:,.2f}'.format(tx.amount) }} AED</td>
                                 <td>{{ tx.notes or '-' }}</td>
+                                <td>
+                                    {% if tx.payment_evidence %}
+                                    <a href="{{ url_for('download_transaction_evidence', investor_id=investor.id, transaction_id=tx.id) }}" class="btn-view" title="Download payment evidence">
+                                        📥 Download
+                                    </a>
+                                    {% else %}
+                                    <span style="color: #999;">—</span>
+                                    {% endif %}
+                                </td>
+                                {% if is_admin %}
+                                <td>
+                                    <form method="POST" action="{{ url_for('delete_transaction', investor_id=investor.id, transaction_id=tx.id) }}" style="display: inline;" onsubmit="return confirm('Delete this {{ tx.transaction_type.lower() }} of {{ '{:,.2f}'.format(tx.amount) }} AED?');">
+                                        <button type="submit" class="btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">❌ Delete</button>
+                                    </form>
+                                </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="4" style="text-align: center; color: #999;">No additional transactions yet.</td>
+                                <td colspan="{{ '6' if is_admin else '5' }}" style="text-align: center; color: #999;">No additional transactions yet.</td>
                             </tr>
                         {% endif %}
                     </tbody>
