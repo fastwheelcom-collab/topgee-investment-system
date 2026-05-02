@@ -103,12 +103,35 @@
             <div class="details-grid">
                 <div class="detail-card">
                     <h4>Contract Duration</h4>
-                    <p>{% if investor.contract_start %}{{ investor.contract_start.strftime('%d %b %Y') }} - {{ investor.contract_end.strftime('%d %b %Y') }}{% else %}Not set{% endif %}</p>
-                    {% if investor.contract_end %}
-                    <form method="POST" action="{{ url_for('renew_contract', investor_id=investor.id) }}" style="margin-top: 10px;">
-                        <button type="submit" class="btn-primary" onclick="return confirm('Extend contract by 1 year?')">🔄 Renew Contract (+1 year)</button>
-                    </form>
-                    {% endif %}
+                    <div id="contract-view">
+                        <p>{% if investor.contract_start %}{{ investor.contract_start.strftime('%d %b %Y') }} - {{ investor.contract_end.strftime('%d %b %Y') }}{% else %}Not set{% endif %}</p>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 10px; flex-wrap: wrap;">
+                            {% if investor.contract_start %}
+                            <button onclick="showContractEditForm()" class="btn-primary" style="padding: 0.5rem 1rem;">✏️ Edit Dates</button>
+                            <form method="POST" action="{{ url_for('renew_contract', investor_id=investor.id) }}" style="display: inline;">
+                                <button type="submit" class="btn-primary" style="padding: 0.5rem 1rem;" onclick="return confirm('Extend contract by 1 year?')">🔄 Renew (+1 year)</button>
+                            </form>
+                            <form method="POST" action="{{ url_for('delete_contract_dates', investor_id=investor.id) }}" style="display: inline;" onsubmit="return confirm('Clear contract dates? This will not delete the contract file.');">
+                                <button type="submit" class="btn-danger" style="padding: 0.5rem 1rem;">❌ Clear Dates</button>
+                            </form>
+                            {% else %}
+                            <button onclick="showContractEditForm()" class="btn-primary" style="padding: 0.5rem 1rem;">➕ Set Contract Dates</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div id="contract-edit-form" style="display: none; margin-top: 10px;">
+                        <form method="POST" action="{{ url_for('update_contract_dates', investor_id=investor.id) }}">
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Contract Start Date *</label>
+                                <input type="date" name="contract_start" required value="{% if investor.contract_start %}{{ investor.contract_start.strftime('%Y-%m-%d') }}{% endif %}" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);">
+                                <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">End date will be auto-calculated (+1 year)</small>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button type="submit" class="btn-primary">Save Dates</button>
+                                <button type="button" onclick="hideContractEditForm()" class="btn-secondary">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
                 <div class="detail-card">
                     <h4>Signed Agreement</h4>
@@ -418,6 +441,14 @@
             document.getElementById('tx-row-' + txId).style.display = 'table-row';
             // Hide the edit form row
             document.getElementById('edit-form-' + txId).style.display = 'none';
+        }
+        function showContractEditForm() {
+            document.getElementById('contract-view').style.display = 'none';
+            document.getElementById('contract-edit-form').style.display = 'block';
+        }
+        function hideContractEditForm() {
+            document.getElementById('contract-view').style.display = 'block';
+            document.getElementById('contract-edit-form').style.display = 'none';
         }
     </script>
 </body>

@@ -986,6 +986,38 @@ def renew_contract(investor_id):
     
     return redirect(url_for('investor_detail', investor_id=investor_id))
 
+@app.route('/investor/<int:investor_id>/contract/dates/update', methods=['POST'])
+@admin_required
+def update_contract_dates(investor_id):
+    """Update contract start/end dates"""
+    investor = Investor.query.get_or_404(investor_id)
+    
+    contract_start = datetime.strptime(request.form['contract_start'], '%Y-%m-%d').date()
+    
+    # Auto-calculate end date (1 year from start)
+    from dateutil.relativedelta import relativedelta
+    contract_end = contract_start + relativedelta(years=1)
+    
+    investor.contract_start = contract_start
+    investor.contract_end = contract_end
+    db.session.commit()
+    
+    flash(f"Contract dates updated: {contract_start.strftime('%d %b %Y')} - {contract_end.strftime('%d %b %Y')}", 'success')
+    return redirect(url_for('investor_detail', investor_id=investor_id))
+
+@app.route('/investor/<int:investor_id>/contract/dates/delete', methods=['POST'])
+@admin_required
+def delete_contract_dates(investor_id):
+    """Clear contract dates"""
+    investor = Investor.query.get_or_404(investor_id)
+    
+    investor.contract_start = None
+    investor.contract_end = None
+    db.session.commit()
+    
+    flash('Contract dates cleared successfully!', 'success')
+    return redirect(url_for('investor_detail', investor_id=investor_id))
+
 @app.route('/investor/<int:investor_id>/transaction/<int:transaction_id>/edit', methods=['POST'])
 @admin_required
 def edit_transaction(investor_id, transaction_id):
