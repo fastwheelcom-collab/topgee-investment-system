@@ -42,8 +42,8 @@
 
         <!-- NEW: Total Revenue Generator (Admin Only) -->
         {% if is_admin %}
-        <div class="section" style="background: linear-gradient(135deg, #00796b 0%, #004d40 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-            <h3 style="color: white; margin-bottom: 15px;">💸 Set Total Revenue Generated</h3>
+        <div class="section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 8px 16px rgba(102,126,234,0.3);">
+            <h3 style="color: white; margin-bottom: 15px; font-size: 1.3rem;">💸 Set Total Revenue Generated</h3>
             <form method="POST" action="{{ url_for('update_global_revenue') }}" style="display: flex; gap: 15px; align-items: end;">
                 <div>
                     <label style="color: white; font-weight: bold;">Input Mode:</label><br>
@@ -56,7 +56,7 @@
                     <label id="revenue_label" style="color: white; font-weight: bold;">Revenue Amount (AED):</label><br>
                     <input type="number" name="revenue_value" step="0.01" required placeholder="e.g. 2617931" style="padding: 10px; width: 200px; font-size: 1rem; border: 2px solid white;">
                 </div>
-                <button type="submit" class="btn-primary" style="background: white; color: #00796b; font-weight: bold; padding: 10px 20px; border: 2px solid #00796b;">Update Revenue</button>
+                <button type="submit" class="btn-primary" style="background: white; color: #667eea; font-weight: bold; padding: 10px 20px; border: 2px solid #667eea; border-radius: 8px;">Update Revenue</button>
             </form>
             <script>
                 function updateRevenueLabel() {
@@ -111,12 +111,12 @@
                 </div>
             </div>
 
-            <div class="stat-card" style="background: linear-gradient(135deg, #00796b 0%, #004d40 100%); color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+            <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; box-shadow: 0 8px 16px rgba(102,126,234,0.3); border-radius: 12px;">
                 <div class="stat-icon">✨</div>
                 <div class="stat-content">
-                    <h3 style="color: white;">Final In-Hand Profit</h3>
-                    <p class="stat-value" style="color: white;">{{ '{:,.0f}'.format(stats.final_in_hand_profit) }} AED</p>
-                    <p class="stat-sub" style="color: rgba(255,255,255,0.9);">Revenue - ROI (5%)</p>
+                    <h3 style="color: white; font-size: 1rem;">Final In-Hand Profit</h3>
+                    <p class="stat-value" style="color: white; font-size: 2rem; font-weight: 700;">{{ '{:,.0f}'.format(stats.final_in_hand_profit) }} AED</p>
+                    <p class="stat-sub" style="color: rgba(255,255,255,0.95); font-size: 0.95rem;">Revenue - ROI (5%)</p>
                 </div>
             </div>
         </div>
@@ -143,20 +143,20 @@
             <h2>🤝 Partner Profit Distribution</h2>
             <p style="color: #666; margin-bottom: 20px;">Equal split of Final In-Hand Profit ({{ '{:,.0f}'.format(stats.final_in_hand_profit) }} AED ÷ 3)</p>
             <div class="partners-grid">
-                <div class="partner-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
-                    <h3 style="color: white;">Mr. Shafay</h3>
-                    <p class="large-number" style="color: white;">{{ '{:,.0f}'.format(stats.partner_shafay) }} AED</p>
-                    <p class="sub-text" style="color: rgba(255,255,255,0.9);">33.33%</p>
+                <div class="partner-card" style="background: linear-gradient(135deg, #ff6090 0%, #ff5370 100%); color: white; box-shadow: 0 8px 16px rgba(255,96,144,0.3); border-radius: 16px;">
+                    <h3 style="color: white; font-size: 1.3rem;">Mr. Shafay</h3>
+                    <p class="large-number" style="color: white; font-size: 2.2rem; font-weight: 700;">{{ '{:,.0f}'.format(stats.partner_shafay) }} AED</p>
+                    <p class="sub-text" style="color: rgba(255,255,255,0.95); font-size: 1.1rem;">33.33%</p>
                 </div>
-                <div class="partner-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
-                    <h3 style="color: white;">Mr. Shubham</h3>
-                    <p class="large-number" style="color: white;">{{ '{:,.0f}'.format(stats.partner_shubham) }} AED</p>
-                    <p class="sub-text" style="color: rgba(255,255,255,0.9);">33.33%</p>
+                <div class="partner-card" style="background: linear-gradient(135deg, #00d4ff 0%, #00b8d4 100%); color: white; box-shadow: 0 8px 16px rgba(0,212,255,0.3); border-radius: 16px;">
+                    <h3 style="color: white; font-size: 1.3rem;">Mr. Shubham</h3>
+                    <p class="large-number" style="color: white; font-size: 2.2rem; font-weight: 700;">{{ '{:,.0f}'.format(stats.partner_shubham) }} AED</p>
+                    <p class="sub-text" style="color: rgba(255,255,255,0.95); font-size: 1.1rem;">33.33%</p>
                 </div>
-                <div class="partner-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
-                    <h3 style="color: white;">Mr. Kay</h3>
-                    <p class="large-number" style="color: white;">{{ '{:,.0f}'.format(stats.partner_kay) }} AED</p>
-                    <p class="sub-text" style="color: rgba(255,255,255,0.9);">33.34%</p>
+                <div class="partner-card" style="background: linear-gradient(135deg, #00e676 0%, #00c853 100%); color: white; box-shadow: 0 8px 16px rgba(0,230,118,0.3); border-radius: 16px;">
+                    <h3 style="color: white; font-size: 1.3rem;">Mr. Kay</h3>
+                    <p class="large-number" style="color: white; font-size: 2.2rem; font-weight: 700;">{{ '{:,.0f}'.format(stats.partner_kay) }} AED</p>
+                    <p class="sub-text" style="color: rgba(255,255,255,0.95); font-size: 1.1rem;">33.34%</p>
                 </div>
             </div>
         </div>
