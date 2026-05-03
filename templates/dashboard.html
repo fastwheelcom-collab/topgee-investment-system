@@ -42,21 +42,21 @@
 
         <!-- NEW: Total Revenue Generator (Admin Only) -->
         {% if is_admin %}
-        <div class="section" style="background: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
-            <h3>💸 Set Total Revenue Generated</h3>
+        <div class="section" style="background: #ff9800; color: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h3 style="color: white; margin-bottom: 15px;">💸 Set Total Revenue Generated</h3>
             <form method="POST" action="{{ url_for('update_global_revenue') }}" style="display: flex; gap: 15px; align-items: end;">
                 <div>
-                    <label>Input Mode:</label><br>
-                    <select name="input_mode" id="input_mode" onchange="updateRevenueLabel()" style="padding: 10px;">
+                    <label style="color: white; font-weight: bold;">Input Mode:</label><br>
+                    <select name="input_mode" id="input_mode" onchange="updateRevenueLabel()" style="padding: 10px; font-size: 1rem; border: 2px solid white;">
                         <option value="amount">Fixed Amount (AED)</option>
                         <option value="percentage">Percentage (%)</option>
                     </select>
                 </div>
                 <div>
-                    <label id="revenue_label">Revenue Amount (AED):</label><br>
-                    <input type="number" name="revenue_value" step="0.01" required placeholder="e.g. 2617931" style="padding: 10px; width: 200px;">
+                    <label id="revenue_label" style="color: white; font-weight: bold;">Revenue Amount (AED):</label><br>
+                    <input type="number" name="revenue_value" step="0.01" required placeholder="e.g. 2617931" style="padding: 10px; width: 200px; font-size: 1rem; border: 2px solid white;">
                 </div>
-                <button type="submit" class="btn-primary">Update Revenue</button>
+                <button type="submit" class="btn-primary" style="background: white; color: #ff9800; font-weight: bold; padding: 10px 20px;">Update Revenue</button>
             </form>
             <script>
                 function updateRevenueLabel() {
@@ -124,15 +124,15 @@
         <div class="section">
             <h2>📈 ROI Distribution Summary</h2>
             <div class="partners-grid">
-                <div class="partner-card" style="background: #e8f5e9;">
-                    <h3>💼 Investor ROI</h3>
-                    <p class="large-number">{{ '{:,.0f}'.format(stats.total_investor_roi) }} AED</p>
-                    <p class="sub-text">{{ '{:.1f}%'.format(stats.investor_roi_percent) }} of total ROI pool</p>
+                <div class="partner-card" style="background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%); color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+                    <h3 style="color: white;">💼 Investor ROI</h3>
+                    <p class="large-number" style="color: white;">{{ '{:,.0f}'.format(stats.total_investor_roi) }} AED</p>
+                    <p class="sub-text" style="color: rgba(255,255,255,0.9);">{{ '{:.1f}%'.format(stats.investor_roi_percent) }} of total ROI pool</p>
                 </div>
-                <div class="partner-card" style="background: #fff3e0;">
-                    <h3>🎯 Sales Share</h3>
-                    <p class="large-number">{{ '{:,.0f}'.format(stats.total_sales_share) }} AED</p>
-                    <p class="sub-text">{{ '{:.1f}%'.format(stats.sales_share_percent) }} of total ROI pool</p>
+                <div class="partner-card" style="background: linear-gradient(135deg, #e65100 0%, #ff6f00 100%); color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+                    <h3 style="color: white;">🎯 Sales Share</h3>
+                    <p class="large-number" style="color: white;">{{ '{:,.0f}'.format(stats.total_sales_share) }} AED</p>
+                    <p class="sub-text" style="color: rgba(255,255,255,0.9);">{{ '{:.1f}%'.format(stats.sales_share_percent) }} of total ROI pool</p>
                 </div>
             </div>
         </div>

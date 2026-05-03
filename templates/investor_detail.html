@@ -46,16 +46,16 @@
                 <p class="sub-text">5% of {{ '{:,.0f}'.format(investor.total_capital) }} AED capital</p>
             </div>
 
-            <div class="detail-card" style="background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);">
-                <h3>💎 Investor ROI</h3>
-                <p class="large-number">{{ '{:,.2f}'.format(investor.monthly_investor_roi) }} AED</p>
-                <p class="sub-text">{{ investor.investor_roi_percent }}% of capital (monthly)</p>
+            <div class="detail-card" style="background: linear-gradient(135deg, #0277bd 0%, #0288d1 100%); color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+                <h3 style="color: white;">💎 Investor ROI</h3>
+                <p class="large-number" style="color: white;">{{ '{:,.2f}'.format(investor.monthly_investor_roi) }} AED</p>
+                <p class="sub-text" style="color: rgba(255,255,255,0.9);">{{ investor.investor_roi_percent }}% of capital (monthly)</p>
             </div>
 
-            <div class="detail-card" style="background: linear-gradient(135deg, #fff9c4 0%, #fff59d 100%);">
-                <h3>🤝 Sales Share</h3>
-                <p class="large-number">{{ '{:,.2f}'.format(investor.monthly_sales_roi) }} AED</p>
-                <p class="sub-text">{{ investor.sales_roi_percent }}% of capital (monthly)</p>
+            <div class="detail-card" style="background: linear-gradient(135deg, #f57c00 0%, #fb8c00 100%); color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+                <h3 style="color: white;">🤝 Sales Share</h3>
+                <p class="large-number" style="color: white;">{{ '{:,.2f}'.format(investor.monthly_sales_roi) }} AED</p>
+                <p class="sub-text" style="color: rgba(255,255,255,0.9);">{{ investor.sales_roi_percent }}% of capital (monthly)</p>
             </div>
         </div>
 
