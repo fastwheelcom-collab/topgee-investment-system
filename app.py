@@ -164,11 +164,11 @@ class Investor(db.Model):
         return 0 <= days_remaining <= 90
 
 class InvestmentTransaction(db.Model):
-    """Track deposits and withdrawals for each investor"""
+    """Track deposits, withdrawals, and payouts for each investor"""
     id = db.Column(db.Integer, primary_key=True)
     investor_id = db.Column(db.Integer, db.ForeignKey('investor.id'), nullable=False)
     
-    transaction_type = db.Column(db.String(20), nullable=False)  # Deposit or Withdrawal
+    transaction_type = db.Column(db.String(20), nullable=False)  # Deposit, Withdrawal, Investor Payout, Sales Payout
     amount = db.Column(db.Float, nullable=False)
     transaction_date = db.Column(db.Date, nullable=False)
     notes = db.Column(db.Text)
@@ -247,6 +247,23 @@ class ManualROI(db.Model):
         months = ['January', 'February', 'March', 'April', 'May', 'June', 
                   'July', 'August', 'September', 'October', 'November', 'December']
         return f"{months[self.month-1]} {self.year}"
+
+class GlobalRevenue(db.Model):
+    """Track total revenue generated (single row table)"""
+    id = db.Column(db.Integer, primary_key=True)
+    total_revenue = db.Column(db.Float, default=0)  # Total revenue generated
+    input_mode = db.Column(db.String(20), default='amount')  # 'amount' or 'percentage'
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    @staticmethod
+    def get_instance():
+        """Get or create the single instance"""
+        instance = GlobalRevenue.query.first()
+        if not instance:
+            instance = GlobalRevenue(total_revenue=0)
+            db.session.add(instance)
+            db.session.commit()
+        return instance
 # ============= DATABASE INITIALIZATION =============
 
 @app.before_request
@@ -320,11 +337,31 @@ def dashboard():
     total_investors = len(investors)
     total_investment = sum(i.total_capital for i in investors)
     
-    # Current month totals
+    # NEW DASHBOARD METRICS
+    investment_roi_5_percent = total_investment * 0.05  # 5% of Total Investment
+    
+    # Get global revenue
+    global_revenue = GlobalRevenue.get_instance()
+    total_revenue_generated = global_revenue.total_revenue
+    
+    # Final In-Hand Profit
+    final_in_hand_profit = total_revenue_generated - investment_roi_5_percent
+    
+    # ROI Distribution Summary (based on ALL investors' ROI splits)
+    total_investor_roi = sum(i.monthly_investor_roi for i in investors)
+    total_sales_share = sum(i.monthly_sales_roi for i in investors)
+    
+    # Calculate percentages for ROI Distribution
+    total_roi_pool = total_investor_roi + total_sales_share
+    investor_roi_percent = (total_investor_roi / total_roi_pool * 100) if total_roi_pool > 0 else 0
+    sales_share_percent = (total_sales_share / total_roi_pool * 100) if total_roi_pool > 0 else 0
+    
+    # Partner Profit Distribution (equal 3-way split)
+    partner_share = final_in_hand_profit / 3
+    
+    # Current month totals (OLD - for reference)
     monthly_revenue = sum(r.revenue_generated for r in current_records)
     monthly_roi_distributed = sum(r.investor_roi_paid + r.sales_roi_paid for r in current_records)
-    
-    # Sales team earnings (current month)
     sales_earnings = sum(r.sales_roi_paid for r in current_records)
     
     # Partner distribution for current month
@@ -333,6 +370,16 @@ def dashboard():
     stats = {
         'total_investors': total_investors,
         'total_investment': total_investment,
+        'investment_roi_5_percent': investment_roi_5_percent,
+        'total_revenue_generated': total_revenue_generated,
+        'final_in_hand_profit': final_in_hand_profit,
+        'total_investor_roi': total_investor_roi,
+        'total_sales_share': total_sales_share,
+        'investor_roi_percent': investor_roi_percent,
+        'sales_share_percent': sales_share_percent,
+        'partner_shafay': partner_share,
+        'partner_shubham': partner_share,
+        'partner_kay': partner_share,
         'monthly_revenue': monthly_revenue,
         'monthly_roi_distributed': monthly_roi_distributed,
         'sales_earnings': sales_earnings,
@@ -1183,6 +1230,33 @@ def delete_manual_roi(investor_id):
     else:
         flash('ROI entry not found', 'error')
     return redirect(url_for('investor_detail', investor_id=investor_id))
+
+@app.route('/revenue/update', methods=['POST'])
+@admin_required
+def update_global_revenue():
+    """Update total revenue generated"""
+    global_revenue = GlobalRevenue.get_instance()
+    
+    input_mode = request.form.get('input_mode', 'amount')  # 'amount' or 'percentage'
+    input_value = float(request.form['revenue_value'])
+    
+    # Get total investment for percentage calculation
+    investors = Investor.query.all()
+    total_investment = sum(i.total_capital for i in investors)
+    
+    if input_mode == 'percentage':
+        # Convert percentage to amount
+        global_revenue.total_revenue = total_investment * (input_value / 100)
+        flash(f"Revenue set to {input_value}% of Total Investment = {global_revenue.total_revenue:,.2f} AED", 'success')
+    else:
+        # Direct amount
+        global_revenue.total_revenue = input_value
+        flash(f"Revenue set to {input_value:,.2f} AED", 'success')
+    
+    global_revenue.input_mode = input_mode
+    db.session.commit()
+    
+    return redirect(url_for('dashboard'))
 
 
 if __name__ == '__main__':

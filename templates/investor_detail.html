@@ -41,15 +41,21 @@
             </div>
 
             <div class="detail-card">
-                <h3>📈 ROI Structure (5% total)</h3>
-                <p class="large-number">{{ investor.investor_roi_percent }}% + {{ investor.sales_roi_percent }}%</p>
-                <p class="sub-text">Investor Share + Sales Share</p>
+                <h3>📊 Total ROI (5%)</h3>
+                <p class="large-number">{{ '{:,.2f}'.format(investor.total_roi_pool) }} AED</p>
+                <p class="sub-text">5% of {{ '{:,.0f}'.format(investor.total_capital) }} AED capital</p>
             </div>
 
-            <div class="detail-card">
-                <h3>💵 Monthly ROI</h3>
+            <div class="detail-card" style="background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);">
+                <h3>💎 Investor ROI</h3>
                 <p class="large-number">{{ '{:,.2f}'.format(investor.monthly_investor_roi) }} AED</p>
-                <p class="sub-text">Investor share ({{ investor.investor_roi_percent }}%)</p>
+                <p class="sub-text">{{ investor.investor_roi_percent }}% of capital (monthly)</p>
+            </div>
+
+            <div class="detail-card" style="background: linear-gradient(135deg, #fff9c4 0%, #fff59d 100%);">
+                <h3>🤝 Sales Share</h3>
+                <p class="large-number">{{ '{:,.2f}'.format(investor.monthly_sales_roi) }} AED</p>
+                <p class="sub-text">{{ investor.sales_roi_percent }}% of capital (monthly)</p>
             </div>
         </div>
 
@@ -173,6 +179,8 @@
                             <select name="transaction_type" required>
                                 <option value="Deposit">Deposit</option>
                                 <option value="Withdrawal">Withdrawal</option>
+                                <option value="Investor Payout">Investor Payout</option>
+                                <option value="Sales Payout">Sales Payout</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -255,6 +263,8 @@
                                                 <select name="transaction_type" required>
                                                     <option value="Deposit" {% if tx.transaction_type == 'Deposit' %}selected{% endif %}>Deposit</option>
                                                     <option value="Withdrawal" {% if tx.transaction_type == 'Withdrawal' %}selected{% endif %}>Withdrawal</option>
+                                                    <option value="Investor Payout" {% if tx.transaction_type == 'Investor Payout' %}selected{% endif %}>Investor Payout</option>
+                                                    <option value="Sales Payout" {% if tx.transaction_type == 'Sales Payout' %}selected{% endif %}>Sales Payout</option>
                                                 </select>
                                             </div>
                                             <div class="form-group">

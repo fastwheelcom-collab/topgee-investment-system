@@ -37,8 +37,40 @@
         </div>
 
         <div class="month-indicator">
-            <h2>{{ stats.current_month }} Overview</h2>
+            <h2>Business Overview</h2>
         </div>
+
+        <!-- NEW: Total Revenue Generator (Admin Only) -->
+        {% if is_admin %}
+        <div class="section" style="background: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+            <h3>💸 Set Total Revenue Generated</h3>
+            <form method="POST" action="{{ url_for('update_global_revenue') }}" style="display: flex; gap: 15px; align-items: end;">
+                <div>
+                    <label>Input Mode:</label><br>
+                    <select name="input_mode" id="input_mode" onchange="updateRevenueLabel()" style="padding: 10px;">
+                        <option value="amount">Fixed Amount (AED)</option>
+                        <option value="percentage">Percentage (%)</option>
+                    </select>
+                </div>
+                <div>
+                    <label id="revenue_label">Revenue Amount (AED):</label><br>
+                    <input type="number" name="revenue_value" step="0.01" required placeholder="e.g. 2617931" style="padding: 10px; width: 200px;">
+                </div>
+                <button type="submit" class="btn-primary">Update Revenue</button>
+            </form>
+            <script>
+                function updateRevenueLabel() {
+                    const mode = document.getElementById('input_mode').value;
+                    const label = document.getElementById('revenue_label');
+                    if (mode === 'percentage') {
+                        label.textContent = 'Revenue Percentage (%):';
+                    } else {
+                        label.textContent = 'Revenue Amount (AED):';
+                    }
+                }
+            </script>
+        </div>
+        {% endif %}
 
         <!-- Statistics Cards -->
         <div class="stats-grid">
@@ -63,65 +95,70 @@
             <div class="stat-card">
                 <div class="stat-icon">📊</div>
                 <div class="stat-content">
-                    <h3>Monthly Revenue</h3>
-                    <p class="stat-value">{{ '{:,.2f}'.format(stats.monthly_revenue) }} AED</p>
-                    <p class="stat-sub">{{ stats.current_month }}</p>
+                    <h3>Investment ROI (5%)</h3>
+                    <p class="stat-value">{{ '{:,.0f}'.format(stats.investment_roi_5_percent) }} AED</p>
+                    <p class="stat-sub">5% of Total Investment</p>
                 </div>
             </div>
 
             <div class="stat-card">
-                <div class="stat-icon">📈</div>
+                <div class="stat-icon">💵</div>
                 <div class="stat-content">
-                    <h3>ROI Distributed</h3>
-                    <p class="stat-value">{{ '{:,.2f}'.format(stats.monthly_roi_distributed) }} AED</p>
-                    <p class="stat-sub">This month</p>
+                    <h3>Total Revenue Generated</h3>
+                    <p class="stat-value">{{ '{:,.0f}'.format(stats.total_revenue_generated) }} AED</p>
+                    <p class="stat-sub">Gross revenue</p>
                 </div>
             </div>
 
-            <div class="stat-card">
-                <div class="stat-icon">💼</div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <div class="stat-icon">✨</div>
                 <div class="stat-content">
-                    <h3>Sales Team Earnings</h3>
-                    <p class="stat-value">{{ '{:,.2f}'.format(stats.sales_earnings) }} AED</p>
-                    <p class="stat-sub">{{ stats.current_month }}</p>
+                    <h3 style="color: white;">Final In-Hand Profit</h3>
+                    <p class="stat-value" style="color: white;">{{ '{:,.0f}'.format(stats.final_in_hand_profit) }} AED</p>
+                    <p class="stat-sub" style="color: rgba(255,255,255,0.8);">Revenue - ROI (5%)</p>
                 </div>
             </div>
-
-            {% if stats.partner_distribution %}
-            <div class="stat-card">
-                <div class="stat-icon">🤝</div>
-                <div class="stat-content">
-                    <h3>Partner Profit Pool</h3>
-                    <p class="stat-value">{{ '{:,.2f}'.format(stats.partner_distribution.remaining_profit) }} AED</p>
-                    <p class="stat-sub">After ROI distribution</p>
-                </div>
-            </div>
-            {% endif %}
         </div>
 
-        <!-- Partner Distribution -->
-        {% if stats.partner_distribution %}
+        <!-- ROI Distribution Summary -->
         <div class="section">
-            <h2>🤝 Partner Profit Distribution - {{ stats.current_month }}</h2>
+            <h2>📈 ROI Distribution Summary</h2>
             <div class="partners-grid">
-                <div class="partner-card">
-                    <h3>Mr. Shafaqat</h3>
-                    <p class="large-number">{{ '{:,.2f}'.format(stats.partner_distribution.shafaqat_amount) }} AED</p>
-                    <p class="sub-text">{{ '{:.2f}%'.format(stats.partner_distribution.shafaqat_percent) }}</p>
+                <div class="partner-card" style="background: #e8f5e9;">
+                    <h3>💼 Investor ROI</h3>
+                    <p class="large-number">{{ '{:,.0f}'.format(stats.total_investor_roi) }} AED</p>
+                    <p class="sub-text">{{ '{:.1f}%'.format(stats.investor_roi_percent) }} of total ROI pool</p>
                 </div>
-                <div class="partner-card">
-                    <h3>Mr. Shubham</h3>
-                    <p class="large-number">{{ '{:,.2f}'.format(stats.partner_distribution.shubham_amount) }} AED</p>
-                    <p class="sub-text">{{ '{:.2f}%'.format(stats.partner_distribution.shubham_percent) }}</p>
-                </div>
-                <div class="partner-card">
-                    <h3>Mr. Kay</h3>
-                    <p class="large-number">{{ '{:,.2f}'.format(stats.partner_distribution.kay_amount) }} AED</p>
-                    <p class="sub-text">{{ '{:.2f}%'.format(stats.partner_distribution.kay_percent) }}</p>
+                <div class="partner-card" style="background: #fff3e0;">
+                    <h3>🎯 Sales Share</h3>
+                    <p class="large-number">{{ '{:,.0f}'.format(stats.total_sales_share) }} AED</p>
+                    <p class="sub-text">{{ '{:.1f}%'.format(stats.sales_share_percent) }} of total ROI pool</p>
                 </div>
             </div>
         </div>
-        {% endif %}
+
+        <!-- Partner Profit Distribution (NEW: Equal 3-Way Split) -->
+        <div class="section">
+            <h2>🤝 Partner Profit Distribution</h2>
+            <p style="color: #666; margin-bottom: 20px;">Equal split of Final In-Hand Profit ({{ '{:,.0f}'.format(stats.final_in_hand_profit) }} AED ÷ 3)</p>
+            <div class="partners-grid">
+                <div class="partner-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                    <h3 style="color: white;">Mr. Shafay</h3>
+                    <p class="large-number" style="color: white;">{{ '{:,.0f}'.format(stats.partner_shafay) }} AED</p>
+                    <p class="sub-text" style="color: rgba(255,255,255,0.9);">33.33%</p>
+                </div>
+                <div class="partner-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+                    <h3 style="color: white;">Mr. Shubham</h3>
+                    <p class="large-number" style="color: white;">{{ '{:,.0f}'.format(stats.partner_shubham) }} AED</p>
+                    <p class="sub-text" style="color: rgba(255,255,255,0.9);">33.33%</p>
+                </div>
+                <div class="partner-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
+                    <h3 style="color: white;">Mr. Kay</h3>
+                    <p class="large-number" style="color: white;">{{ '{:,.0f}'.format(stats.partner_kay) }} AED</p>
+                    <p class="sub-text" style="color: rgba(255,255,255,0.9);">33.34%</p>
+                </div>
+            </div>
+        </div>
 
         <!-- All Investors -->
         <div class="section">
