@@ -11,6 +11,8 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
 import os
 import csv
+import requests
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
@@ -61,8 +63,41 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# Exchange rate
+# Exchange rate (fallback)
 EXCHANGE_RATE = 3.68
+
+# Exchange rate cache (updated every 24 hours)
+exchange_rate_cache = {'rate': EXCHANGE_RATE, 'last_updated': None}
+
+def get_live_exchange_rate():
+    """Fetch live AED to USD exchange rate (cached for 24 hours)"""
+    global exchange_rate_cache
+    
+    # Check if cache is valid (within 24 hours)
+    if exchange_rate_cache['last_updated']:
+        time_diff = datetime.now() - exchange_rate_cache['last_updated']
+        if time_diff < timedelta(hours=24):
+            return exchange_rate_cache['rate']
+    
+    # Try to fetch live rate
+    try:
+        # Using exchangerate-api.com (free tier, no API key needed)
+        response = requests.get('https://api.exchangerate-api.com/v4/latest/AED', timeout=3)
+        if response.status_code == 200:
+            data = response.json()
+            usd_rate = data['rates']['USD']
+            
+            # Update cache
+            exchange_rate_cache['rate'] = 1 / usd_rate  # Convert to AED per USD
+            exchange_rate_cache['last_updated'] = datetime.now()
+            
+            print(f"✅ Live exchange rate fetched: 1 USD = {exchange_rate_cache['rate']:.4f} AED")
+            return exchange_rate_cache['rate']
+    except Exception as e:
+        print(f"⚠️ Failed to fetch live exchange rate: {e}")
+    
+    # Fallback to static rate
+    return EXCHANGE_RATE
 
 # Partners
 PARTNERS = {
@@ -337,6 +372,10 @@ def dashboard():
     total_investors = len(investors)
     total_investment = sum(i.total_capital for i in investors)
     
+    # Get live exchange rate
+    exchange_rate = get_live_exchange_rate()
+    total_investment_usd = total_investment / exchange_rate
+    
     # NEW DASHBOARD METRICS
     investment_roi_5_percent = total_investment * 0.05  # 5% of Total Investment
     
@@ -370,6 +409,8 @@ def dashboard():
     stats = {
         'total_investors': total_investors,
         'total_investment': total_investment,
+        'total_investment_usd': total_investment_usd,
+        'exchange_rate': exchange_rate,
         'investment_roi_5_percent': investment_roi_5_percent,
         'total_revenue_generated': total_revenue_generated,
         'final_in_hand_profit': final_in_hand_profit,

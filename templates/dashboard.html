@@ -88,7 +88,8 @@
                 <div class="stat-content">
                     <h3>Total Investment</h3>
                     <p class="stat-value">{{ '{:,.0f}'.format(stats.total_investment) }} AED</p>
-                    <p class="stat-sub">Portfolio value</p>
+                    <p class="stat-sub" style="font-size: 1.1rem; font-weight: 600; color: #10b981; margin-top: 0.5rem;">{{ '{:,.0f}'.format(stats.total_investment_usd) }} USD</p>
+                    <p class="stat-sub" style="font-size: 0.85rem; margin-top: 0.25rem;">Rate: 1 USD = {{ '{:.4f}'.format(stats.exchange_rate) }} AED</p>
                 </div>
             </div>
 
