@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TOPGEE Investment Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-' + (session.get('theme', 'ocean')) + '.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <nav class="navbar">
@@ -16,7 +16,6 @@
                 <a href="{{ url_for('reports_dashboard') }}">Reports</a>
                 <a href="{{ url_for('monthly_grid') }}">Monthly Grid</a>
                 <a href="{{ url_for('sales_reps') }}">Sales Team</a>
-                <a href="{{ url_for('theme_preview') }}" style="background: rgba(255,255,255,0.1);">🎨 Themes</a>
                 {% if is_admin %}
                 <a href="{{ url_for('add_investor') }}" class="btn-primary">+ Add Investor</a>
                 {% endif %}
