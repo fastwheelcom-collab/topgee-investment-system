@@ -673,3 +673,166 @@ footer {
 .alert strong {
     font-weight: 700;
 }
+
+/* ========================================
+   MOBILE OPTIMIZATION (Full Coverage)
+   ======================================== */
+
+/* Tablets and smaller (768px) */
+@media (max-width: 768px) {
+    /* Navigation */
+    .navbar .container {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .navbar h1 {
+        font-size: 1.3rem;
+    }
+    
+    .nav-links {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .nav-links a {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+    }
+    
+    /* Container */
+    .container {
+        padding: 1rem;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .stat-card {
+        padding: 1.25rem;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+    }
+    
+    /* Tables */
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    table {
+        min-width: 600px;
+    }
+    
+    th, td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    /* Buttons */
+    .btn-primary, .btn-success, .btn-danger, .btn-secondary {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.95rem;
+    }
+    
+    /* Forms */
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    input[type="date"],
+    select,
+    textarea {
+        font-size: 16px; /* Prevents zoom on iOS */
+        padding: 0.75rem;
+    }
+}
+
+/* Mobile phones (480px and smaller) */
+@media (max-width: 480px) {
+    /* Navigation */
+    .navbar h1 {
+        font-size: 1.1rem;
+    }
+    
+    .nav-links a {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.8rem;
+    }
+    
+    /* Container */
+    .container {
+        padding: 0.5rem;
+    }
+    
+    /* Stats Cards */
+    .stat-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 1rem;
+    }
+    
+    .stat-icon {
+        font-size: 2rem;
+    }
+    
+    .stat-value {
+        font-size: 1.3rem;
+    }
+    
+    .stat-content h3 {
+        font-size: 0.85rem;
+    }
+    
+    .stat-sub {
+        font-size: 0.8rem;
+    }
+    
+    /* Buttons - Full width on very small screens */
+    .section-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .btn-primary,
+    .btn-success,
+    .btn-danger,
+    .btn-secondary {
+        width: 100%;
+        text-align: center;
+    }
+    
+    /* Table adjustments */
+    th, td {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.85rem;
+    }
+    
+    /* Month indicator */
+    .month-indicator h2 {
+        font-size: 1.2rem;
+    }
+}
+
+/* Touch-friendly tap targets */
+@media (hover: none) and (pointer: coarse) {
+    /* Minimum 44px tap target (Apple HIG) */
+    .nav-links a,
+    .btn-primary,
+    .btn-success,
+    .btn-danger,
+    .btn-secondary,
+    button {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
