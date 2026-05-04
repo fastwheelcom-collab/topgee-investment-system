@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TopGee It - Theme Preview</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-' + (session.get('theme', 'ocean')) + '.css') }}">
+    <style>
+        .theme-selector {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+        .theme-selector h3 {
+            color: #1f2937;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+        .theme-btn {
+            display: block;
+            width: 200px;
+            padding: 12px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            text-align: center;
+        }
+        .theme-btn.ocean {
+            background: linear-gradient(135deg, #0284c7, #38bdf8);
+            color: white;
+        }
+        .theme-btn.forest {
+            background: linear-gradient(135deg, #047857, #34d399);
+            color: white;
+        }
+        .theme-btn.royal {
+            background: linear-gradient(135deg, #7c3aed, #fbbf24);
+            color: white;
+        }
+        .theme-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .theme-btn.active {
+            border: 3px solid #1f2937;
+        }
+        @media (max-width: 768px) {
+            .theme-selector {
+                position: relative;
+                top: 0;
+                right: 0;
+                margin: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="theme-selector">
+        <h3>🎨 Choose Theme</h3>
+        <a href="{{ url_for('set_theme', theme='ocean') }}" class="theme-btn ocean {{ 'active' if session.get('theme', 'ocean') == 'ocean' else '' }}">
+            🌊 Ocean Blue
+        </a>
+        <a href="{{ url_for('set_theme', theme='forest') }}" class="theme-btn forest {{ 'active' if session.get('theme', 'ocean') == 'forest' else '' }}">
+            🌲 Forest Green
+        </a>
+        <a href="{{ url_for('set_theme', theme='royal') }}" class="theme-btn royal {{ 'active' if session.get('theme', 'ocean') == 'royal' else '' }}">
+            👑 Royal Purple
+        </a>
+        <hr style="margin: 20px 0; border-color: #d1d5db;">
+        <a href="{{ url_for('dashboard') }}" class="theme-btn" style="background: #6b7280; color: white;">
+            ← Back to Dashboard
+        </a>
+    </div>
+
+    <nav class="navbar">
+        <div class="container">
+            <h1>🏦 TopGee It</h1>
+            <div class="nav-links">
+                <a href="{{ url_for('theme_preview') }}" class="active">Theme Preview</a>
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="month-indicator">
+            <h2>Theme Preview - {{ session.get('theme', 'ocean').title() }} Theme</h2>
+            <p style="margin-top: 10px; opacity: 0.8;">Test how the theme looks on your device!</p>
+        </div>
+
+        <!-- Sample Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-content">
+                    <h3>Total Investors</h3>
+                    <p class="stat-value">24</p>
+                    <p class="stat-sub">Active clients</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-content">
+                    <h3>Total Investment</h3>
+                    <p class="stat-value">12,742,844 AED</p>
+                    <p class="stat-sub" style="font-size: 1.1rem; font-weight: 600; color: var(--accent); margin-top: 0.5rem;">3,462,730 USD</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <h3>Monthly ROI Pool</h3>
+                    <p class="stat-value">637,142 AED</p>
+                    <p class="stat-sub">5% of total investment</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">💵</div>
+                <div class="stat-content">
+                    <h3>Revenue Generated</h3>
+                    <p class="stat-value">2,617,931 AED</p>
+                    <p class="stat-sub">Total business revenue</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sample Table -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Sample Investors</h2>
+                <a href="#" class="btn-primary">+ Add Investor</a>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Investment</th>
+                            <th>ROI Split</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Mohd. Uncle</strong></td>
+                            <td>Individual</td>
+                            <td>1,000,000 AED</td>
+                            <td>2.5% / 2.5%</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nickunj</strong></td>
+                            <td>Individual</td>
+                            <td>1,000,000 AED</td>
+                            <td>3.0% / 2.0%</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Riasat</strong></td>
+                            <td>Company</td>
+                            <td>2,707,073 AED</td>
+                            <td>5.0% / 0.0%</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Sample Buttons -->
+        <div class="section">
+            <h2>Button Styles</h2>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
+                <button class="btn-primary">Primary Button</button>
+                <button class="btn-success">Success Button</button>
+                <button class="btn-danger">Danger Button</button>
+                <button class="btn-secondary">Secondary Button</button>
+            </div>
+        </div>
+
+        <!-- Sample Form -->
+        <div class="section">
+            <h2>Form Elements</h2>
+            <div style="max-width: 600px; margin-top: 1rem;">
+                <input type="text" placeholder="Sample text input" style="margin-bottom: 1rem;">
+                <select style="margin-bottom: 1rem;">
+                    <option>Sample dropdown option</option>
+                    <option>Another option</option>
+                </select>
+                <textarea placeholder="Sample textarea" rows="3"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .badge-success {
+            background: var(--success);
+            color: white;
+        }
+    </style>
+</body>
+</html>

@@ -1299,6 +1299,20 @@ def update_global_revenue():
     
     return redirect(url_for('dashboard'))
 
+@app.route('/theme/preview')
+@login_required
+def theme_preview():
+    """Preview different color themes"""
+    return render_template('theme_preview.html')
+
+@app.route('/theme/set/<theme>')
+@login_required
+def set_theme(theme):
+    """Set the active theme"""
+    if theme in ['ocean', 'forest', 'royal']:
+        session['theme'] = theme
+        flash(f"Theme changed to {theme.title()}!", 'success')
+    return redirect(request.referrer or url_for('theme_preview'))
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
