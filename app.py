@@ -208,6 +208,12 @@ class InvestmentTransaction(db.Model):
     transaction_date = db.Column(db.Date, nullable=False)
     notes = db.Column(db.Text)
     payment_evidence = db.Column(db.Text)  # Base64 encoded receipt/bank transfer proof
+    
+    # NEW: Payout tracking (for Investor Payout and Sales Payout types)
+    payout_month = db.Column(db.Integer)  # Which month this payout is for (1-12)
+    payout_year = db.Column(db.Integer)   # Which year this payout is for
+    source_type = db.Column(db.String(50))  # 'Investor ROI' or 'Sales Share'
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class MonthlyRecord(db.Model):
@@ -458,13 +464,45 @@ def investor_detail(investor_id):
     # Get manual ROI records for current year
     manual_records = ManualROI.query.filter_by(investor_id=investor.id, year=current_year).all()
     
-    # Build 12-month ledger
+    # Get payout transactions for current year
+    payout_transactions = InvestmentTransaction.query.filter_by(
+        investor_id=investor.id,
+        transaction_type='Investor Payout'
+    ).filter(
+        InvestmentTransaction.payout_year == current_year
+    ).all()
+    
+    # Build 12-month ledger with payout tracking
     months = ['January', 'February', 'March', 'April', 'May', 'June',
               'July', 'August', 'September', 'October', 'November', 'December']
     ledger = []
     for month_num in range(1, 13):
         record = next((r for r in manual_records if r.month == month_num), None)
-        ledger.append({'month': month_num, 'month_name': months[month_num-1], 'record': record})
+        
+        # Get payouts for this month
+        month_payouts = [t for t in payout_transactions if t.payout_month == month_num]
+        total_paid = sum(p.amount for p in month_payouts)
+        
+        # Calculate expected ROI for this month (based on current total_capital)
+        expected_roi = investor.monthly_investor_roi
+        
+        # Determine paid status
+        paid_status = 'unpaid'
+        if total_paid > 0:
+            if total_paid >= expected_roi * 0.95:  # Allow 5% variance
+                paid_status = 'paid'
+            else:
+                paid_status = 'partial'
+        
+        ledger.append({
+            'month': month_num,
+            'month_name': months[month_num-1],
+            'record': record,
+            'payouts': month_payouts,
+            'total_paid': total_paid,
+            'expected_roi': expected_roi,
+            'paid_status': paid_status
+        })
     
     # Get all manual ROI records for totals
     all_manual_records = ManualROI.query.filter_by(investor_id=investor.id).all()
@@ -479,6 +517,8 @@ def investor_detail(investor_id):
     
     deposits = sum(t.amount for t in transactions if t.transaction_type == 'Deposit')
     withdrawals = sum(t.amount for t in transactions if t.transaction_type == 'Withdrawal')
+    investor_payouts = sum(t.amount for t in transactions if t.transaction_type == 'Investor Payout')
+    sales_payouts = sum(t.amount for t in transactions if t.transaction_type == 'Sales Payout')
     net_capital = investor.investment_amount + deposits - withdrawals
     
     # Get old monthly records (legacy)
@@ -496,6 +536,8 @@ def investor_detail(investor_id):
                          transactions=transactions,
                          deposits=deposits,
                          withdrawals=withdrawals,
+                         investor_payouts=investor_payouts,
+                         sales_payouts=sales_payouts,
                          net_capital=net_capital,
                          total_roi_generated=total_roi_generated,
                          total_investor_share=total_investor_share,
@@ -1003,8 +1045,10 @@ def reports_dashboard():
 @app.route('/investor/<int:investor_id>/transaction/add', methods=['POST'])
 @admin_required
 def add_transaction(investor_id):
-    """Add deposit or withdrawal"""
+    """Add deposit, withdrawal, or payout transaction"""
     investor = Investor.query.get_or_404(investor_id)
+    
+    transaction_type = request.form['transaction_type']
     
     # Handle payment evidence upload
     payment_evidence = None
@@ -1015,14 +1059,22 @@ def add_transaction(investor_id):
         encoded = base64.b64encode(file_data).decode('utf-8')
         payment_evidence = f"data:{file.mimetype};base64,{encoded}"
     
+    # Create transaction
     transaction = InvestmentTransaction(
         investor_id=investor_id,
-        transaction_type=request.form['transaction_type'],  # Deposit or Withdrawal
+        transaction_type=transaction_type,
         amount=float(request.form['amount']),
         transaction_date=datetime.strptime(request.form['transaction_date'], '%Y-%m-%d').date(),
         notes=request.form.get('notes', ''),
         payment_evidence=payment_evidence
     )
+    
+    # For payout transactions, add payout tracking fields
+    if transaction_type in ['Investor Payout', 'Sales Payout']:
+        transaction.payout_month = int(request.form.get('payout_month', datetime.now().month))
+        transaction.payout_year = int(request.form.get('payout_year', datetime.now().year))
+        transaction.source_type = 'Investor ROI' if transaction_type == 'Investor Payout' else 'Sales Share'
+    
     db.session.add(transaction)
     db.session.commit()
     
@@ -1163,6 +1215,17 @@ def edit_transaction(investor_id, transaction_id):
     transaction.amount = float(request.form['amount'])
     transaction.transaction_date = datetime.strptime(request.form['transaction_date'], '%Y-%m-%d').date()
     transaction.notes = request.form.get('notes', '')
+    
+    # For payout transactions, update payout tracking fields
+    if transaction.transaction_type in ['Investor Payout', 'Sales Payout']:
+        transaction.payout_month = int(request.form.get('payout_month', datetime.now().month))
+        transaction.payout_year = int(request.form.get('payout_year', datetime.now().year))
+        transaction.source_type = 'Investor ROI' if transaction.transaction_type == 'Investor Payout' else 'Sales Share'
+    else:
+        # Clear payout fields for non-payout transactions
+        transaction.payout_month = None
+        transaction.payout_year = None
+        transaction.source_type = None
     
     # Handle payment evidence upload (optional - only if new file provided)
     file = request.files.get('payment_evidence')

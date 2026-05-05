@@ -84,6 +84,16 @@
                 <p>{{ '{:,.2f}'.format(withdrawals) }} AED</p>
                 <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem;">{{ transactions|selectattr('transaction_type', 'equalto', 'Withdrawal')|list|length }} transaction(s)</p>
             </div>
+            <div class="summary-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
+                <h4 style="color: white;">💸 Investor Payouts</h4>
+                <p style="color: white;">{{ '{:,.2f}'.format(investor_payouts) }} AED</p>
+                <p style="font-size: 0.9rem; color: rgba(255,255,255,0.9); margin-top: 0.5rem;">{{ transactions|selectattr('transaction_type', 'equalto', 'Investor Payout')|list|length }} payout(s)</p>
+            </div>
+            <div class="summary-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">
+                <h4 style="color: white;">🤝 Sales Payouts</h4>
+                <p style="color: white;">{{ '{:,.2f}'.format(sales_payouts) }} AED</p>
+                <p style="font-size: 0.9rem; color: rgba(255,255,255,0.9); margin-top: 0.5rem;">{{ transactions|selectattr('transaction_type', 'equalto', 'Sales Payout')|list|length }} payout(s)</p>
+            </div>
         </div>
 
         <!-- ROI Summary -->
@@ -172,11 +182,11 @@
 
             <!-- Add Transaction Form (hidden) -->
             <div id="transactionForm" style="display: none; margin-bottom: 20px;">
-                <form method="POST" action="{{ url_for('add_transaction', investor_id=investor.id) }}" class="record-form" enctype="multipart/form-data">
+                <form method="POST" action="{{ url_for('add_transaction', investor_id=investor.id) }}" class="record-form" enctype="multipart/form-data" id="addTxForm">
                     <div class="form-row">
                         <div class="form-group">
                             <label>Type *</label>
-                            <select name="transaction_type" required>
+                            <select name="transaction_type" id="addTxType" required onchange="togglePayoutFields('add')">
                                 <option value="Deposit">Deposit</option>
                                 <option value="Withdrawal">Withdrawal</option>
                                 <option value="Investor Payout">Investor Payout</option>
@@ -190,6 +200,29 @@
                         <div class="form-group">
                             <label>Date *</label>
                             <input type="date" name="transaction_date" required>
+                        </div>
+                    </div>
+                    <div id="addPayoutFields" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Payout For Month *</label>
+                                <select name="payout_month" required>
+                                    {% for m in range(1, 13) %}
+                                    <option value="{{ m }}" {% if m == current_year %}selected{% endif %}>{{ ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m-1] }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Payout For Year *</label>
+                                <select name="payout_year" required>
+                                    <option value="2025">2025</option>
+                                    <option value="2026" selected>2026</option>
+                                    <option value="2027">2027</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="background: #e3f2fd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #2196f3;">
+                            <small style="color: #1565c0; font-weight: 500;">💡 This payout will be automatically linked to the selected month in the 12-Month ROI Ledger below.</small>
                         </div>
                     </div>
                     <div class="form-group">
@@ -216,6 +249,7 @@
                             <th>Date</th>
                             <th>Type</th>
                             <th>Amount</th>
+                            <th>For Month</th>
                             <th>Notes</th>
                             <th>Evidence</th>
                             {% if is_admin %}
@@ -231,6 +265,15 @@
                                 <td>{{ tx.transaction_date.strftime('%d-%b-%Y') }}</td>
                                 <td><span class="badge badge-{{ 'success' if tx.transaction_type == 'Deposit' else 'inactive' }}">{{ tx.transaction_type }}</span></td>
                                 <td class="{{ 'highlight' if tx.transaction_type == 'Deposit' else '' }}">{{ '{:,.2f}'.format(tx.amount) }} AED</td>
+                                <td>
+                                    {% if tx.transaction_type in ['Investor Payout', 'Sales Payout'] and tx.payout_month %}
+                                    <span style="font-weight: 600; color: #2563eb;">
+                                        {{ ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][tx.payout_month-1] }} {{ tx.payout_year }}
+                                    </span>
+                                    {% else %}
+                                    <span style="color: #999;">—</span>
+                                    {% endif %}
+                                </td>
                                 <td>{{ tx.notes or '-' }}</td>
                                 <td>
                                     {% if tx.payment_evidence %}
@@ -254,13 +297,13 @@
                             <!-- Edit Form Row (hidden) -->
                             {% if is_admin %}
                             <tr id="edit-form-{{ tx.id }}" style="display: none;">
-                                <td colspan="6" style="background: #f8f9fa; padding: 1.5rem;">
-                                    <form method="POST" action="{{ url_for('edit_transaction', investor_id=investor.id, transaction_id=tx.id) }}" enctype="multipart/form-data">
+                                <td colspan="7" style="background: #f8f9fa; padding: 1.5rem;">
+                                    <form method="POST" action="{{ url_for('edit_transaction', investor_id=investor.id, transaction_id=tx.id) }}" enctype="multipart/form-data" id="editForm{{ tx.id }}">
                                         <h4 style="margin-bottom: 1rem;">✏️ Edit Transaction</h4>
                                         <div class="form-row">
                                             <div class="form-group">
                                                 <label>Type *</label>
-                                                <select name="transaction_type" required>
+                                                <select name="transaction_type" id="editTxType{{ tx.id }}" required onchange="togglePayoutFields('edit{{ tx.id }}')">
                                                     <option value="Deposit" {% if tx.transaction_type == 'Deposit' %}selected{% endif %}>Deposit</option>
                                                     <option value="Withdrawal" {% if tx.transaction_type == 'Withdrawal' %}selected{% endif %}>Withdrawal</option>
                                                     <option value="Investor Payout" {% if tx.transaction_type == 'Investor Payout' %}selected{% endif %}>Investor Payout</option>
@@ -274,6 +317,26 @@
                                             <div class="form-group">
                                                 <label>Date *</label>
                                                 <input type="date" name="transaction_date" required value="{{ tx.transaction_date.strftime('%Y-%m-%d') }}">
+                                            </div>
+                                        </div>
+                                        <div id="editPayoutFields{{ tx.id }}" style="{% if tx.transaction_type not in ['Investor Payout', 'Sales Payout'] %}display: none;{% endif %}">
+                                            <div class="form-row">
+                                                <div class="form-group">
+                                                    <label>Payout For Month *</label>
+                                                    <select name="payout_month" required>
+                                                        {% for m in range(1, 13) %}
+                                                        <option value="{{ m }}" {% if tx.payout_month == m %}selected{% endif %}>{{ ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m-1] }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Payout For Year *</label>
+                                                    <select name="payout_year" required>
+                                                        <option value="2025" {% if tx.payout_year == 2025 %}selected{% endif %}>2025</option>
+                                                        <option value="2026" {% if tx.payout_year == 2026 %}selected{% endif %}>2026</option>
+                                                        <option value="2027" {% if tx.payout_year == 2027 %}selected{% endif %}>2027</option>
+                                                    </select>
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="form-group">
@@ -296,7 +359,7 @@
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="{{ '6' if is_admin else '5' }}" style="text-align: center; color: #999;">No additional transactions yet.</td>
+                                <td colspan="{{ '7' if is_admin else '6' }}" style="text-align: center; color: #999;">No additional transactions yet.</td>
                             </tr>
                         {% endif %}
                     </tbody>
@@ -327,11 +390,28 @@
                     </thead>
                     <tbody>
                         {% for month_data in ledger %}
-                        <tr>
-                            <td><strong>{{ month_data.month_name }}</strong></td>
+                        <tr style="{% if month_data.paid_status == 'paid' %}background: #f0fdf4;{% elif month_data.paid_status == 'partial' %}background: #fef3c7;{% endif %}">
+                            <td>
+                                <strong>{{ month_data.month_name }}</strong>
+                                {% if month_data.paid_status == 'paid' %}
+                                <span style="color: #10b981; font-weight: bold; margin-left: 0.5rem;">✅ PAID</span>
+                                {% elif month_data.paid_status == 'partial' %}
+                                <span style="color: #f59e0b; font-weight: bold; margin-left: 0.5rem;">⚠️ PARTIAL</span>
+                                {% elif month_data.paid_status == 'unpaid' %}
+                                <span style="color: #ef4444; font-weight: bold; margin-left: 0.5rem;">❌ UNPAID</span>
+                                {% endif %}
+                            </td>
                             {% if month_data.record %}
                             <td>{{ '{:,.2f}'.format(month_data.record.total_roi_generated) }} AED</td>
-                            <td class="highlight">{{ '{:,.2f}'.format(month_data.record.investor_share) }} AED</td>
+                            <td class="highlight">
+                                {{ '{:,.2f}'.format(month_data.expected_roi) }} AED
+                                {% if month_data.total_paid > 0 %}
+                                <br><small style="color: #10b981; font-weight: 600;">Paid: {{ '{:,.2f}'.format(month_data.total_paid) }} AED ({{ (month_data.total_paid / month_data.expected_roi * 100) | int }}%)</small>
+                                {% if month_data.payouts %}
+                                <br>{% for payout in month_data.payouts %}<small style="color: #6b7280;">• {{ payout.transaction_date.strftime('%d-%b') }}: {{ '{:,.0f}'.format(payout.amount) }} AED{% if payout.notes %} - {{ payout.notes }}{% endif %}</small><br>{% endfor %}
+                                {% endif %}
+                                {% endif %}
+                            </td>
                             <td>{{ '{:,.2f}'.format(month_data.record.sales_share) }} AED</td>
                             <td style="color: #10b981; font-weight: bold;">{{ '{:,.2f}'.format(month_data.record.total_roi_generated * 0.95) }} AED</td>
                             <td>
@@ -561,15 +641,32 @@
         }
         function showTransactionForm() {
             document.getElementById('transactionForm').style.display = 'block';
+            togglePayoutFields('add'); // Initialize visibility
         }
         function hideTransactionForm() {
             document.getElementById('transactionForm').style.display = 'none';
+        }
+        function togglePayoutFields(formType) {
+            // Toggle payout tracking fields based on transaction type
+            const typeField = document.getElementById(formType === 'add' ? 'addTxType' : 'editTxType' + formType.replace('edit', ''));
+            const payoutFields = document.getElementById(formType === 'add' ? 'addPayoutFields' : 'editPayoutFields' + formType.replace('edit', ''));
+            
+            if (typeField && payoutFields) {
+                const txType = typeField.value;
+                if (txType === 'Investor Payout' || txType === 'Sales Payout') {
+                    payoutFields.style.display = 'block';
+                } else {
+                    payoutFields.style.display = 'none';
+                }
+            }
         }
         function showEditForm(txId) {
             // Hide the transaction row
             document.getElementById('tx-row-' + txId).style.display = 'none';
             // Show the edit form row
             document.getElementById('edit-form-' + txId).style.display = 'table-row';
+            // Initialize payout fields visibility
+            togglePayoutFields('edit' + txId);
         }
         function hideEditForm(txId) {
             // Show the transaction row
