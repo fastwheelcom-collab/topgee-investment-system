@@ -195,7 +195,8 @@
                         </div>
                         <div class="form-group">
                             <label>Amount (AED) *</label>
-                            <input type="number" name="amount" step="0.01" required placeholder="10000.00">
+                            <input type="number" name="amount" id="addTxAmount" step="0.01" required placeholder="10000.00">
+                            <small id="addAmountHint" style="display: none; color: #2563eb; font-weight: 500; margin-top: 0.25rem;"></small>
                         </div>
                         <div class="form-group">
                             <label>Date *</label>
@@ -312,7 +313,8 @@
                                             </div>
                                             <div class="form-group">
                                                 <label>Amount (AED) *</label>
-                                                <input type="number" name="amount" step="0.01" required value="{{ tx.amount }}">
+                                                <input type="number" name="amount" id="editTxAmount{{ tx.id }}" step="0.01" required value="{{ tx.amount }}">
+                                                <small id="editAmountHint{{ tx.id }}" style="display: none; color: #2563eb; font-weight: 500; margin-top: 0.25rem;"></small>
                                             </div>
                                             <div class="form-group">
                                                 <label>Date *</label>
@@ -646,17 +648,58 @@
         function hideTransactionForm() {
             document.getElementById('transactionForm').style.display = 'none';
         }
+        // ROI amounts for auto-fill
+        const INVESTOR_ROI = {{ '{:.2f}'.format(investor.monthly_investor_roi) }};
+        const SALES_ROI = {{ '{:.2f}'.format(investor.monthly_sales_roi) }};
+        
         function togglePayoutFields(formType) {
             // Toggle payout tracking fields based on transaction type
-            const typeField = document.getElementById(formType === 'add' ? 'addTxType' : 'editTxType' + formType.replace('edit', ''));
-            const payoutFields = document.getElementById(formType === 'add' ? 'addPayoutFields' : 'editPayoutFields' + formType.replace('edit', ''));
+            const isAddForm = formType === 'add';
+            const txId = isAddForm ? '' : formType.replace('edit', '');
+            
+            const typeField = document.getElementById(isAddForm ? 'addTxType' : 'editTxType' + txId);
+            const payoutFields = document.getElementById(isAddForm ? 'addPayoutFields' : 'editPayoutFields' + txId);
+            const amountField = document.getElementById(isAddForm ? 'addTxAmount' : 'editTxAmount' + txId);
+            const hintField = document.getElementById(isAddForm ? 'addAmountHint' : 'editAmountHint' + txId);
             
             if (typeField && payoutFields) {
                 const txType = typeField.value;
                 if (txType === 'Investor Payout' || txType === 'Sales Payout') {
                     payoutFields.style.display = 'block';
+                    
+                    // Auto-fill amount (only for add form, not edit)
+                    if (isAddForm && amountField && hintField) {
+                        if (txType === 'Investor Payout') {
+                            amountField.value = INVESTOR_ROI.toFixed(2);
+                            hintField.textContent = '💡 Auto-filled: Investor ROI share ({{ investor.investor_roi_percent }}% of {{ "{:,.0f}".format(investor.total_capital) }} AED)';
+                            hintField.style.display = 'block';
+                        } else if (txType === 'Sales Payout') {
+                            amountField.value = SALES_ROI.toFixed(2);
+                            hintField.textContent = '💡 Auto-filled: Sales share ({{ investor.sales_roi_percent }}% of {{ "{:,.0f}".format(investor.total_capital) }} AED)';
+                            hintField.style.display = 'block';
+                        }
+                    }
+                    
+                    // For edit form, just show a hint without changing the value
+                    if (!isAddForm && hintField) {
+                        if (txType === 'Investor Payout') {
+                            hintField.textContent = '💡 Expected: ' + INVESTOR_ROI.toFixed(2) + ' AED (Investor ROI share)';
+                            hintField.style.display = 'block';
+                        } else if (txType === 'Sales Payout') {
+                            hintField.textContent = '💡 Expected: ' + SALES_ROI.toFixed(2) + ' AED (Sales share)';
+                            hintField.style.display = 'block';
+                        }
+                    }
                 } else {
                     payoutFields.style.display = 'none';
+                    
+                    // Clear amount hint
+                    if (amountField && hintField) {
+                        if (isAddForm) {
+                            amountField.value = '';
+                        }
+                        hintField.style.display = 'none';
+                    }
                 }
             }
         }
