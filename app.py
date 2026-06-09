@@ -359,6 +359,46 @@ def logout():
     flash('Logged out successfully', 'success')
     return redirect(url_for('login'))
 
+@app.route('/debug')
+@login_required
+def debug_check():
+    """Debug route to check what's failing"""
+    results = []
+    
+    try:
+        investors = Investor.query.all()
+        results.append(f"✅ Investors: {len(investors)} found")
+    except Exception as e:
+        results.append(f"❌ Investors query failed: {e}")
+    
+    try:
+        sales_reps = SalesRep.query.all()
+        results.append(f"✅ SalesReps: {len(sales_reps)} found")
+    except Exception as e:
+        results.append(f"❌ SalesReps query failed: {e}")
+    
+    try:
+        global_revenue = GlobalRevenue.query.first()
+        results.append(f"✅ GlobalRevenue: {global_revenue.total_revenue if global_revenue else 'None'}")
+    except Exception as e:
+        results.append(f"❌ GlobalRevenue query failed: {e}")
+    
+    try:
+        if investors:
+            test_investor = investors[0]
+            total_cap = test_investor.total_capital
+            results.append(f"✅ total_capital property works: {total_cap}")
+    except Exception as e:
+        results.append(f"❌ total_capital property failed: {e}")
+    
+    try:
+        total_inv = sum(i.total_capital for i in investors)
+        results.append(f"✅ Sum of total_capital: {total_inv}")
+    except Exception as e:
+        results.append(f"❌ Sum calculation failed: {e}")
+    
+    return "<h1>Debug Check</h1>" + "<br>".join(results)
+
 @app.route('/')
 @login_required
 def dashboard():
