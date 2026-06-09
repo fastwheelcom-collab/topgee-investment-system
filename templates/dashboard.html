@@ -10,6 +10,7 @@
     <nav class="navbar">
         <div class="container">
             <h1>🏦 TopGee It</h1>
+            <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
             <div class="nav-links">
                 <a href="{{ url_for('dashboard') }}" class="active">Dashboard</a>
                 <a href="{{ url_for('advanced_search') }}">Advanced Search</a>
@@ -19,6 +20,7 @@
                 {% if is_admin %}
                 <a href="{{ url_for('add_investor') }}" class="btn-primary">+ Add Investor</a>
                 {% endif %}
+                <a href="{{ url_for('change_password') }}">🔑 Password</a>
                 <a href="{{ url_for('logout') }}" class="btn-secondary">Logout</a>
             </div>
         </div>
@@ -44,7 +46,7 @@
         {% if is_admin %}
         <div class="section" style="background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 8px 16px rgba(255,152,0,0.3);">
             <h3 style="color: white; margin-bottom: 15px; font-size: 1.3rem;">💸 Set Total Revenue Generated</h3>
-            <form method="POST" action="{{ url_for('update_global_revenue') }}" style="display: flex; gap: 15px; align-items: end;">
+            <form method="POST" action="{{ url_for('update_global_revenue') }}" class="rev-form" style="display: flex; gap: 15px; align-items: end;">
                 <div>
                     <label style="color: white; font-weight: bold;">Input Mode:</label><br>
                     <select name="input_mode" id="input_mode" onchange="updateRevenueLabel()" style="padding: 10px; font-size: 1rem; border: 2px solid white;">

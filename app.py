@@ -359,6 +359,34 @@ def logout():
     flash('Logged out successfully', 'success')
     return redirect(url_for('login'))
 
+@app.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        current = request.form.get('current_password', '')
+        new_pass = request.form.get('new_password', '')
+        confirm  = request.form.get('confirm_password', '')
+
+        current_hash = hashlib.sha256(current.encode()).hexdigest()
+        if current_hash != ADMIN_PASSWORD_HASH:
+            flash('Current password is incorrect', 'error')
+            return redirect(url_for('change_password'))
+
+        if len(new_pass) < 6:
+            flash('New password must be at least 6 characters', 'error')
+            return redirect(url_for('change_password'))
+
+        if new_pass != confirm:
+            flash('New passwords do not match', 'error')
+            return redirect(url_for('change_password'))
+
+        global ADMIN_PASSWORD_HASH
+        ADMIN_PASSWORD_HASH = hashlib.sha256(new_pass.encode()).hexdigest()
+        flash('Password changed successfully!', 'success')
+        return redirect(url_for('dashboard'))
+
+    return render_template('change_password.html')
+
 @app.route('/debug')
 @login_required
 def debug_check():

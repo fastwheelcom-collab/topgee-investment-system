@@ -898,3 +898,196 @@ footer {
 .stat-card-orange .sub-text {
     color: white !important;
 }
+
+/* =============================================
+   HAMBURGER MENU
+   ============================================= */
+.hamburger {
+    display: none;
+    background: none;
+    border: 2px solid #000;
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 1.4rem;
+    line-height: 1;
+    color: #000;
+}
+
+/* =============================================
+   COMPREHENSIVE MOBILE FIX
+   ============================================= */
+@media (max-width: 768px) {
+
+    /* --- Hamburger --- */
+    .hamburger {
+        display: block;
+    }
+
+    .navbar .container {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: nowrap;
+    }
+
+    .nav-links {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        background: #f5f5f5;
+        border-top: 2px solid #ccc;
+        padding: 0.5rem 0;
+        position: absolute;
+        top: 60px;
+        left: 0;
+        right: 0;
+        z-index: 999;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .nav-links.open {
+        display: flex;
+    }
+
+    .nav-links a {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+        border-bottom: 1px solid #ddd;
+        border-radius: 0;
+        width: 100%;
+        text-align: left;
+    }
+
+    .nav-links a:last-child {
+        border-bottom: none;
+    }
+
+    .navbar {
+        position: relative;
+    }
+
+    /* --- Stats --- */
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+
+    .stat-card {
+        padding: 1rem;
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .stat-value {
+        font-size: 1.3rem;
+    }
+
+    /* --- Revenue Form (inline flex → stacked) --- */
+    .rev-form {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+
+    .rev-form > div {
+        width: 100% !important;
+    }
+
+    .rev-form input,
+    .rev-form select {
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    .rev-form button {
+        width: 100% !important;
+        margin-top: 5px;
+    }
+
+    /* --- Partners grid --- */
+    .partners-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .partner-card {
+        padding: 1.25rem;
+    }
+
+    .large-number {
+        font-size: 1.5rem !important;
+    }
+
+    /* --- Summary grid --- */
+    .summary-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+
+    /* --- Details grid --- */
+    .details-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    /* --- Table --- */
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 8px;
+    }
+
+    table {
+        min-width: 550px;
+        font-size: 0.85rem;
+    }
+
+    /* --- Sections --- */
+    .section {
+        padding: 1rem !important;
+    }
+
+    /* --- Search bar --- */
+    .search-form {
+        flex-direction: column;
+    }
+
+    .search-input,
+    .btn-search,
+    .btn-clear {
+        width: 100%;
+    }
+
+    /* --- Buttons --- */
+    .btn-primary,
+    .btn-secondary,
+    .btn-danger {
+        min-height: 44px;
+        font-size: 0.95rem;
+    }
+
+    /* --- Month indicator --- */
+    .month-indicator {
+        padding: 1rem;
+    }
+
+    .month-indicator h2 {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .details-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .container {
+        padding: 0.75rem;
+    }
+}
