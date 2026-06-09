@@ -46,16 +46,16 @@
                 <p class="sub-text">5% of {{ '{:,.0f}'.format(investor.total_capital) }} AED capital</p>
             </div>
 
-            <div class="detail-card" style="background: linear-gradient(135deg, #0277bd 0%, #0288d1 100%); color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-                <h3 style="color: white;">💎 Investor ROI</h3>
-                <p class="large-number" style="color: white;">{{ '{:,.2f}'.format(investor.monthly_investor_roi) }} AED</p>
-                <p class="sub-text" style="color: rgba(255,255,255,0.9);">{{ investor.investor_roi_percent }}% of capital (monthly)</p>
+            <div class="detail-card stat-card-blue">
+                <h3>💎 Investor ROI</h3>
+                <p class="large-number">{{ '{:,.2f}'.format(investor.monthly_investor_roi) }} AED</p>
+                <p class="sub-text">{{ investor.investor_roi_percent }}% of capital (monthly)</p>
             </div>
 
-            <div class="detail-card" style="background: linear-gradient(135deg, #f57c00 0%, #fb8c00 100%); color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-                <h3 style="color: white;">🤝 Sales Share</h3>
-                <p class="large-number" style="color: white;">{{ '{:,.2f}'.format(investor.monthly_sales_roi) }} AED</p>
-                <p class="sub-text" style="color: rgba(255,255,255,0.9);">{{ investor.sales_roi_percent }}% of capital (monthly)</p>
+            <div class="detail-card stat-card-orange">
+                <h3>🤝 Sales Share</h3>
+                <p class="large-number">{{ '{:,.2f}'.format(investor.monthly_sales_roi) }} AED</p>
+                <p class="sub-text">{{ investor.sales_roi_percent }}% of capital (monthly)</p>
             </div>
         </div>
 
@@ -84,15 +84,15 @@
                 <p>{{ '{:,.2f}'.format(withdrawals) }} AED</p>
                 <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem;">{{ transactions|selectattr('transaction_type', 'equalto', 'Withdrawal')|list|length }} transaction(s)</p>
             </div>
-            <div class="summary-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
-                <h4 style="color: white;">💸 Investor Payouts</h4>
-                <p style="color: white;">{{ '{:,.2f}'.format(investor_payouts) }} AED</p>
-                <p style="font-size: 0.9rem; color: rgba(255,255,255,0.9); margin-top: 0.5rem;">{{ transactions|selectattr('transaction_type', 'equalto', 'Investor Payout')|list|length }} payout(s)</p>
+            <div class="summary-card stat-card-green">
+                <h4>💸 Investor Payouts</h4>
+                <p>{{ '{:,.2f}'.format(investor_payouts) }} AED</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">{{ transactions|selectattr('transaction_type', 'equalto', 'Investor Payout')|list|length }} payout(s)</p>
             </div>
-            <div class="summary-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">
-                <h4 style="color: white;">🤝 Sales Payouts</h4>
-                <p style="color: white;">{{ '{:,.2f}'.format(sales_payouts) }} AED</p>
-                <p style="font-size: 0.9rem; color: rgba(255,255,255,0.9); margin-top: 0.5rem;">{{ transactions|selectattr('transaction_type', 'equalto', 'Sales Payout')|list|length }} payout(s)</p>
+            <div class="summary-card stat-card-orange">
+                <h4>🤝 Sales Payouts</h4>
+                <p>{{ '{:,.2f}'.format(sales_payouts) }} AED</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">{{ transactions|selectattr('transaction_type', 'equalto', 'Sales Payout')|list|length }} payout(s)</p>
             </div>
         </div>
 

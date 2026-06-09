@@ -18,6 +18,14 @@
     --text-primary: #000000;
     --text-secondary: #666666;
     --border: #cccccc;
+    
+    /* Business colors */
+    --blue: #4A90E2;
+    --blue-dark: #357ABD;
+    --green: #4CAF50;
+    --green-dark: #388E3C;
+    --orange: #FF9800;
+    --orange-dark: #F57C00;
 }
 
 body {
@@ -221,21 +229,25 @@ tbody td {
 }
 
 .btn-primary {
-    background: var(--primary);
-    color: white;
+    background: var(--blue) !important;
+    color: white !important;
+    border: 2px solid var(--blue) !important;
 }
 
 .btn-primary:hover {
-    background: var(--primary-dark);
+    background: var(--blue-dark) !important;
+    border-color: var(--blue-dark) !important;
 }
 
 .btn-secondary {
-    background: var(--bg-hover);
-    color: var(--text-primary);
+    background: #f5f5f5 !important;
+    color: #000000 !important;
+    border: 2px solid #cccccc !important;
 }
 
 .btn-secondary:hover {
-    background: var(--border);
+    background: #e0e0e0 !important;
+    border-color: #999999 !important;
 }
 
 .btn-sm {
@@ -275,7 +287,7 @@ tbody td {
 
 /* Grand Total */
 .grand-total {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%);
     border-radius: 12px;
     padding: 1.5rem;
     margin-top: 2rem;
@@ -479,7 +491,7 @@ footer {
 .month-indicator {
     text-align: center;
     padding: 1.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%);
     border-radius: 12px;
     margin-bottom: 2rem;
 }
@@ -836,4 +848,41 @@ footer {
         min-height: 44px;
         min-width: 44px;
     }
+}
+
+/* Colored stat cards */
+.stat-card-blue {
+    background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%) !important;
+    color: white !important;
+    border: none !important;
+}
+
+.stat-card-blue h3,
+.stat-card-blue .stat-value,
+.stat-card-blue .stat-sub {
+    color: white !important;
+}
+
+.stat-card-green {
+    background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%) !important;
+    color: white !important;
+    border: none !important;
+}
+
+.stat-card-green h3,
+.stat-card-green .stat-value,
+.stat-card-green .stat-sub {
+    color: white !important;
+}
+
+.stat-card-orange {
+    background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%) !important;
+    color: white !important;
+    border: none !important;
+}
+
+.stat-card-orange h3,
+.stat-card-orange .stat-value,
+.stat-card-orange .stat-sub {
+    color: white !important;
 }
