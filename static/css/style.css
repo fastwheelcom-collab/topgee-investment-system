@@ -858,8 +858,12 @@ footer {
 }
 
 .stat-card-blue h3,
+.stat-card-blue h4,
+.stat-card-blue p,
 .stat-card-blue .stat-value,
-.stat-card-blue .stat-sub {
+.stat-card-blue .stat-sub,
+.stat-card-blue .large-number,
+.stat-card-blue .sub-text {
     color: white !important;
 }
 
@@ -870,8 +874,12 @@ footer {
 }
 
 .stat-card-green h3,
+.stat-card-green h4,
+.stat-card-green p,
 .stat-card-green .stat-value,
-.stat-card-green .stat-sub {
+.stat-card-green .stat-sub,
+.stat-card-green .large-number,
+.stat-card-green .sub-text {
     color: white !important;
 }
 
@@ -882,7 +890,11 @@ footer {
 }
 
 .stat-card-orange h3,
+.stat-card-orange h4,
+.stat-card-orange p,
 .stat-card-orange .stat-value,
-.stat-card-orange .stat-sub {
+.stat-card-orange .stat-sub,
+.stat-card-orange .large-number,
+.stat-card-orange .sub-text {
     color: white !important;
 }
