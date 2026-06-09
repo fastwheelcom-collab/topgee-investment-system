@@ -1377,6 +1377,29 @@ def set_theme(theme):
         flash(f"Theme changed to {theme.title()}!", 'success')
     return redirect(request.referrer or url_for('theme_preview'))
 
+# Initialize database tables on startup
+print("📊 Initializing database...")
+with app.app_context():
+    try:
+        db.create_all()
+        print("✅ Database tables created/verified")
+        
+        # Ensure GlobalRevenue singleton exists
+        from sqlalchemy.exc import OperationalError
+        try:
+            global_revenue = GlobalRevenue.query.first()
+            if not global_revenue:
+                global_revenue = GlobalRevenue(total_revenue=0)
+                db.session.add(global_revenue)
+                db.session.commit()
+                print("✅ GlobalRevenue initialized")
+        except OperationalError as e:
+            print(f"⚠️ GlobalRevenue check failed: {e}")
+    except Exception as e:
+        print(f"❌ Database initialization error: {e}")
+        import traceback
+        traceback.print_exc()
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     print("\n" + "="*60)
