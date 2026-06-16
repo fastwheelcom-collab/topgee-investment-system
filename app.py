@@ -11,6 +11,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
 import os
 import csv
+import re
 import requests
 from datetime import datetime, timedelta
 
@@ -368,6 +369,7 @@ def change_password():
         confirm  = request.form.get('confirm_password', '')
 
         current_hash = hashlib.sha256(current.encode()).hexdigest()
+        global ADMIN_PASSWORD_HASH
         if current_hash != ADMIN_PASSWORD_HASH:
             flash('Current password is incorrect', 'error')
             return redirect(url_for('change_password'))
@@ -379,8 +381,6 @@ def change_password():
         if new_pass != confirm:
             flash('New passwords do not match', 'error')
             return redirect(url_for('change_password'))
-
-        global ADMIN_PASSWORD_HASH
         ADMIN_PASSWORD_HASH = hashlib.sha256(new_pass.encode()).hexdigest()
         flash('Password changed successfully!', 'success')
         return redirect(url_for('dashboard'))
@@ -431,8 +431,7 @@ def debug_check():
 @login_required
 def dashboard():
     """Main dashboard"""
-    import re as _re
-    _prefix_re = _re.compile(r'^(Mr\.?|Mrs\.?|Ms\.?|Dr\.?)\s*', _re.IGNORECASE)
+    _prefix_re = re.compile(r'^(Mr\.?|Mrs\.?|Ms\.?|Dr\.?)\s*', re.IGNORECASE)
     def _sort_key(inv): return _prefix_re.sub('', inv.name).strip().lower()
     investors = sorted(Investor.query.all(), key=_sort_key)
     sales_reps = SalesRep.query.filter_by(active=True).all()
