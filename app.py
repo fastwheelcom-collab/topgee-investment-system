@@ -431,7 +431,10 @@ def debug_check():
 @login_required
 def dashboard():
     """Main dashboard"""
-    investors = Investor.query.all()
+    import re as _re
+    _prefix_re = _re.compile(r'^(Mr\.?|Mrs\.?|Ms\.?|Dr\.?)\s*', _re.IGNORECASE)
+    def _sort_key(inv): return _prefix_re.sub('', inv.name).strip().lower()
+    investors = sorted(Investor.query.all(), key=_sort_key)
     sales_reps = SalesRep.query.filter_by(active=True).all()
     
     # Current month/year
@@ -504,14 +507,28 @@ def dashboard():
     
     # Search functionality
     search_query = request.args.get('search', '')
-    if search_query:
-        investors = Investor.query.filter(
-            db.or_(
-                Investor.name.ilike(f'%{search_query}%'),
-                Investor.category.ilike(f'%{search_query}%'),
-                Investor.notes.ilike(f'%{search_query}%')
+    # Filter params
+    filter_category = request.args.get('filter_category', '')
+    filter_sales_rep = request.args.get('filter_sales_rep', '')
+    filter_status = request.args.get('filter_status', '')
+
+    if search_query or filter_category or filter_sales_rep or filter_status:
+        query = Investor.query
+        if search_query:
+            query = query.filter(
+                db.or_(
+                    Investor.name.ilike(f'%{search_query}%'),
+                    Investor.category.ilike(f'%{search_query}%'),
+                    Investor.notes.ilike(f'%{search_query}%')
+                )
             )
-        ).all()
+        if filter_category:
+            query = query.filter(Investor.category == filter_category)
+        if filter_sales_rep:
+            query = query.join(SalesRep).filter(SalesRep.name.ilike(f'%{filter_sales_rep}%'))
+        if filter_status:
+            query = query.filter(Investor.status == filter_status)
+        investors = sorted(query.all(), key=_sort_key)
     
     return render_template('dashboard.html',
                          investors=investors,
@@ -520,6 +537,9 @@ def dashboard():
                          current_year=current_year,
                          current_month=current_month,
                          search_query=search_query,
+                         filter_category=filter_category,
+                         filter_sales_rep=filter_sales_rep,
+                         filter_status=filter_status,
                          is_admin=session.get('is_admin', False))
 
 @app.route('/investor/<int:investor_id>')

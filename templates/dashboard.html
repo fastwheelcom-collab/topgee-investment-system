@@ -27,12 +27,28 @@
     </nav>
 
     <div class="container">
-        <!-- Search Bar -->
+        <!-- Search & Filter Bar -->
         <div class="search-container">
-            <form method="GET" action="{{ url_for('dashboard') }}" class="search-form">
-                <input type="text" name="search" placeholder="🔍 Search investors by name, category, or notes..." value="{{ search_query or '' }}" class="search-input">
-                <button type="submit" class="btn-search">Search</button>
-                {% if search_query %}
+            <form method="GET" action="{{ url_for('dashboard') }}" class="search-form" style="flex-wrap:wrap; gap:8px;">
+                <input type="text" name="search" placeholder="🔍 Search by name, category or notes..." value="{{ search_query or '' }}" class="search-input" style="flex:1; min-width:180px;">
+                <select name="filter_category" class="search-input" style="flex:0 0 auto; width:140px; padding:8px 10px;">
+                    <option value="">All Categories</option>
+                    <option value="Individual" {% if filter_category == 'Individual' %}selected{% endif %}>Individual</option>
+                    <option value="Company" {% if filter_category == 'Company' %}selected{% endif %}>Company</option>
+                </select>
+                <select name="filter_sales_rep" class="search-input" style="flex:0 0 auto; width:160px; padding:8px 10px;">
+                    <option value="">All Sales Reps</option>
+                    {% for rep in sales_reps %}
+                    <option value="{{ rep.name }}" {% if filter_sales_rep == rep.name %}selected{% endif %}>{{ rep.name }}</option>
+                    {% endfor %}
+                </select>
+                <select name="filter_status" class="search-input" style="flex:0 0 auto; width:130px; padding:8px 10px;">
+                    <option value="">All Statuses</option>
+                    <option value="Active" {% if filter_status == 'Active' %}selected{% endif %}>Active</option>
+                    <option value="Inactive" {% if filter_status == 'Inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+                <button type="submit" class="btn-search">Filter</button>
+                {% if search_query or filter_category or filter_sales_rep or filter_status %}
                 <a href="{{ url_for('dashboard') }}" class="btn-clear">Clear</a>
                 {% endif %}
             </form>
