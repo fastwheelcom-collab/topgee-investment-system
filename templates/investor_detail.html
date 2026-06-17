@@ -387,13 +387,23 @@
                     <thead>
                         <tr>
                             <th>Month</th>
+                            <th>Amount (AED)</th>
                             <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
+                        {% set total_paid_ledger = namespace(val=0) %}
                         {% for month_data in ledger %}
+                        {% if month_data.total_paid > 0 %}{% set total_paid_ledger.val = total_paid_ledger.val + month_data.total_paid %}{% endif %}
                         <tr style="{% if month_data.paid_status == 'paid' %}background: #f0fdf4;{% elif month_data.paid_status == 'partial' %}background: #fef3c7;{% endif %}">
                             <td><strong>{{ month_data.month_name }}</strong></td>
+                            <td>
+                                {% if month_data.total_paid > 0 %}
+                                <strong>{{ '{:,.2f}'.format(month_data.total_paid) }}</strong>
+                                {% else %}
+                                <span style="color:#999;">—</span>
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if month_data.paid_status == 'paid' %}
                                 <span style="color:#10b981; font-weight:bold;">✅ Paid</span>
@@ -406,6 +416,13 @@
                         </tr>
                         {% endfor %}
                     </tbody>
+                    <tfoot>
+                        <tr style="background: var(--bg-hover); font-weight: 700;">
+                            <td>Total Paid</td>
+                            <td><strong>{{ '{:,.2f}'.format(total_paid_ledger.val) }} AED</strong></td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>
@@ -485,113 +502,6 @@
             document.getElementById('modalOverlay').style.display = 'none';
         }
         </script>
-
-        <!-- OLD SYSTEM for reference -->
-            <div class="section-header">
-                <h2>📅 Monthly Ledger (Last 12 Months)</h2>
-                {% if is_admin %}
-                <button onclick="showAddRecordForm()" class="btn-primary">+ Add Monthly Record</button>
-                {% endif %}
-            </div>
-
-            <!-- Add Record Form (hidden) -->
-            <div id="addRecordForm" style="display: none; margin-bottom: 20px;">
-                <form method="POST" action="{{ url_for('add_monthly_record') }}" class="record-form">
-                    <input type="hidden" name="investor_id" value="{{ investor.id }}">
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Month</label>
-                            <select name="month" required>
-                                {% for m in range(1, 13) %}
-                                <option value="{{ m }}">{{ ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m-1] }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Year</label>
-                            <select name="year" required>
-                                <option value="2025">2025</option>
-                                <option value="2026" selected>2026</option>
-                                <option value="2027">2027</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Revenue Generated (AED) *</label>
-                            <input type="number" name="revenue_generated" step="0.01" required placeholder="50000.00">
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Payment Date</label>
-                            <input type="date" name="payment_date">
-                        </div>
-                        <div class="form-group">
-                            <label>Payment Method</label>
-                            <select name="payment_method">
-                                <option value="Bank Transfer">Bank Transfer</option>
-                                <option value="Cash">Cash</option>
-                                <option value="Cheque">Cheque</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Notes</label>
-                        <input type="text" name="notes" placeholder="Optional notes">
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="submit" class="btn-primary">Save Record</button>
-                        <button type="button" onclick="hideAddRecordForm()" class="btn-secondary">Cancel</button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Monthly Records Table -->
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Month</th>
-                            <th>Revenue Generated</th>
-                            <th>Investor Share ({{ investor.investor_roi_percent }}%)</th>
-                            <th>Sales Share ({{ investor.sales_roi_percent }}%)</th>
-                            <th>Payment Date</th>
-                            <th>Method</th>
-                            <th>Notes</th>
-                            <th>Report</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if records %}
-                            {% for record in records %}
-                            <tr>
-                                <td><strong>{{ record.month_name }}</strong></td>
-                                <td>{{ '{:,.2f}'.format(record.revenue_generated) }} AED</td>
-                                <td class="highlight">{{ '{:,.2f}'.format(record.investor_roi_paid) }} AED</td>
-                                <td>{{ '{:,.2f}'.format(record.sales_roi_paid) }} AED</td>
-                                <td>{{ record.payment_date.strftime('%d-%b-%Y') if record.payment_date else '-' }}</td>
-                                <td>{{ record.payment_method or '-' }}</td>
-                                <td>{{ record.notes or '-' }}</td>
-                                <td>
-                                    <a href="{{ url_for('customer_monthly_report', investor_id=investor.id, year=record.year, month=record.month) }}" 
-                                       class="btn-view" title="Download customer report">
-                                        📄 PDF
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr>
-                                <td colspan="8" style="text-align: center; color: #999;">No monthly records yet. Add your first record above.</td>
-                            </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
 
         <!-- Danger Zone (Admin Only) -->
         {% if is_admin %}
