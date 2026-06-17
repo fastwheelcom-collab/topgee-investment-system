@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TopGee It — Analytics Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        :root {
+            --blue:    #2563eb;
+            --orange:  #ea580c;
+            --green:   #16a34a;
+            --red:     #dc2626;
+            --purple:  #7c3aed;
+            --gold:    #d97706;
+            --dark:    #0f172a;
+            --card-bg: #1e293b;
+            --border:  #334155;
+            --text:    #f1f5f9;
+            --muted:   #94a3b8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--dark); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; }
+
+        /* ── NAV ── */
+        .navbar { background: #0f172a; border-bottom: 1px solid var(--border); padding: 0 24px; }
+        .navbar .container { display: flex; align-items: center; gap: 20px; height: 56px; flex-wrap: wrap; }
+        .navbar h1 { font-size: 1.1rem; font-weight: 700; color: #f59e0b; white-space: nowrap; }
+        .nav-links { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-left: auto; }
+        .nav-links a { color: var(--muted); text-decoration: none; font-size: .85rem; padding: 4px 8px; border-radius: 6px; transition: .2s; }
+        .nav-links a:hover, .nav-links a.active { color: #fff; background: #1e293b; }
+        .btn-primary { background: var(--blue)!important; color: #fff!important; padding: 6px 14px!important; border-radius: 8px!important; }
+        .btn-secondary { background: #334155!important; color: #fff!important; padding: 6px 14px!important; border-radius: 8px!important; }
+
+        /* ── LAYOUT ── */
+        .page { max-width: 1400px; margin: 0 auto; padding: 28px 20px 60px; }
+        .page-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+        .page-sub   { color: var(--muted); font-size: .9rem; margin-bottom: 28px; }
+
+        /* ── STAT CARDS ── */
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; position: relative; overflow: hidden; }
+        .stat-card::before { content:''; position:absolute; top:0; left:0; width:4px; height:100%; border-radius:4px 0 0 4px; }
+        .stat-card.blue::before   { background: var(--blue); }
+        .stat-card.orange::before { background: var(--orange); }
+        .stat-card.green::before  { background: var(--green); }
+        .stat-card.red::before    { background: var(--red); }
+        .stat-card.purple::before { background: var(--purple); }
+        .stat-card.gold::before   { background: var(--gold); }
+        .stat-icon { font-size: 1.6rem; margin-bottom: 10px; }
+        .stat-label { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+        .stat-value { font-size: 1.55rem; font-weight: 700; line-height: 1.2; }
+        .stat-sub   { font-size: .75rem; color: var(--muted); margin-top: 4px; }
+
+        /* ── SECTION HEADERS ── */
+        .section-header { display: flex; align-items: center; gap: 10px; margin: 32px 0 16px; }
+        .section-header h2 { font-size: 1.1rem; font-weight: 700; }
+        .section-header .badge { background: #1e40af; color: #bfdbfe; font-size: .72rem; padding: 2px 10px; border-radius: 99px; }
+
+        /* ── TABLE ── */
+        .table-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+        thead tr { background: #1e293b; }
+        thead th { padding: 12px 14px; text-align: left; color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: .72rem; letter-spacing: .05em; white-space: nowrap; }
+        tbody tr { border-top: 1px solid var(--border); transition: background .15s; }
+        tbody tr:hover { background: #1e2d40; }
+        tbody td { padding: 11px 14px; vertical-align: middle; white-space: nowrap; }
+        .td-name { font-weight: 600; max-width: 180px; white-space: normal; }
+        .td-name small { display: block; color: var(--muted); font-weight: 400; font-size: .75rem; }
+        .pill { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: .72rem; font-weight: 600; }
+        .pill-blue   { background:#1e3a8a; color:#93c5fd; }
+        .pill-green  { background:#14532d; color:#86efac; }
+        .pill-orange { background:#7c2d12; color:#fed7aa; }
+        .pill-red    { background:#7f1d1d; color:#fca5a5; }
+        .pill-purple { background:#4c1d95; color:#ddd6fe; }
+        .pill-gray   { background:#1e293b; color:#94a3b8; }
+        .num { font-variant-numeric: tabular-nums; }
+        .num-green { color: #4ade80; }
+        .num-red   { color: #f87171; }
+        .num-yellow{ color: #fbbf24; }
+        .tfoot-row td { background: #0f172a; font-weight: 700; color: #f1f5f9; border-top: 2px solid var(--border); }
+
+        /* ── PROGRESS BAR ── */
+        .prog-wrap { background: #0f172a; border-radius: 99px; height: 6px; width: 100px; overflow: hidden; margin-top: 4px; }
+        .prog-bar  { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #2563eb, #7c3aed); }
+
+        /* ── SUMMARY CARDS ── */
+        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+        .summary-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 22px; }
+        .summary-card h3 { font-size: .85rem; color: var(--muted); text-transform: uppercase; letter-spacing:.06em; margin-bottom: 14px; }
+        .summary-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: .85rem; }
+        .summary-row:last-child { border-bottom: none; }
+        .summary-row .label { color: var(--muted); }
+        .summary-row .val   { font-weight: 600; }
+
+        @media(max-width:700px) { .summary-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav class="navbar">
+    <div class="container">
+        <h1>🏦 TopGee It</h1>
+        <div class="nav-links">
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('advanced_search') }}">Advanced Search</a>
+            <a href="{{ url_for('reports_dashboard') }}">Reports</a>
+            <a href="{{ url_for('monthly_grid') }}">Monthly Grid</a>
+            <a href="{{ url_for('analytics_dashboard') }}" class="active">📊 Analytics</a>
+            <a href="{{ url_for('sales_reps') }}">Sales Team</a>
+            <a href="{{ url_for('change_password') }}">🔑 Password</a>
+            <a href="{{ url_for('logout') }}" class="btn-secondary">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="page">
+
+    <div class="page-title">📊 Analytics Dashboard</div>
+    <div class="page-sub">Real-time investor breakdown · Payouts · Revenue · Outstanding</div>
+
+    <!-- ── TOP STAT CARDS ── -->
+    <div class="stat-grid">
+        <div class="stat-card blue">
+            <div class="stat-icon">👥</div>
+            <div class="stat-label">Total Investors</div>
+            <div class="stat-value">{{ investor_count }}</div>
+            <div class="stat-sub">Active clients</div>
+        </div>
+        <div class="stat-card orange">
+            <div class="stat-icon">💰</div>
+            <div class="stat-label">Total Investment</div>
+            <div class="stat-value">{{ "{:,.0f}".format(total_investment) }}</div>
+            <div class="stat-sub">AED under management</div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-icon">📈</div>
+            <div class="stat-label">Total Revenue Generated</div>
+            <div class="stat-value">{{ "{:,.0f}".format(global_revenue) }}</div>
+            <div class="stat-sub">AED gross revenue</div>
+        </div>
+        <div class="stat-card gold">
+            <div class="stat-icon">💸</div>
+            <div class="stat-label">Total Paid to Clients</div>
+            <div class="stat-value">{{ "{:,.0f}".format(total_paid_clients) }}</div>
+            <div class="stat-sub">AED paid out so far</div>
+        </div>
+        <div class="stat-card purple">
+            <div class="stat-icon">📅</div>
+            <div class="stat-label">Monthly ROI Due</div>
+            <div class="stat-value">{{ "{:,.0f}".format(total_monthly_due) }}</div>
+            <div class="stat-sub">AED / month to all investors</div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-label">Total Outstanding</div>
+            <div class="stat-value">{{ "{:,.0f}".format(total_outstanding) }}</div>
+            <div class="stat-sub">AED unpaid (due - paid)</div>
+        </div>
+    </div>
+
+    <!-- ── REVENUE vs PAYOUT SUMMARY ── -->
+    <div class="summary-grid">
+        <div class="summary-card">
+            <h3>💼 Revenue Breakdown</h3>
+            <div class="summary-row">
+                <span class="label">Gross Revenue Generated</span>
+                <span class="val num-green">{{ "{:,.0f}".format(global_revenue) }} AED</span>
+            </div>
+            <div class="summary-row">
+                <span class="label">5% ROI Pool (to investors)</span>
+                <span class="val num-yellow">{{ "{:,.0f}".format(total_investment * 0.05) }} AED</span>
+            </div>
+            <div class="summary-row">
+                <span class="label">Investor ROI Share / month</span>
+                <span class="val">{{ "{:,.0f}".format(total_inv_roi_share) }} AED</span>
+            </div>
+            <div class="summary-row">
+                <span class="label">Sales Rep Share / month</span>
+                <span class="val">{{ "{:,.0f}".format(total_sales_share) }} AED</span>
+            </div>
+            <div class="summary-row">
+                <span class="label">Final In-Hand Profit</span>
+                <span class="val num-green">{{ "{:,.0f}".format(final_profit) }} AED</span>
+            </div>
+        </div>
+        <div class="summary-card">
+            <h3>💳 Payout Summary</h3>
+            <div class="summary-row">
+                <span class="label">Total Ever Paid to Clients</span>
+                <span class="val num-green">{{ "{:,.0f}".format(total_paid_clients) }} AED</span>
+            </div>
+            <div class="summary-row">
+                <span class="label">Total Outstanding (unpaid)</span>
+                <span class="val num-red">{{ "{:,.0f}".format(total_outstanding) }} AED</span>
+            </div>
+            <div class="summary-row">
+                <span class="label">Monthly Obligation</span>
+                <span class="val num-yellow">{{ "{:,.0f}".format(total_monthly_due) }} AED / mo</span>
+            </div>
+            <div class="summary-row">
+                <span class="label">Payout Coverage Ratio</span>
+                {% if total_paid_clients + total_outstanding > 0 %}
+                {% set ratio = (total_paid_clients / (total_paid_clients + total_outstanding) * 100) %}
+                <span class="val {% if ratio >= 80 %}num-green{% elif ratio >= 40 %}num-yellow{% else %}num-red{% endif %}">
+                    {{ "{:.1f}".format(ratio) }}%
+                </span>
+                {% else %}
+                <span class="val num-yellow">N/A</span>
+                {% endif %}
+            </div>
+            <div class="summary-row">
+                <span class="label">Revenue vs Total Investment</span>
+                {% if total_investment > 0 %}
+                <span class="val num-green">{{ "{:.1f}".format(global_revenue / total_investment * 100) }}%</span>
+                {% else %}
+                <span class="val">—</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ── INVESTOR TABLE ── -->
+    <div class="section-header">
+        <h2>👤 Investor Detail Breakdown</h2>
+        <span class="badge">{{ investor_count }} Investors</span>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Investor</th>
+                    <th>Sales Rep</th>
+                    <th>Capital (AED)</th>
+                    <th>ROI %</th>
+                    <th>Monthly Due</th>
+                    <th>Months Active</th>
+                    <th>Total Ever Due</th>
+                    <th>Total Paid</th>
+                    <th>Outstanding</th>
+                    <th>Contract</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set ns = namespace(total_capital=0, total_monthly=0, total_ever_due=0, total_paid=0, total_out=0) %}
+                {% for r in investor_rows %}
+                {% set ns.total_capital    = ns.total_capital    + r.capital %}
+                {% set ns.total_monthly    = ns.total_monthly    + r.monthly_due %}
+                {% set ns.total_ever_due   = ns.total_ever_due   + r.total_ever_due %}
+                {% set ns.total_paid       = ns.total_paid       + r.paid %}
+                {% set ns.total_out        = ns.total_out        + r.outstanding %}
+                <tr>
+                    <td class="num" style="color:var(--muted)">{{ loop.index }}</td>
+                    <td class="td-name">
+                        <a href="{{ url_for('investor_detail', investor_id=r.id) }}" style="color:var(--text);text-decoration:none;">
+                            {{ r.name }}
+                        </a>
+                        <small>
+                            <span class="pill {% if r.category == 'Company' %}pill-purple{% else %}pill-blue{% endif %}">{{ r.category }}</span>
+                        </small>
+                    </td>
+                    <td style="color:var(--muted); font-size:.8rem;">{{ r.rep }}</td>
+                    <td class="num">{{ "{:,.0f}".format(r.capital) }}</td>
+                    <td>
+                        <span class="pill pill-green">{{ r.inv_pct }}%</span>
+                        {% if r.sales_pct > 0 %}
+                        <span class="pill pill-orange" style="margin-left:3px; font-size:.68rem;">+{{ r.sales_pct }}% rep</span>
+                        {% endif %}
+                    </td>
+                    <td class="num num-yellow">{{ "{:,.0f}".format(r.monthly_due) }}</td>
+                    <td class="num" style="color:var(--muted)">{{ r.months_elapsed }} mo</td>
+                    <td class="num">{{ "{:,.0f}".format(r.total_ever_due) }}</td>
+                    <td class="num num-green">{{ "{:,.0f}".format(r.paid) }}</td>
+                    <td class="num {% if r.outstanding > 0 %}num-red{% else %}num-green{% endif %}">
+                        {{ "{:,.0f}".format(r.outstanding) }}
+                        {% if r.total_ever_due > 0 %}
+                        <div class="prog-wrap">
+                            <div class="prog-bar" style="width:{{ [[(r.paid / r.total_ever_due * 100), 0]|max, 100]|min }}%"></div>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:.78rem; color:var(--muted);">
+                        {% if r.contract_start and r.contract_end %}
+                            {{ r.contract_start.strftime('%d %b %y') }} →
+                            {% set today_date = r.contract_end %}
+                            {% if r.contract_end.strftime('%Y-%m-%d') < '2026-06-17' %}
+                                <span style="color:#f87171">{{ r.contract_end.strftime('%d %b %y') }} ⚠️</span>
+                            {% else %}
+                                {{ r.contract_end.strftime('%d %b %y') }}
+                            {% endif %}
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="tfoot-row">
+                    <td colspan="3">📊 TOTALS</td>
+                    <td class="num">{{ "{:,.0f}".format(ns.total_capital) }}</td>
+                    <td>—</td>
+                    <td class="num num-yellow">{{ "{:,.0f}".format(ns.total_monthly) }}</td>
+                    <td>—</td>
+                    <td class="num">{{ "{:,.0f}".format(ns.total_ever_due) }}</td>
+                    <td class="num num-green">{{ "{:,.0f}".format(ns.total_paid) }}</td>
+                    <td class="num num-red">{{ "{:,.0f}".format(ns.total_out) }}</td>
+                    <td>—</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+</div>
+
+</body>
+</html>

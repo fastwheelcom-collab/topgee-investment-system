@@ -1449,6 +1449,82 @@ def update_global_revenue():
     
     return redirect(url_for('dashboard'))
 
+@app.route('/analytics')
+@login_required
+def analytics_dashboard():
+    """Separate analytics dashboard — investor breakdown, paid vs due, revenue"""
+    import re as _re2
+    _pfx = re.compile(r'^(mr\.?|mrs\.?|ms\.?|dr\.?|prof\.?)\s+', re.I)
+    def _skey(inv): return _pfx.sub('', inv.name).strip().lower()
+
+    investors = sorted(Investor.query.all(), key=_skey)
+    global_revenue = GlobalRevenue.get_instance()
+
+    investor_rows = []
+    total_paid_clients = 0.0
+    total_monthly_due  = 0.0
+    total_investment   = 0.0
+
+    for inv in investors:
+        # All payout transactions ever
+        payouts = InvestmentTransaction.query.filter_by(
+            investor_id=inv.id, transaction_type='payout'
+        ).all()
+        paid = sum(p.amount for p in payouts)
+        monthly_due = inv.monthly_investor_roi
+
+        # Contract months elapsed → total ever due
+        today = date.today()
+        if inv.contract_start:
+            months_elapsed = max(0, (today.year - inv.contract_start.year)*12 +
+                                    (today.month - inv.contract_start.month))
+        else:
+            months_elapsed = 0
+        total_ever_due = monthly_due * months_elapsed
+        outstanding = total_ever_due - paid
+
+        total_paid_clients += paid
+        total_monthly_due  += monthly_due
+        total_investment   += inv.total_capital
+
+        investor_rows.append({
+            'id': inv.id,
+            'name': inv.name,
+            'category': inv.category or 'Individual',
+            'capital': inv.total_capital,
+            'inv_pct': inv.investor_roi_percent,
+            'sales_pct': inv.sales_roi_percent,
+            'monthly_due': monthly_due,
+            'total_ever_due': total_ever_due,
+            'paid': paid,
+            'outstanding': outstanding,
+            'rep': inv.sales_rep.name if inv.sales_rep else '—',
+            'status': inv.status or 'Active',
+            'contract_start': inv.contract_start,
+            'contract_end': inv.contract_end,
+            'months_elapsed': months_elapsed,
+        })
+
+    total_roi_pool       = global_revenue.total_revenue * 0.05 if global_revenue.total_revenue else sum(inv.total_roi_pool for inv in investors)
+    total_inv_roi_share  = sum(inv.monthly_investor_roi for inv in investors)
+    total_sales_share    = sum(inv.monthly_sales_roi    for inv in investors)
+    final_profit         = global_revenue.total_revenue - (total_investment * 0.05)
+
+    return render_template(
+        'analytics_dashboard.html',
+        investor_rows    = investor_rows,
+        total_investment = total_investment,
+        global_revenue   = global_revenue.total_revenue,
+        total_paid_clients = total_paid_clients,
+        total_monthly_due  = total_monthly_due,
+        total_outstanding  = sum(r['outstanding'] for r in investor_rows),
+        total_inv_roi_share  = total_inv_roi_share,
+        total_sales_share    = total_sales_share,
+        final_profit         = final_profit,
+        investor_count   = len(investor_rows),
+    )
+
+
 @app.route('/theme/preview')
 @login_required
 def theme_preview():
