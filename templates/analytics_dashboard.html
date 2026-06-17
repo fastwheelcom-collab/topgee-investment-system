@@ -35,17 +35,11 @@
             font-size: 0.9rem;
         }
         .summary-row:last-child { border-bottom: none; }
-        .summary-row .label { color: var(--text-secondary); }
-        .summary-row .val   { font-weight: 600; color: var(--text-primary); }
-        .val-green  { color: var(--green) !important; }
-        .val-red    { color: #e53e3e !important; }
-        .val-orange { color: var(--orange) !important; }
-        .val-blue   { color: var(--blue) !important; }
+        .summary-row .lbl { color: var(--text-secondary); }
+        .summary-row .val { font-weight: 600; color: var(--text-primary); }
         .prog-wrap { background: var(--border); border-radius: 99px; height: 5px; width: 80px; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 6px; }
         .prog-bar  { height: 100%; border-radius: 99px; background: var(--blue); }
         tfoot tr td { background: var(--bg-hover); font-weight: 700; color: var(--text-primary); border-top: 2px solid var(--border); }
-        .exp-warning { color: #e53e3e; font-size: 0.8rem; }
-        .num { font-variant-numeric: tabular-nums; }
     </style>
 </head>
 <body>
@@ -68,7 +62,7 @@
 
     <div class="container">
 
-        <h2>📊 Analytics Dashboard</h2>
+        <h2 style="margin-bottom:0.5rem;">📊 Analytics Dashboard</h2>
         <p style="color:var(--text-secondary); margin-bottom:1.5rem; font-size:.9rem;">
             Investor breakdown · Total paid to clients · Revenue generated · Outstanding
         </p>
@@ -94,7 +88,7 @@
             <div class="stat-card">
                 <div class="stat-icon">📈</div>
                 <div class="stat-content">
-                    <h3>Total Revenue Generated</h3>
+                    <h3>Revenue Generated</h3>
                     <div class="stat-value">{{ "{:,.0f}".format(global_revenue) }}</div>
                     <div class="stat-sub">AED gross revenue</div>
                 </div>
@@ -130,55 +124,53 @@
             <div class="summary-card">
                 <h3>💼 Revenue Breakdown</h3>
                 <div class="summary-row">
-                    <span class="label">Gross Revenue Generated</span>
-                    <span class="val val-green">{{ "{:,.0f}".format(global_revenue) }} AED</span>
+                    <span class="lbl">Gross Revenue Generated</span>
+                    <span class="val" style="color:var(--green)">{{ "{:,.0f}".format(global_revenue) }} AED</span>
                 </div>
                 <div class="summary-row">
-                    <span class="label">5% ROI Pool (to investors)</span>
-                    <span class="val val-orange">{{ "{:,.0f}".format(total_investment * 0.05) }} AED</span>
+                    <span class="lbl">5% ROI Pool (to investors)</span>
+                    <span class="val" style="color:var(--orange)">{{ "{:,.0f}".format(total_investment * 0.05) }} AED</span>
                 </div>
                 <div class="summary-row">
-                    <span class="label">Investor ROI Share / month</span>
+                    <span class="lbl">Investor ROI Share / month</span>
                     <span class="val">{{ "{:,.0f}".format(total_inv_roi_share) }} AED</span>
                 </div>
                 <div class="summary-row">
-                    <span class="label">Sales Rep Share / month</span>
+                    <span class="lbl">Sales Rep Share / month</span>
                     <span class="val">{{ "{:,.0f}".format(total_sales_share) }} AED</span>
                 </div>
                 <div class="summary-row">
-                    <span class="label">Final In-Hand Profit</span>
-                    <span class="val val-green">{{ "{:,.0f}".format(final_profit) }} AED</span>
+                    <span class="lbl">Final In-Hand Profit</span>
+                    <span class="val" style="color:var(--green)">{{ "{:,.0f}".format(final_profit) }} AED</span>
                 </div>
             </div>
             <div class="summary-card">
                 <h3>💳 Payout Summary</h3>
                 <div class="summary-row">
-                    <span class="label">Total Ever Paid to Clients</span>
-                    <span class="val val-green">{{ "{:,.0f}".format(total_paid_clients) }} AED</span>
+                    <span class="lbl">Total Ever Paid to Clients</span>
+                    <span class="val" style="color:var(--green)">{{ "{:,.0f}".format(total_paid_clients) }} AED</span>
                 </div>
                 <div class="summary-row">
-                    <span class="label">Total Outstanding (unpaid)</span>
-                    <span class="val val-red">{{ "{:,.0f}".format(total_outstanding) }} AED</span>
+                    <span class="lbl">Total Outstanding (unpaid)</span>
+                    <span class="val" style="color:var(--danger)">{{ "{:,.0f}".format(total_outstanding) }} AED</span>
                 </div>
                 <div class="summary-row">
-                    <span class="label">Monthly Obligation</span>
-                    <span class="val val-orange">{{ "{:,.0f}".format(total_monthly_due) }} AED / mo</span>
+                    <span class="lbl">Monthly Obligation</span>
+                    <span class="val" style="color:var(--orange)">{{ "{:,.0f}".format(total_monthly_due) }} AED / mo</span>
                 </div>
                 <div class="summary-row">
-                    <span class="label">Payout Coverage</span>
+                    <span class="lbl">Payout Coverage</span>
                     {% if total_paid_clients + total_outstanding > 0 %}
                     {% set ratio = (total_paid_clients / (total_paid_clients + total_outstanding) * 100) %}
-                    <span class="val {% if ratio >= 80 %}val-green{% elif ratio >= 40 %}val-orange{% else %}val-red{% endif %}">
-                        {{ "{:.1f}".format(ratio) }}%
-                    </span>
+                    <span class="val">{{ "{:.1f}".format(ratio) }}%</span>
                     {% else %}
                     <span class="val">N/A</span>
                     {% endif %}
                 </div>
                 <div class="summary-row">
-                    <span class="label">Revenue vs Total Investment</span>
+                    <span class="lbl">Revenue vs Investment</span>
                     {% if total_investment > 0 %}
-                    <span class="val val-blue">{{ "{:.1f}".format(global_revenue / total_investment * 100) }}%</span>
+                    <span class="val" style="color:var(--blue)">{{ "{:.1f}".format(global_revenue / total_investment * 100) }}%</span>
                     {% else %}
                     <span class="val">—</span>
                     {% endif %}
@@ -190,7 +182,7 @@
         <div class="section">
             <div class="section-header">
                 <h2>👤 Investor Detail Breakdown</h2>
-                <span class="badge badge-success">{{ investor_count }} Investors</span>
+                <span class="badge badge-success">{{ investor_count }} investors</span>
             </div>
             <div class="table-container">
                 <table>
@@ -222,22 +214,22 @@
                             <td>
                                 <a href="{{ url_for('investor_detail', investor_id=r.id) }}" class="client-link">{{ r.name }}</a>
                                 <br>
-                                <span class="badge {% if r.category == 'Company' %}badge-inactive{% else %}badge-success{% endif %}" style="font-size:.75rem;">{{ r.category }}</span>
+                                <span class="badge badge-{% if r.category == 'Company' %}inactive{% else %}success{% endif %}" style="font-size:.75rem; margin-top:2px;">{{ r.category }}</span>
                             </td>
                             <td style="color:var(--text-secondary); font-size:.85rem;">{{ r.rep }}</td>
-                            <td class="num"><strong>{{ "{:,.0f}".format(r.capital) }}</strong></td>
+                            <td><strong>{{ "{:,.0f}".format(r.capital) }}</strong></td>
                             <td>
                                 <span class="badge badge-success">{{ r.inv_pct }}%</span>
                                 {% if r.sales_pct > 0 %}
-                                <br><span style="font-size:.78rem; color:var(--text-secondary);">+{{ r.sales_pct }}% rep</span>
+                                <br><small style="color:var(--text-secondary)">+{{ r.sales_pct }}% rep</small>
                                 {% endif %}
                             </td>
-                            <td class="num val-orange"><strong>{{ "{:,.0f}".format(r.monthly_due) }}</strong></td>
+                            <td style="color:var(--orange)"><strong>{{ "{:,.0f}".format(r.monthly_due) }}</strong></td>
                             <td style="color:var(--text-secondary)">{{ r.months_elapsed }} mo</td>
-                            <td class="num">{{ "{:,.0f}".format(r.total_ever_due) }}</td>
-                            <td class="num val-green"><strong>{{ "{:,.0f}".format(r.paid) }}</strong></td>
-                            <td class="num">
-                                <span class="{% if r.outstanding > 0 %}val-red{% else %}val-green{% endif %}">
+                            <td>{{ "{:,.0f}".format(r.total_ever_due) }}</td>
+                            <td style="color:var(--green)"><strong>{{ "{:,.0f}".format(r.paid) }}</strong></td>
+                            <td>
+                                <span style="color:{% if r.outstanding > 0 %}var(--danger){% else %}var(--green){% endif %}">
                                     <strong>{{ "{:,.0f}".format(r.outstanding) }}</strong>
                                 </span>
                                 {% if r.total_ever_due > 0 %}
@@ -250,7 +242,7 @@
                                 {% if r.contract_start and r.contract_end %}
                                     {{ r.contract_start.strftime('%d %b %y') }} →
                                     {% if r.contract_end.strftime('%Y-%m-%d') < '2026-06-17' %}
-                                        <span class="exp-warning">{{ r.contract_end.strftime('%d %b %y') }} ⚠️</span>
+                                        <span style="color:var(--danger)">{{ r.contract_end.strftime('%d %b %y') }} ⚠️</span>
                                     {% else %}
                                         {{ r.contract_end.strftime('%d %b %y') }}
                                     {% endif %}
@@ -262,13 +254,13 @@
                     <tfoot>
                         <tr>
                             <td colspan="3">📊 TOTALS</td>
-                            <td class="num">{{ "{:,.0f}".format(ns.t_cap) }}</td>
+                            <td><strong>{{ "{:,.0f}".format(ns.t_cap) }}</strong></td>
                             <td>—</td>
-                            <td class="num val-orange">{{ "{:,.0f}".format(ns.t_mo) }}</td>
+                            <td style="color:var(--orange)"><strong>{{ "{:,.0f}".format(ns.t_mo) }}</strong></td>
                             <td>—</td>
-                            <td class="num">{{ "{:,.0f}".format(ns.t_due) }}</td>
-                            <td class="num val-green">{{ "{:,.0f}".format(ns.t_paid) }}</td>
-                            <td class="num val-red">{{ "{:,.0f}".format(ns.t_out) }}</td>
+                            <td><strong>{{ "{:,.0f}".format(ns.t_due) }}</strong></td>
+                            <td style="color:var(--green)"><strong>{{ "{:,.0f}".format(ns.t_paid) }}</strong></td>
+                            <td style="color:var(--danger)"><strong>{{ "{:,.0f}".format(ns.t_out) }}</strong></td>
                             <td>—</td>
                         </tr>
                     </tfoot>
