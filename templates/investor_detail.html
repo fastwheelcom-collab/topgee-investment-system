@@ -376,73 +376,19 @@
         <div class="section">
             <div class="section-header">
                 <h2>📊 12-Month ROI Ledger ({{ current_year }})</h2>
-                <p style="color: var(--text-secondary); font-size: 0.9rem;">Enter monthly profit → System auto-distributes: 5% to investor/sales, 95% to partners</p>
             </div>
-
             <div class="table-container">
                 <table>
                     <thead>
                         <tr>
                             <th>Month</th>
-                            <th>Total ROI Generated</th>
-                            <th>Investor Share (5%)</th>
-                            <th>Sales Share (5%)</th>
-                            <th>Partners Get (95%)</th>
                             <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for month_data in ledger %}
                         <tr style="{% if month_data.paid_status == 'paid' %}background: #f0fdf4;{% elif month_data.paid_status == 'partial' %}background: #fef3c7;{% endif %}">
-                            <td>
-                                <strong>{{ month_data.month_name }}</strong>
-                                {% if month_data.paid_status == 'paid' %}
-                                <span style="color: #10b981; font-weight: bold; margin-left: 0.5rem;">✅ PAID</span>
-                                {% elif month_data.paid_status == 'partial' %}
-                                <span style="color: #f59e0b; font-weight: bold; margin-left: 0.5rem;">⚠️ PARTIAL</span>
-                                {% elif month_data.paid_status == 'unpaid' %}
-                                <span style="color: #ef4444; font-weight: bold; margin-left: 0.5rem;">❌ UNPAID</span>
-                                {% endif %}
-                            </td>
-                            <!-- Total ROI Generated -->
-                            <td>
-                                {% if month_data.record %}
-                                {{ '{:,.2f}'.format(month_data.record.total_roi_generated) }} AED
-                                {% elif month_data.total_paid > 0 %}
-                                {{ '{:,.2f}'.format(month_data.total_paid) }} AED
-                                {% else %}
-                                <span style="color:#999;">—</span>
-                                {% endif %}
-                            </td>
-                            <!-- Investor Share -->
-                            <td class="highlight">
-                                {{ '{:,.2f}'.format(month_data.expected_roi) }} AED
-                                {% if month_data.total_paid > 0 %}
-                                <br><small style="color: #10b981; font-weight: 600;">Paid: {{ '{:,.2f}'.format(month_data.total_paid) }} AED ({{ (month_data.total_paid / month_data.expected_roi * 100) | int }}%)</small>
-                                {% if month_data.payouts %}
-                                <br>{% for payout in month_data.payouts %}<small style="color: #6b7280;">• {{ payout.transaction_date.strftime('%d-%b') }}: {{ '{:,.0f}'.format(payout.amount) }} AED{% if payout.notes %} - {{ payout.notes }}{% endif %}</small><br>{% endfor %}
-                                {% endif %}
-                                {% endif %}
-                            </td>
-                            <!-- Sales Share -->
-                            <td>
-                                {% if month_data.record %}
-                                {{ '{:,.2f}'.format(month_data.record.sales_share) }} AED
-                                {% else %}
-                                <span style="color:#999;">—</span>
-                                {% endif %}
-                            </td>
-                            <!-- Partners Get -->
-                            <td style="color: #10b981; font-weight: bold;">
-                                {% if month_data.record %}
-                                {{ '{:,.2f}'.format(month_data.record.total_roi_generated * 0.95) }} AED
-                                {% elif month_data.total_paid > 0 %}
-                                {{ '{:,.2f}'.format(month_data.total_paid * 0.95) }} AED
-                                {% else %}
-                                <span style="color:#999;">—</span>
-                                {% endif %}
-                            </td>
-                            <!-- Status — always use paid_status from payout transactions -->
+                            <td><strong>{{ month_data.month_name }}</strong></td>
                             <td>
                                 {% if month_data.paid_status == 'paid' %}
                                 <span style="color:#10b981; font-weight:bold;">✅ Paid</span>
@@ -458,6 +404,7 @@
                 </table>
             </div>
         </div>
+
 
         <!-- ROI Entry Modal -->
         <div id="roiModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 1000; min-width: 450px; border: 1px solid #e5e7eb;">
