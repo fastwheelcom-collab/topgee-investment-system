@@ -1105,102 +1105,150 @@ def customer_monthly_report(investor_id, year, month):
 @app.route('/reports/dashboard')
 @login_required
 def reports_dashboard():
-    """Fully functional reporting dashboard"""
-    date_from   = request.args.get('date_from', '')
-    date_to     = request.args.get('date_to', '')
-    category    = request.args.get('category', '')
-    status_filt = request.args.get('status', '')
-    rep_filt    = request.args.get('sales_rep', '')
-    report_type = request.args.get('report_type', 'investor_summary')  # investor_summary | payout_report | roi_report | outstanding
+    """Full reports: investor active/paid, sales rep, revenue, month-wise"""
+    report_type      = request.args.get('report_type', 'investor_active')
+    date_from        = request.args.get('date_from', '')
+    date_to          = request.args.get('date_to', '')
+    investor_id_filt = request.args.get('investor_id', '')
+    rep_id_filt      = request.args.get('rep_id', '')
+    month_filt       = request.args.get('month', '')
+    year_filt        = request.args.get('year', str(datetime.now().year))
 
-    # Build investor query
-    _prefix_re = re.compile(r'^(Mr\.?|Mrs\.?|Ms\.?|Dr\.?)\s*', re.IGNORECASE)
-    def _sk(inv): return _prefix_re.sub('', inv.name).strip().lower()
+    _pfx = re.compile(r'^(Mr\.?|Mrs\.?|Ms\.?|Dr\.?)\s*', re.IGNORECASE)
+    def _sk(inv): return _pfx.sub('', inv.name).strip().lower()
 
-    query = Investor.query
-    if category:    query = query.filter(Investor.category == category)
-    if status_filt: query = query.filter(Investor.status == status_filt)
-    if rep_filt:    query = query.join(SalesRep).filter(SalesRep.name.ilike(f'%{rep_filt}%'))
-    investors = sorted(query.all(), key=_sk)
-
-    exchange_rate = get_live_exchange_rate()
-    global_rev    = GlobalRevenue.get_instance()
-    now           = datetime.now()
-
-    # Per-investor enriched rows
-    investor_rows = []
-    total_paid_all = 0.0
-    for inv in investors:
-        txns = InvestmentTransaction.query.filter_by(investor_id=inv.id).all()
-        payouts     = sum(t.amount for t in txns if t.transaction_type == 'Investor Payout')
-        sales_pay   = sum(t.amount for t in txns if t.transaction_type == 'Sales Payout')
-        deposits    = sum(t.amount for t in txns if t.transaction_type == 'Deposit')
-        withdrawals = sum(t.amount for t in txns if t.transaction_type == 'Withdrawal')
-        if inv.contract_start:
-            months_active = max(0,(now.year-inv.contract_start.year)*12+(now.month-inv.contract_start.month))
-        else:
-            months_active = 0
-        total_ever_due  = inv.monthly_investor_roi * months_active
-        outstanding     = total_ever_due - payouts
-        total_paid_all += payouts
-        investor_rows.append({
-            'inv': inv,
-            'capital': inv.total_capital,
-            'monthly_roi': inv.monthly_investor_roi,
-            'sales_monthly': inv.monthly_sales_roi,
-            'payouts': payouts,
-            'sales_pay': sales_pay,
-            'deposits': deposits,
-            'withdrawals': withdrawals,
-            'months_active': months_active,
-            'total_ever_due': total_ever_due,
-            'outstanding': outstanding,
-        })
-
-    total_investment  = sum(r['capital']       for r in investor_rows)
-    total_monthly_due = sum(r['monthly_roi']   for r in investor_rows)
-    total_outstanding = sum(r['outstanding']   for r in investor_rows)
-    total_investors   = len(investor_rows)
-    individual_count  = sum(1 for r in investor_rows if r['inv'].category == 'Individual')
-    company_count     = sum(1 for r in investor_rows if r['inv'].category == 'Company')
-
-    # Revenue history
+    all_investors   = sorted(Investor.query.all(), key=_sk)
+    all_sales_reps  = SalesRep.query.filter_by(active=True).all()
+    global_rev      = GlobalRevenue.get_instance()
     revenue_history = RevenueHistory.query.order_by(
         RevenueHistory.year.desc(), RevenueHistory.month.desc()).all()
+    now           = datetime.now()
+    exchange_rate = get_live_exchange_rate()
 
-    # Payout report — all payout transactions
-    all_txns = []
-    for r in investor_rows:
-        txns = InvestmentTransaction.query.filter_by(investor_id=r['inv'].id).filter(
-            InvestmentTransaction.transaction_type.in_(['Investor Payout','Sales Payout'])
-        ).order_by(InvestmentTransaction.transaction_date.desc()).all()
-        for t in txns:
+    MONTHS = ['January','February','March','April','May','June',
+              'July','August','September','October','November','December']
+
+    # Build per-investor row
+    def build_inv_row(inv):
+        txns = InvestmentTransaction.query.filter_by(investor_id=inv.id).all()
+        inv_payouts   = [t for t in txns if t.transaction_type == 'Investor Payout']
+        sales_payouts = [t for t in txns if t.transaction_type == 'Sales Payout']
+        months_active = 0
+        if inv.contract_start:
+            months_active = max(0,(now.year-inv.contract_start.year)*12+(now.month-inv.contract_start.month))
+        total_paid     = sum(t.amount for t in inv_payouts)
+        total_ever_due = inv.monthly_investor_roi * months_active
+        outstanding    = total_ever_due - total_paid
+        # payout txns filtered by date
+        payout_txns = []
+        for t in inv_payouts:
             if date_from and str(t.transaction_date) < date_from: continue
             if date_to   and str(t.transaction_date) > date_to:   continue
-            all_txns.append({'txn': t, 'investor_name': r['inv'].name})
+            payout_txns.append(t)
+        # month-wise breakdown
+        monthly = {}
+        for t in inv_payouts + sales_payouts:
+            if t.payout_month and t.payout_year:
+                key = (t.payout_year, t.payout_month)
+                if key not in monthly:
+                    monthly[key] = {'inv':0,'sales':0}
+                if t.transaction_type == 'Investor Payout':
+                    monthly[key]['inv'] += t.amount
+                else:
+                    monthly[key]['sales'] += t.amount
+        return {
+            'inv':             inv,
+            'capital':         inv.total_capital,
+            'monthly_roi':     inv.monthly_investor_roi,
+            'sales_monthly':   inv.monthly_sales_roi,
+            'total_paid':      total_paid,
+            'total_sales_paid':sum(t.amount for t in sales_payouts),
+            'total_ever_due':  total_ever_due,
+            'outstanding':     outstanding,
+            'months_active':   months_active,
+            'monthly':         monthly,
+            'payout_txns':     payout_txns,
+            'rep_name':        inv.sales_rep.name if inv.sales_rep else '—',
+            'rep_id':          inv.sales_rep_id,
+        }
 
-    sales_reps = SalesRep.query.filter_by(active=True).all()
+    all_rows = [build_inv_row(inv) for inv in all_investors]
+
+    # Filter by single investor
+    filtered_rows = [r for r in all_rows if str(r['inv'].id) == investor_id_filt] if investor_id_filt else all_rows
+
+    # Sales rep rows
+    sales_rep_rows = []
+    for rep in all_sales_reps:
+        ri = [r for r in all_rows if r['rep_id'] == rep.id]
+        sales_rep_rows.append({
+            'rep':               rep,
+            'investor_count':    len(ri),
+            'total_capital':     sum(r['capital'] for r in ri),
+            'total_sales_monthly': sum(r['sales_monthly'] for r in ri),
+            'total_sales_paid':  sum(r['total_sales_paid'] for r in ri),
+            'investors':         ri,
+        })
+    if rep_id_filt:
+        sales_rep_rows = [r for r in sales_rep_rows if str(r['rep'].id) == rep_id_filt]
+
+    # Month-wise rows
+    yr = int(year_filt) if year_filt else now.year
+    month_rows = []
+    total_investment_val = sum(r['capital'] for r in all_rows)
+    for m in range(1, 13):
+        if month_filt and str(m) != month_filt: continue
+        key = (yr, m)
+        inv_paid   = sum(r['monthly'].get(key,{}).get('inv',0)   for r in all_rows)
+        sales_paid = sum(r['monthly'].get(key,{}).get('sales',0) for r in all_rows)
+        rev        = next((h.revenue_amount for h in revenue_history if h.year==yr and h.month==m), 0)
+        partner    = rev - (total_investment_val * 0.05) if rev else 0
+        month_rows.append({
+            'month_name':  MONTHS[m-1],
+            'month_num':   m,
+            'year':        yr,
+            'inv_paid':    inv_paid,
+            'sales_paid':  sales_paid,
+            'revenue':     rev,
+            'partner_share': partner,
+            'has_data':    inv_paid > 0 or sales_paid > 0 or rev > 0,
+        })
+
+    # Stats
+    total_investment  = sum(r['capital']     for r in all_rows)
+    total_paid_all    = sum(r['total_paid']  for r in all_rows)
+    total_outstanding = sum(r['outstanding'] for r in all_rows)
+    total_monthly_due = sum(r['monthly_roi'] for r in all_rows)
+    total_sales_paid  = sum(r['total_sales_paid'] for r in all_rows)
 
     stats = {
-        'total_investment': total_investment,
-        'total_investors': total_investors,
-        'individual_count': individual_count,
-        'company_count': company_count,
-        'total_monthly_due': total_monthly_due,
-        'total_paid': total_paid_all,
+        'total_investors':   len(all_rows),
+        'individual_count':  sum(1 for r in all_rows if r['inv'].category == 'Individual'),
+        'company_count':     sum(1 for r in all_rows if r['inv'].category == 'Company'),
+        'total_investment':  total_investment,
+        'total_paid':        total_paid_all,
         'total_outstanding': total_outstanding,
-        'global_revenue': global_rev.total_revenue,
+        'total_monthly_due': total_monthly_due,
+        'total_sales_paid':  total_sales_paid,
+        'global_revenue':    global_rev.total_revenue,
+        'partner_share':     global_rev.total_revenue - (total_investment * 0.05),
     }
 
     return render_template('reports_dashboard.html',
-                         investor_rows=investor_rows,
-                         all_txns=all_txns,
-                         revenue_history=revenue_history,
-                         sales_reps=sales_reps,
-                         stats=stats,
-                         report_type=report_type,
-                         filters=request.args,
-                         exchange_rate=exchange_rate)
+        report_type    = report_type,
+        all_rows       = all_rows,
+        filtered_rows  = filtered_rows,
+        sales_rep_rows = sales_rep_rows,
+        month_rows     = month_rows,
+        revenue_history= revenue_history,
+        all_investors  = all_investors,
+        all_sales_reps = all_sales_reps,
+        stats          = stats,
+        filters        = request.args,
+        exchange_rate  = exchange_rate,
+        year_filt      = yr,
+        MONTHS         = MONTHS,
+    )
 
 @app.route('/investor/<int:investor_id>/transaction/add', methods=['POST'])
 @admin_required

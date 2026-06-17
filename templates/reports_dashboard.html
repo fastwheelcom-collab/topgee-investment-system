@@ -3,430 +3,525 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports Dashboard - TopGee It</title>
+    <title>Reports - TopGee It</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
         .report-tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
-        .report-tab  { padding:8px 18px; border-radius:8px; border:2px solid var(--border); background:var(--bg-card); color:var(--text-primary); cursor:pointer; text-decoration:none; font-size:.9rem; font-weight:500; }
+        .report-tab  { padding:8px 16px; border-radius:8px; border:2px solid var(--border); background:var(--bg-card); color:var(--text-primary); cursor:pointer; text-decoration:none; font-size:.88rem; font-weight:600; white-space:nowrap; }
         .report-tab.active { background:var(--blue); color:white; border-color:var(--blue); }
         .report-tab:hover:not(.active) { background:var(--bg-hover); }
-        .filter-panel { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:1.5rem; margin-bottom:1.5rem; }
-        .filter-panel h3 { margin-bottom:1rem; font-size:1rem; }
-        .filter-grid { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
-        .filter-group { display:flex; flex-direction:column; gap:4px; }
-        .filter-group label { font-size:.82rem; color:var(--text-secondary); font-weight:500; }
-        .filter-group input, .filter-group select { padding:8px 10px; border:1px solid var(--border); border-radius:6px; background:var(--bg-dark); color:var(--text-primary); font-size:.9rem; }
-        .filter-actions { display:flex; gap:8px; margin-top:12px; }
-        tfoot tr td { background:var(--bg-hover); font-weight:700; color:var(--text-primary); }
-        .highlight { color:var(--green); font-weight:600; }
-        .text-red { color:#e53e3e; }
-        .text-orange { color:var(--orange); }
-        .text-blue { color:var(--blue); }
+        .filter-bar { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:1.2rem 1.5rem; margin-bottom:1.5rem; display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
+        .filter-bar label { font-size:.8rem; color:var(--text-secondary); font-weight:600; display:block; margin-bottom:3px; }
+        .filter-bar select, .filter-bar input { padding:7px 10px; border:1px solid var(--border); border-radius:6px; background:var(--bg-dark); color:var(--text-primary); font-size:.88rem; }
+        tfoot td { background:var(--bg-hover); font-weight:700; color:var(--text-primary); border-top:2px solid var(--border); }
+        .hi  { color:var(--green);  font-weight:600; }
+        .red { color:#e53e3e; font-weight:600; }
+        .or  { color:var(--orange); font-weight:600; }
+        .bl  { color:var(--blue);   font-weight:600; }
+        .sub-table { margin-top:10px; background:var(--bg-dark); border-radius:8px; border:1px solid var(--border); }
+        .sub-table th { padding:7px 12px; font-size:.78rem; background:var(--bg-hover); color:var(--text-secondary); }
+        .sub-table td { padding:7px 12px; font-size:.82rem; }
+        .section-title { font-size:1.1rem; font-weight:700; margin:24px 0 12px; display:flex; align-items:center; gap:8px; }
+        .no-data { text-align:center; color:var(--text-secondary); padding:30px; }
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="container">
-            <h1>🏦 TopGee It</h1>
-            <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
-                        <div class="nav-links">
-                <a href="{{ url_for('dashboard') }}">🏠 Home</a>
-                <a href="{{ url_for('dashboard') }}" >All Investors</a>
-                <a href="{{ url_for('advanced_search') }}" >Advanced Search</a>
-                <a href="{{ url_for('reports_dashboard') }}" class="active">Reports</a>
-                <a href="{{ url_for('monthly_grid') }}" >Monthly Grid</a>
-                <a href="{{ url_for('analytics_dashboard') }}" >📊 Analytics</a>
-                <a href="{{ url_for('sales_reps') }}" >Sales Team</a>
-                {% if is_admin %}<a href="{{ url_for('add_investor') }}" class="btn-primary">+ Add Investor</a>{% endif %}
-                <a href="{{ url_for('change_password') }}" >🔑 Password</a>
-                <a href="{{ url_for('logout') }}" class="btn-secondary">Logout</a>
-            </div>
-        </div>
-    </nav>
-
+<nav class="navbar">
     <div class="container">
-        <h2 style="margin-bottom:0.5rem;">📊 Reports Dashboard</h2>
-        <p style="color:var(--text-secondary); margin-bottom:1.5rem; font-size:.9rem;">All report types — investor summary, payouts, ROI, outstanding balances</p>
-
-        <!-- Report Type Tabs -->
-        <div class="report-tabs">
-            <a href="?report_type=investor_summary&{{ filters|urlencode }}" class="report-tab {% if report_type=='investor_summary' %}active{% endif %}">👥 Investor Summary</a>
-            <a href="?report_type=payout_report&{{ filters|urlencode }}"   class="report-tab {% if report_type=='payout_report' %}active{% endif %}">💸 Payout Report</a>
-            <a href="?report_type=roi_report&{{ filters|urlencode }}"      class="report-tab {% if report_type=='roi_report' %}active{% endif %}">📈 ROI Report</a>
-            <a href="?report_type=outstanding&{{ filters|urlencode }}"     class="report-tab {% if report_type=='outstanding' %}active{% endif %}">⚠️ Outstanding</a>
-            <a href="?report_type=revenue_history&{{ filters|urlencode }}" class="report-tab {% if report_type=='revenue_history' %}active{% endif %}">📅 Revenue History</a>
+        <h1>🏦 TopGee It</h1>
+        <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
+        <div class="nav-links">
+            <a href="{{ url_for('dashboard') }}">🏠 Home</a>
+            <a href="{{ url_for('dashboard') }}" >All Investors</a>
+            <a href="{{ url_for('advanced_search') }}" >Advanced Search</a>
+            <a href="{{ url_for('reports_dashboard') }}" class="active">Reports</a>
+            <a href="{{ url_for('monthly_grid') }}" >Monthly Grid</a>
+            <a href="{{ url_for('analytics_dashboard') }}" >📊 Analytics</a>
+            <a href="{{ url_for('sales_reps') }}" >Sales Team</a>
+            {% if is_admin %}<a href="{{ url_for('add_investor') }}" class="btn-primary">+ Add Investor</a>{% endif %}
+            <a href="{{ url_for('change_password') }}" >🔑 Password</a>
+            <a href="{{ url_for('logout') }}" class="btn-secondary">Logout</a>
         </div>
+    </div>
+</nav>
 
-        <!-- Filters -->
-        <div class="filter-panel">
-            <h3>🔍 Filters</h3>
-            <form method="GET" action="{{ url_for('reports_dashboard') }}">
-                <input type="hidden" name="report_type" value="{{ report_type }}">
-                <div class="filter-grid">
-                    <div class="filter-group">
-                        <label>Date From</label>
-                        <input type="date" name="date_from" value="{{ filters.date_from or '' }}">
-                    </div>
-                    <div class="filter-group">
-                        <label>Date To</label>
-                        <input type="date" name="date_to" value="{{ filters.date_to or '' }}">
-                    </div>
-                    <div class="filter-group">
-                        <label>Category</label>
-                        <select name="category">
-                            <option value="">All Categories</option>
-                            <option value="Individual" {% if filters.category == 'Individual' %}selected{% endif %}>Individual</option>
-                            <option value="Company"    {% if filters.category == 'Company'    %}selected{% endif %}>Company</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Status</label>
-                        <select name="status">
-                            <option value="">All</option>
-                            <option value="Active"   {% if filters.status == 'Active'   %}selected{% endif %}>Active</option>
-                            <option value="Inactive" {% if filters.status == 'Inactive' %}selected{% endif %}>Inactive</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Sales Rep</label>
-                        <select name="sales_rep">
-                            <option value="">All Reps</option>
-                            {% for rep in sales_reps %}
-                            <option value="{{ rep.name }}" {% if filters.sales_rep == rep.name %}selected{% endif %}>{{ rep.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                <div class="filter-actions">
-                    <button type="submit" class="btn-primary">Generate Report</button>
-                    <a href="{{ url_for('reports_dashboard') }}" class="btn-secondary">Reset</a>
-                    <button type="button" onclick="window.print()" class="btn-secondary">🖨️ Print</button>
-                    <button type="button" onclick="downloadCSV()" class="btn-secondary">📥 CSV</button>
-                </div>
-            </form>
-        </div>
+<div class="container">
+    <h2 style="margin-bottom:4px;">📊 Reports Dashboard</h2>
+    <p style="color:var(--text-secondary); font-size:.88rem; margin-bottom:20px;">Investor reports · Paid reports · Sales rep reports · Revenue · Month-wise</p>
 
-        <!-- Stat Cards -->
-        <div class="stats-grid" style="margin-bottom:1.5rem;">
-            <div class="stat-card stat-card-blue">
-                <div class="stat-icon">👥</div>
-                <div class="stat-content">
-                    <h3>Investors</h3>
-                    <p class="stat-value">{{ stats.total_investors }}</p>
-                    <p class="stat-sub">{{ stats.individual_count }} Individual · {{ stats.company_count }} Company</p>
-                </div>
-            </div>
-            <div class="stat-card stat-card-blue">
-                <div class="stat-icon">💰</div>
-                <div class="stat-content">
-                    <h3>Total Investment</h3>
-                    <p class="stat-value">{{ "{:,.0f}".format(stats.total_investment) }}</p>
-                    <p class="stat-sub">AED</p>
-                </div>
-            </div>
-            <div class="stat-card stat-card-green">
-                <div class="stat-icon">💸</div>
-                <div class="stat-content">
-                    <h3>Total Paid Out</h3>
-                    <p class="stat-value">{{ "{:,.0f}".format(stats.total_paid) }}</p>
-                    <p class="stat-sub">AED to investors</p>
-                </div>
-            </div>
-            <div class="stat-card stat-card-orange">
-                <div class="stat-icon">⚠️</div>
-                <div class="stat-content">
-                    <h3>Total Outstanding</h3>
-                    <p class="stat-value">{{ "{:,.0f}".format(stats.total_outstanding) }}</p>
-                    <p class="stat-sub">AED unpaid</p>
-                </div>
-            </div>
-            <div class="stat-card stat-card-blue">
-                <div class="stat-icon">📅</div>
-                <div class="stat-content">
-                    <h3>Monthly ROI Due</h3>
-                    <p class="stat-value">{{ "{:,.0f}".format(stats.total_monthly_due) }}</p>
-                    <p class="stat-sub">AED / month</p>
-                </div>
-            </div>
-            <div class="stat-card stat-card-orange">
-                <div class="stat-icon">📈</div>
-                <div class="stat-content">
-                    <h3>Global Revenue</h3>
-                    <p class="stat-value">{{ "{:,.0f}".format(stats.global_revenue) }}</p>
-                    <p class="stat-sub">AED total</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- ══════════ INVESTOR SUMMARY ══════════ -->
-        {% if report_type == 'investor_summary' %}
-        <h3 style="margin-bottom:1rem;">👥 Investor Summary</h3>
-        <div class="table-container">
-            <table id="reportTable">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Name</th>
-                        <th>Category</th>
-                        <th>Capital (AED)</th>
-                        <th>Capital (USD)</th>
-                        <th>ROI %</th>
-                        <th>Sales %</th>
-                        <th>Monthly Due</th>
-                        <th>Sales Rep</th>
-                        <th>Contract Start</th>
-                        <th>Contract End</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for r in investor_rows %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td><a href="{{ url_for('investor_detail', investor_id=r.inv.id) }}" class="client-link">{{ r.inv.name }}</a></td>
-                        <td><span class="badge badge-{{ 'success' if r.inv.category=='Individual' else 'inactive' }}">{{ r.inv.category }}</span></td>
-                        <td><strong>{{ "{:,.0f}".format(r.capital) }}</strong></td>
-                        <td>{{ "{:,.0f}".format(r.capital / exchange_rate) }}</td>
-                        <td class="highlight">{{ r.inv.investor_roi_percent }}%</td>
-                        <td>{{ r.inv.sales_roi_percent }}%</td>
-                        <td class="text-orange"><strong>{{ "{:,.0f}".format(r.monthly_roi) }}</strong></td>
-                        <td style="color:var(--text-secondary); font-size:.85rem;">{{ r.inv.sales_rep.name if r.inv.sales_rep else '—' }}</td>
-                        <td style="font-size:.85rem;">{{ r.inv.contract_start.strftime('%d %b %Y') if r.inv.contract_start else '—' }}</td>
-                        <td style="font-size:.85rem;">
-                            {% if r.inv.contract_end %}
-                                {% if r.inv.contract_end.strftime('%Y-%m-%d') < '2026-06-17' %}
-                                <span class="text-red">{{ r.inv.contract_end.strftime('%d %b %Y') }} ⚠️</span>
-                                {% else %}
-                                {{ r.inv.contract_end.strftime('%d %b %Y') }}
-                                {% endif %}
-                            {% else %}—{% endif %}
-                        </td>
-                        <td><span class="badge badge-{{ 'success' if r.inv.status=='Active' else 'inactive' }}">{{ r.inv.status }}</span></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="3">TOTALS ({{ stats.total_investors }} investors)</td>
-                        <td><strong>{{ "{:,.0f}".format(stats.total_investment) }}</strong></td>
-                        <td><strong>{{ "{:,.0f}".format(stats.total_investment / exchange_rate) }}</strong></td>
-                        <td colspan="2">—</td>
-                        <td><strong>{{ "{:,.0f}".format(stats.total_monthly_due) }}</strong></td>
-                        <td colspan="4">—</td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-
-        <!-- ══════════ PAYOUT REPORT ══════════ -->
-        {% elif report_type == 'payout_report' %}
-        <h3 style="margin-bottom:1rem;">💸 Payout Report</h3>
-        <div class="table-container">
-            <table id="reportTable">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Date</th>
-                        <th>Investor</th>
-                        <th>Type</th>
-                        <th>Amount (AED)</th>
-                        <th>For Month</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% if all_txns %}
-                    {% for row in all_txns %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td>{{ row.txn.transaction_date.strftime('%d %b %Y') }}</td>
-                        <td><a href="{{ url_for('investor_detail', investor_id=row.txn.investor_id) }}" class="client-link">{{ row.investor_name }}</a></td>
-                        <td><span class="badge badge-{{ 'success' if row.txn.transaction_type=='Investor Payout' else 'inactive' }}">{{ row.txn.transaction_type }}</span></td>
-                        <td class="highlight"><strong>{{ "{:,.2f}".format(row.txn.amount) }}</strong></td>
-                        <td>
-                            {% if row.txn.payout_month %}
-                            {{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][row.txn.payout_month-1] }} {{ row.txn.payout_year }}
-                            {% else %}—{% endif %}
-                        </td>
-                        <td style="color:var(--text-secondary); font-size:.85rem;">{{ row.txn.notes or '—' }}</td>
-                    </tr>
-                    {% endfor %}
-                    {% else %}
-                    <tr><td colspan="7" style="text-align:center; color:var(--text-secondary);">No payout transactions found.</td></tr>
-                    {% endif %}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="4">TOTAL PAID</td>
-                        <td><strong>{{ "{:,.2f}".format(stats.total_paid) }} AED</strong></td>
-                        <td colspan="2">{{ all_txns|length }} transactions</td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-
-        <!-- ══════════ ROI REPORT ══════════ -->
-        {% elif report_type == 'roi_report' %}
-        <h3 style="margin-bottom:1rem;">📈 ROI Report — Per Investor</h3>
-        <div class="table-container">
-            <table id="reportTable">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Investor</th>
-                        <th>Capital (AED)</th>
-                        <th>ROI %</th>
-                        <th>Monthly ROI Due</th>
-                        <th>Sales Monthly</th>
-                        <th>Months Active</th>
-                        <th>Total Ever Due</th>
-                        <th>Total Paid</th>
-                        <th>Outstanding</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for r in investor_rows %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td><a href="{{ url_for('investor_detail', investor_id=r.inv.id) }}" class="client-link">{{ r.inv.name }}</a></td>
-                        <td><strong>{{ "{:,.0f}".format(r.capital) }}</strong></td>
-                        <td class="highlight">{{ r.inv.investor_roi_percent }}%</td>
-                        <td class="text-orange"><strong>{{ "{:,.0f}".format(r.monthly_roi) }}</strong></td>
-                        <td>{{ "{:,.0f}".format(r.sales_monthly) }}</td>
-                        <td style="color:var(--text-secondary)">{{ r.months_active }} mo</td>
-                        <td>{{ "{:,.0f}".format(r.total_ever_due) }}</td>
-                        <td class="highlight">{{ "{:,.0f}".format(r.payouts) }}</td>
-                        <td class="{% if r.outstanding > 0 %}text-red{% else %}highlight{% endif %}">
-                            <strong>{{ "{:,.0f}".format(r.outstanding) }}</strong>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="2">TOTALS</td>
-                        <td><strong>{{ "{:,.0f}".format(stats.total_investment) }}</strong></td>
-                        <td>—</td>
-                        <td><strong>{{ "{:,.0f}".format(stats.total_monthly_due) }}</strong></td>
-                        <td>—</td>
-                        <td>—</td>
-                        <td>—</td>
-                        <td class="highlight"><strong>{{ "{:,.0f}".format(stats.total_paid) }}</strong></td>
-                        <td class="text-red"><strong>{{ "{:,.0f}".format(stats.total_outstanding) }}</strong></td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-
-        <!-- ══════════ OUTSTANDING ══════════ -->
-        {% elif report_type == 'outstanding' %}
-        <h3 style="margin-bottom:1rem;">⚠️ Outstanding Balances</h3>
-        <div class="table-container">
-            <table id="reportTable">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Investor</th>
-                        <th>Capital (AED)</th>
-                        <th>Monthly Due</th>
-                        <th>Months Active</th>
-                        <th>Total Ever Due</th>
-                        <th>Total Paid</th>
-                        <th>Outstanding</th>
-                        <th>Coverage %</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for r in investor_rows if r.outstanding > 0 %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td><a href="{{ url_for('investor_detail', investor_id=r.inv.id) }}" class="client-link">{{ r.inv.name }}</a></td>
-                        <td>{{ "{:,.0f}".format(r.capital) }}</td>
-                        <td class="text-orange">{{ "{:,.0f}".format(r.monthly_roi) }}</td>
-                        <td style="color:var(--text-secondary)">{{ r.months_active }} mo</td>
-                        <td>{{ "{:,.0f}".format(r.total_ever_due) }}</td>
-                        <td class="highlight">{{ "{:,.0f}".format(r.payouts) }}</td>
-                        <td class="text-red"><strong>{{ "{:,.0f}".format(r.outstanding) }}</strong></td>
-                        <td>
-                            {% if r.total_ever_due > 0 %}
-                            {{ "{:.1f}".format(r.payouts / r.total_ever_due * 100) }}%
-                            {% else %}—{% endif %}
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr><td colspan="9" style="text-align:center; color:var(--text-secondary);">✅ No outstanding balances found.</td></tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="6">TOTALS</td>
-                        <td class="highlight"><strong>{{ "{:,.0f}".format(stats.total_paid) }}</strong></td>
-                        <td class="text-red"><strong>{{ "{:,.0f}".format(stats.total_outstanding) }}</strong></td>
-                        <td>—</td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-
-        <!-- ══════════ REVENUE HISTORY ══════════ -->
-        {% elif report_type == 'revenue_history' %}
-        <h3 style="margin-bottom:1rem;">📅 Revenue History</h3>
-        <div class="table-container">
-            <table id="reportTable">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Month</th>
-                        <th>Date Entered</th>
-                        <th>Revenue (AED)</th>
-                        <th>5% ROI Pool</th>
-                        <th>In-Hand Profit</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% if revenue_history %}
-                    {% for h in revenue_history %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td><strong>{{ h.month_name }}</strong></td>
-                        <td style="color:var(--text-secondary); font-size:.85rem;">{{ h.entry_date.strftime('%d %b %Y %H:%M') }}</td>
-                        <td class="highlight"><strong>{{ "{:,.0f}".format(h.revenue_amount) }}</strong></td>
-                        <td class="text-orange">{{ "{:,.0f}".format(stats.total_investment * 0.05) }}</td>
-                        <td class="highlight">{{ "{:,.0f}".format(h.revenue_amount - stats.total_investment * 0.05) }}</td>
-                        <td style="color:var(--text-secondary); font-size:.85rem;">{{ h.notes or '—' }}</td>
-                    </tr>
-                    {% endfor %}
-                    {% else %}
-                    <tr><td colspan="7" style="text-align:center; color:var(--text-secondary);">No revenue entries yet. Use the revenue form on the main dashboard.</td></tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
-        {% endif %}
-
+    <!-- REPORT TYPE TABS -->
+    <div class="report-tabs">
+        <a href="?report_type=investor_active"  class="report-tab {% if report_type=='investor_active'  %}active{% endif %}">👥 Investor Report</a>
+        <a href="?report_type=investor_paid"    class="report-tab {% if report_type=='investor_paid'    %}active{% endif %}">💸 Investor Paid</a>
+        <a href="?report_type=sales_rep"        class="report-tab {% if report_type=='sales_rep'        %}active{% endif %}">🤝 Sales Person</a>
+        <a href="?report_type=revenue"          class="report-tab {% if report_type=='revenue'          %}active{% endif %}">📈 Revenue & Shares</a>
+        <a href="?report_type=monthwise"        class="report-tab {% if report_type=='monthwise'        %}active{% endif %}">📅 Month-Wise</a>
     </div>
 
-    <footer><p>TopGee It</p></footer>
+    <!-- FILTERS -->
+    <form method="GET" action="{{ url_for('reports_dashboard') }}">
+        <input type="hidden" name="report_type" value="{{ report_type }}">
+        <div class="filter-bar">
+            {% if report_type in ['investor_active','investor_paid'] %}
+            <div>
+                <label>Investor</label>
+                <select name="investor_id" onchange="this.form.submit()">
+                    <option value="">All Investors</option>
+                    {% for inv in all_investors %}
+                    <option value="{{ inv.id }}" {% if filters.investor_id==inv.id|string %}selected{% endif %}>{{ inv.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            {% if report_type == 'sales_rep' %}
+            <div>
+                <label>Sales Rep</label>
+                <select name="rep_id" onchange="this.form.submit()">
+                    <option value="">All Reps</option>
+                    {% for rep in all_sales_reps %}
+                    <option value="{{ rep.id }}" {% if filters.rep_id==rep.id|string %}selected{% endif %}>{{ rep.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            {% if report_type == 'investor_paid' %}
+            <div>
+                <label>Date From</label>
+                <input type="date" name="date_from" value="{{ filters.date_from or '' }}">
+            </div>
+            <div>
+                <label>Date To</label>
+                <input type="date" name="date_to" value="{{ filters.date_to or '' }}">
+            </div>
+            {% endif %}
+            {% if report_type == 'monthwise' %}
+            <div>
+                <label>Year</label>
+                <select name="year" onchange="this.form.submit()">
+                    <option value="2025" {% if year_filt==2025 %}selected{% endif %}>2025</option>
+                    <option value="2026" {% if year_filt==2026 %}selected{% endif %}>2026</option>
+                    <option value="2027" {% if year_filt==2027 %}selected{% endif %}>2027</option>
+                </select>
+            </div>
+            <div>
+                <label>Month</label>
+                <select name="month" onchange="this.form.submit()">
+                    <option value="">All Months</option>
+                    {% for i, m in enumerate(MONTHS) %}
+                    <option value="{{ i+1 }}" {% if filters.month==(i+1)|string %}selected{% endif %}>{{ m }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div style="display:flex; gap:8px; align-items:flex-end;">
+                <button type="submit" class="btn-primary">Generate</button>
+                <a href="?report_type={{ report_type }}" class="btn-secondary">Reset</a>
+                <button type="button" onclick="window.print()" class="btn-secondary">🖨️ Print</button>
+                <button type="button" onclick="dlCSV()" class="btn-secondary">📥 CSV</button>
+            </div>
+        </div>
+    </form>
 
-    <script>
-    function downloadCSV() {
-        const table = document.getElementById('reportTable');
-        if (!table) return;
-        let csv = [];
-        const headers = Array.from(table.querySelectorAll('thead th')).map(th => '"' + th.textContent.trim() + '"');
-        csv.push(headers.join(','));
-        table.querySelectorAll('tbody tr').forEach(row => {
-            const cells = Array.from(row.querySelectorAll('td')).map(td => '"' + td.textContent.trim().replace(/"/g, '""') + '"');
-            if (cells.length) csv.push(cells.join(','));
-        });
-        const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'TopGeeIt_{{ report_type }}_' + new Date().toISOString().split('T')[0] + '.csv';
-        a.click();
-    }
-    </script>
+    <!-- STAT CARDS -->
+    <div class="stats-grid" style="margin-bottom:24px;">
+        <div class="stat-card stat-card-blue">
+            <div class="stat-icon">👥</div>
+            <div class="stat-content">
+                <h3>Investors</h3>
+                <p class="stat-value">{{ stats.total_investors }}</p>
+                <p class="stat-sub">{{ stats.individual_count }} Ind · {{ stats.company_count }} Co</p>
+            </div>
+        </div>
+        <div class="stat-card stat-card-blue">
+            <div class="stat-icon">💰</div>
+            <div class="stat-content">
+                <h3>Total Investment</h3>
+                <p class="stat-value">{{ "{:,.0f}".format(stats.total_investment) }}</p>
+                <p class="stat-sub">AED</p>
+            </div>
+        </div>
+        <div class="stat-card stat-card-green">
+            <div class="stat-icon">💸</div>
+            <div class="stat-content">
+                <h3>Total Paid to Investors</h3>
+                <p class="stat-value">{{ "{:,.0f}".format(stats.total_paid) }}</p>
+                <p class="stat-sub">AED paid out</p>
+            </div>
+        </div>
+        <div class="stat-card stat-card-orange">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-content">
+                <h3>Outstanding</h3>
+                <p class="stat-value">{{ "{:,.0f}".format(stats.total_outstanding) }}</p>
+                <p class="stat-sub">AED unpaid</p>
+            </div>
+        </div>
+        <div class="stat-card stat-card-blue">
+            <div class="stat-icon">📅</div>
+            <div class="stat-content">
+                <h3>Monthly ROI Due</h3>
+                <p class="stat-value">{{ "{:,.0f}".format(stats.total_monthly_due) }}</p>
+                <p class="stat-sub">AED / month</p>
+            </div>
+        </div>
+        <div class="stat-card stat-card-orange">
+            <div class="stat-icon">📈</div>
+            <div class="stat-content">
+                <h3>Global Revenue</h3>
+                <p class="stat-value">{{ "{:,.0f}".format(stats.global_revenue) }}</p>
+                <p class="stat-sub">AED total</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════ INVESTOR REPORT ══════════ -->
+    {% if report_type == 'investor_active' %}
+    <div class="section-title">👥 Investor Report — {% if filters.investor_id %}Individual{% else %}All Investors{% endif %}</div>
+
+    {% for r in filtered_rows %}
+    <div style="margin-bottom:32px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <h3 style="font-size:1rem;">
+                <a href="{{ url_for('investor_detail', investor_id=r.inv.id) }}" class="client-link">{{ r.inv.name }}</a>
+                <span class="badge badge-{{ 'success' if r.inv.status=='Active' else 'inactive' }}" style="margin-left:8px;">{{ r.inv.status }}</span>
+                <span class="badge badge-{{ 'success' if r.inv.category=='Individual' else 'inactive' }}" style="margin-left:4px;">{{ r.inv.category }}</span>
+            </h3>
+            <span style="font-size:.85rem; color:var(--text-secondary);">Rep: {{ r.rep_name }}</span>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr>
+                    <th>Capital (AED)</th><th>ROI %</th><th>Monthly Due</th>
+                    <th>Months Active</th><th>Total Ever Due</th><th>Total Paid</th><th>Outstanding</th>
+                    <th>Contract Start</th><th>Contract End</th>
+                </tr></thead>
+                <tbody><tr>
+                    <td><strong>{{ "{:,.0f}".format(r.capital) }}</strong></td>
+                    <td class="hi">{{ r.inv.investor_roi_percent }}%</td>
+                    <td class="or">{{ "{:,.0f}".format(r.monthly_roi) }}</td>
+                    <td>{{ r.months_active }} mo</td>
+                    <td>{{ "{:,.0f}".format(r.total_ever_due) }}</td>
+                    <td class="hi">{{ "{:,.0f}".format(r.total_paid) }}</td>
+                    <td class="{% if r.outstanding > 0 %}red{% else %}hi{% endif %}">{{ "{:,.0f}".format(r.outstanding) }}</td>
+                    <td style="font-size:.82rem;">{{ r.inv.contract_start.strftime('%d %b %Y') if r.inv.contract_start else '—' }}</td>
+                    <td style="font-size:.82rem;">{{ r.inv.contract_end.strftime('%d %b %Y') if r.inv.contract_end else '—' }}</td>
+                </tr></tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <p class="no-data">No investors found.</p>
+    {% endfor %}
+
+    {% if not filters.investor_id and filtered_rows %}
+    <div class="table-container" style="margin-top:8px;">
+        <table id="reportTable">
+            <thead><tr><th>TOTALS</th><th></th><th>Monthly Due</th><th></th><th>Total Ever Due</th><th>Total Paid</th><th>Outstanding</th><th colspan="2"></th></tr></thead>
+            <tfoot><tr>
+                <td>{{ filtered_rows|length }} investors</td><td></td>
+                <td class="or">{{ "{:,.0f}".format(filtered_rows|sum(attribute='monthly_roi')) }}</td>
+                <td></td>
+                <td>{{ "{:,.0f}".format(filtered_rows|sum(attribute='total_ever_due')) }}</td>
+                <td class="hi">{{ "{:,.0f}".format(filtered_rows|sum(attribute='total_paid')) }}</td>
+                <td class="red">{{ "{:,.0f}".format(filtered_rows|sum(attribute='outstanding')) }}</td>
+                <td colspan="2"></td>
+            </tr></tfoot>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- ══════════ INVESTOR PAID REPORT ══════════ -->
+    {% elif report_type == 'investor_paid' %}
+    <div class="section-title">💸 Investor Paid Report — {% if filters.investor_id %}Individual{% else %}All Investors{% endif %}</div>
+
+    <div class="table-container">
+        <table id="reportTable">
+            <thead><tr>
+                <th>#</th><th>Investor</th><th>Sales Rep</th>
+                <th>Date</th><th>For Month</th><th>Amount (AED)</th><th>Notes</th>
+            </tr></thead>
+            <tbody>
+                {% set ns = namespace(grand=0, count=0) %}
+                {% for r in filtered_rows %}
+                    {% if r.payout_txns %}
+                        {% for t in r.payout_txns %}
+                        {% set ns.grand = ns.grand + t.amount %}
+                        {% set ns.count = ns.count + 1 %}
+                        <tr>
+                            <td style="color:var(--text-secondary)">{{ ns.count }}</td>
+                            <td><a href="{{ url_for('investor_detail', investor_id=r.inv.id) }}" class="client-link">{{ r.inv.name }}</a></td>
+                            <td style="color:var(--text-secondary); font-size:.85rem;">{{ r.rep_name }}</td>
+                            <td>{{ t.transaction_date.strftime('%d %b %Y') }}</td>
+                            <td>
+                                {% if t.payout_month %}
+                                <strong>{{ MONTHS[t.payout_month-1][:3] }} {{ t.payout_year }}</strong>
+                                {% else %}—{% endif %}
+                            </td>
+                            <td class="hi"><strong>{{ "{:,.2f}".format(t.amount) }}</strong></td>
+                            <td style="color:var(--text-secondary); font-size:.82rem;">{{ t.notes or '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% elif not filters.investor_id %}
+                    <tr>
+                        <td></td>
+                        <td><a href="{{ url_for('investor_detail', investor_id=r.inv.id) }}" class="client-link">{{ r.inv.name }}</a></td>
+                        <td style="color:var(--text-secondary)">{{ r.rep_name }}</td>
+                        <td colspan="3" style="color:#999;">No payouts recorded</td>
+                        <td></td>
+                    </tr>
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5">TOTAL PAID ({{ ns.count }} transactions)</td>
+                    <td class="hi"><strong>{{ "{:,.2f}".format(ns.grand) }} AED</strong></td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- ══════════ SALES PERSON REPORT ══════════ -->
+    {% elif report_type == 'sales_rep' %}
+    <div class="section-title">🤝 Sales Person Report — {% if filters.rep_id %}Individual{% else %}All Reps{% endif %}</div>
+
+    {% for sr in sales_rep_rows %}
+    <div style="margin-bottom:32px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <h3 style="font-size:1rem;">{{ sr.rep.name }}</h3>
+            <span style="font-size:.85rem; color:var(--text-secondary);">{{ sr.investor_count }} investor(s)</span>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr>
+                    <th>Investor</th><th>Capital (AED)</th><th>Sales % </th>
+                    <th>Monthly Sales Due</th><th>Total Sales Paid</th>
+                </tr></thead>
+                <tbody>
+                    {% for r in sr.investors %}
+                    <tr>
+                        <td><a href="{{ url_for('investor_detail', investor_id=r.inv.id) }}" class="client-link">{{ r.inv.name }}</a></td>
+                        <td><strong>{{ "{:,.0f}".format(r.capital) }}</strong></td>
+                        <td class="hi">{{ r.inv.sales_roi_percent }}%</td>
+                        <td class="or">{{ "{:,.0f}".format(r.sales_monthly) }}</td>
+                        <td class="hi">{{ "{:,.0f}".format(r.total_sales_paid) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td>TOTAL</td>
+                        <td><strong>{{ "{:,.0f}".format(sr.total_capital) }}</strong></td>
+                        <td>—</td>
+                        <td class="or"><strong>{{ "{:,.0f}".format(sr.total_sales_monthly) }}</strong></td>
+                        <td class="hi"><strong>{{ "{:,.0f}".format(sr.total_sales_paid) }}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <p class="no-data">No sales reps found.</p>
+    {% endfor %}
+
+    {% if not filters.rep_id and sales_rep_rows %}
+    <div class="table-container">
+        <table id="reportTable">
+            <thead><tr><th>Sales Rep</th><th>Investors</th><th>Total Capital</th><th>Monthly Sales Due</th><th>Total Sales Paid</th></tr></thead>
+            <tbody>
+                {% for sr in sales_rep_rows %}
+                <tr>
+                    <td><strong>{{ sr.rep.name }}</strong></td>
+                    <td>{{ sr.investor_count }}</td>
+                    <td>{{ "{:,.0f}".format(sr.total_capital) }}</td>
+                    <td class="or">{{ "{:,.0f}".format(sr.total_sales_monthly) }}</td>
+                    <td class="hi">{{ "{:,.0f}".format(sr.total_sales_paid) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td>ALL REPS TOTAL</td>
+                    <td>{{ sales_rep_rows|sum(attribute='investor_count') }}</td>
+                    <td>{{ "{:,.0f}".format(sales_rep_rows|sum(attribute='total_capital')) }}</td>
+                    <td class="or"><strong>{{ "{:,.0f}".format(sales_rep_rows|sum(attribute='total_sales_monthly')) }}</strong></td>
+                    <td class="hi"><strong>{{ "{:,.0f}".format(sales_rep_rows|sum(attribute='total_sales_paid')) }}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- ══════════ REVENUE & SHARES ══════════ -->
+    {% elif report_type == 'revenue' %}
+    <div class="section-title">📈 Revenue & Shareholder Distribution</div>
+
+    <div class="stats-grid" style="margin-bottom:24px;">
+        <div class="stat-card stat-card-orange">
+            <div class="stat-icon">💵</div>
+            <div class="stat-content">
+                <h3>Total Revenue Generated</h3>
+                <p class="stat-value">{{ "{:,.0f}".format(stats.global_revenue) }}</p>
+                <p class="stat-sub">AED gross</p>
+            </div>
+        </div>
+        <div class="stat-card stat-card-blue">
+            <div class="stat-icon">💼</div>
+            <div class="stat-content">
+                <h3>5% ROI Pool</h3>
+                <p class="stat-value">{{ "{:,.0f}".format(stats.total_investment * 0.05) }}</p>
+                <p class="stat-sub">AED to investors</p>
+            </div>
+        </div>
+        <div class="stat-card stat-card-green">
+            <div class="stat-icon">✨</div>
+            <div class="stat-content">
+                <h3>Partner In-Hand Profit</h3>
+                <p class="stat-value">{{ "{:,.0f}".format(stats.partner_share) }}</p>
+                <p class="stat-sub">AED after ROI</p>
+            </div>
+        </div>
+        <div class="stat-card stat-card-green">
+            <div class="stat-icon">💸</div>
+            <div class="stat-content">
+                <h3>Total Paid to Investors</h3>
+                <p class="stat-value">{{ "{:,.0f}".format(stats.total_paid) }}</p>
+                <p class="stat-sub">AED paid so far</p>
+            </div>
+        </div>
+        <div class="stat-card stat-card-blue">
+            <div class="stat-icon">🤝</div>
+            <div class="stat-content">
+                <h3>Total Sales Paid</h3>
+                <p class="stat-value">{{ "{:,.0f}".format(stats.total_sales_paid) }}</p>
+                <p class="stat-sub">AED to sales reps</p>
+            </div>
+        </div>
+        <div class="stat-card stat-card-orange">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-content">
+                <h3>Outstanding to Investors</h3>
+                <p class="stat-value">{{ "{:,.0f}".format(stats.total_outstanding) }}</p>
+                <p class="stat-sub">AED still owed</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Partner split -->
+    <div class="section-title">🤝 Partner Profit Split (Equal 3-Way)</div>
+    <div class="table-container">
+        <table id="reportTable">
+            <thead><tr><th>Partner</th><th>Share %</th><th>Amount (AED)</th></tr></thead>
+            <tbody>
+                <tr><td><strong>Mr. Shafay</strong></td><td>33.33%</td><td class="hi"><strong>{{ "{:,.0f}".format(stats.partner_share / 3) }}</strong></td></tr>
+                <tr><td><strong>Mr. Shubham</strong></td><td>33.33%</td><td class="hi"><strong>{{ "{:,.0f}".format(stats.partner_share / 3) }}</strong></td></tr>
+                <tr><td><strong>Mr. Kay</strong></td><td>33.34%</td><td class="hi"><strong>{{ "{:,.0f}".format(stats.partner_share / 3) }}</strong></td></tr>
+            </tbody>
+            <tfoot>
+                <tr><td>TOTAL</td><td>100%</td><td class="hi"><strong>{{ "{:,.0f}".format(stats.partner_share) }} AED</strong></td></tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- Revenue history -->
+    <div class="section-title">📅 Revenue History by Month</div>
+    <div class="table-container">
+        <table>
+            <thead><tr><th>#</th><th>Month</th><th>Date Entered</th><th>Revenue (AED)</th><th>5% ROI Pool</th><th>Partner Profit</th><th>Notes</th></tr></thead>
+            <tbody>
+                {% for h in revenue_history %}
+                <tr>
+                    <td style="color:var(--text-secondary)">{{ loop.index }}</td>
+                    <td><strong>{{ h.month_name }}</strong></td>
+                    <td style="color:var(--text-secondary); font-size:.82rem;">{{ h.entry_date.strftime('%d %b %Y') }}</td>
+                    <td class="hi"><strong>{{ "{:,.0f}".format(h.revenue_amount) }}</strong></td>
+                    <td class="or">{{ "{:,.0f}".format(stats.total_investment * 0.05) }}</td>
+                    <td class="hi">{{ "{:,.0f}".format(h.revenue_amount - stats.total_investment * 0.05) }}</td>
+                    <td style="color:var(--text-secondary); font-size:.82rem;">{{ h.notes or '—' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="no-data">No revenue entries yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ══════════ MONTH-WISE ══════════ -->
+    {% elif report_type == 'monthwise' %}
+    <div class="section-title">📅 Month-Wise Report — {{ year_filt }}</div>
+
+    <div class="table-container">
+        <table id="reportTable">
+            <thead><tr>
+                <th>Month</th>
+                <th>Revenue (AED)</th>
+                <th>Investor Paid</th>
+                <th>Sales Paid</th>
+                <th>Total Paid Out</th>
+                <th>Partner Share</th>
+            </tr></thead>
+            <tbody>
+                {% set ns = namespace(tr=0, ti=0, ts=0, tp=0, tps=0) %}
+                {% for m in month_rows %}
+                {% set ns.tr  = ns.tr  + m.revenue %}
+                {% set ns.ti  = ns.ti  + m.inv_paid %}
+                {% set ns.ts  = ns.ts  + m.sales_paid %}
+                {% set ns.tp  = ns.tp  + m.inv_paid + m.sales_paid %}
+                {% set ns.tps = ns.tps + m.partner_share %}
+                <tr style="{% if not m.has_data %}color:var(--text-secondary);{% endif %}">
+                    <td><strong>{{ m.month_name }}</strong></td>
+                    <td class="{% if m.revenue > 0 %}hi{% endif %}">
+                        {% if m.revenue > 0 %}{{ "{:,.0f}".format(m.revenue) }}{% else %}—{% endif %}
+                    </td>
+                    <td class="{% if m.inv_paid > 0 %}hi{% endif %}">
+                        {% if m.inv_paid > 0 %}{{ "{:,.0f}".format(m.inv_paid) }}{% else %}—{% endif %}
+                    </td>
+                    <td class="{% if m.sales_paid > 0 %}bl{% endif %}">
+                        {% if m.sales_paid > 0 %}{{ "{:,.0f}".format(m.sales_paid) }}{% else %}—{% endif %}
+                    </td>
+                    <td class="{% if m.inv_paid+m.sales_paid > 0 %}or{% endif %}">
+                        {% if m.inv_paid+m.sales_paid > 0 %}{{ "{:,.0f}".format(m.inv_paid+m.sales_paid) }}{% else %}—{% endif %}
+                    </td>
+                    <td class="{% if m.partner_share > 0 %}hi{% endif %}">
+                        {% if m.partner_share > 0 %}{{ "{:,.0f}".format(m.partner_share) }}{% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td>TOTAL {{ year_filt }}</td>
+                    <td class="hi"><strong>{{ "{:,.0f}".format(ns.tr) }}</strong></td>
+                    <td class="hi"><strong>{{ "{:,.0f}".format(ns.ti) }}</strong></td>
+                    <td class="bl"><strong>{{ "{:,.0f}".format(ns.ts) }}</strong></td>
+                    <td class="or"><strong>{{ "{:,.0f}".format(ns.tp) }}</strong></td>
+                    <td class="hi"><strong>{{ "{:,.0f}".format(ns.tps) }}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {% endif %}
+
+</div>
+
+<footer><p>TopGee It</p></footer>
+
+<script>
+function dlCSV() {
+    const t = document.getElementById('reportTable');
+    if (!t) { alert('No table to export on this view'); return; }
+    let rows = [];
+    t.querySelectorAll('tr').forEach(r => {
+        const cells = Array.from(r.querySelectorAll('th,td')).map(c => '"' + c.innerText.trim().replace(/"/g,'""') + '"');
+        if (cells.length) rows.push(cells.join(','));
+    });
+    const blob = new Blob([rows.join('\n')], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'TopGeeIt_{{ report_type }}_report.csv';
+    a.click();
+}
+</script>
 </body>
 </html>
