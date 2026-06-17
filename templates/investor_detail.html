@@ -12,7 +12,7 @@
             <h1>🏦 TopGee It</h1>
             <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
             <div class="nav-links">
-                <a href="{{ url_for('dashboard') }}">← Dashboard</a>
+                <a href="{{ url_for('dashboard') }}">← All Investors</a>
                 {% if is_admin %}
                 <a href="{{ url_for('edit_investor', investor_id=investor.id) }}" class="btn-primary">Edit</a>
                 {% endif %}
@@ -388,7 +388,7 @@
                             <th>Investor Share (5%)</th>
                             <th>Sales Share (5%)</th>
                             <th>Partners Get (95%)</th>
-                            <th>Actions</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -418,18 +418,17 @@
                             <td>{{ '{:,.2f}'.format(month_data.record.sales_share) }} AED</td>
                             <td style="color: #10b981; font-weight: bold;">{{ '{:,.2f}'.format(month_data.record.total_roi_generated * 0.95) }} AED</td>
                             <td>
-                                {% if is_admin %}
-                                <button onclick="editROI({{ month_data.month }}, {{ month_data.record.total_roi_generated }}, '{{ month_data.record.notes or '' }}')" class="btn-sm" style="margin-right: 0.5rem; background: #3b82f6;">✏️ Edit</button>
-                                <button onclick="deleteROI({{ month_data.month }}, '{{ month_data.month_name }}')" class="btn-sm" style="background: #ef4444;">🗑️ Delete</button>
+                                {% if month_data.paid_status == 'paid' %}
+                                <span style="color:#10b981; font-weight:bold;">✅ Paid</span>
+                                {% elif month_data.paid_status == 'partial' %}
+                                <span style="color:#f59e0b; font-weight:bold;">⚠️ Partial</span>
+                                {% else %}
+                                <span style="color:#ef4444; font-weight:bold;">❌ Unpaid</span>
                                 {% endif %}
                             </td>
                             {% else %}
-                            <td colspan="4" style="color: #999; text-align: center;">No entry yet</td>
-                            <td>
-                                {% if is_admin %}
-                                <button onclick="addROI({{ month_data.month }})" class="btn-primary btn-sm">+ Add ROI</button>
-                                {% endif %}
-                            </td>
+                            <td colspan="4" style="color: #999; text-align: center;">Add a Capital Transaction payout to auto-sync</td>
+                            <td><span style="color:#ef4444; font-weight:bold;">❌ Unpaid</span></td>
                             {% endif %}
                         </tr>
                         {% endfor %}

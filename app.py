@@ -306,6 +306,21 @@ class GlobalRevenue(db.Model):
             db.session.add(instance)
             db.session.commit()
         return instance
+
+
+class RevenueHistory(db.Model):
+    """Track monthly revenue entries with date"""
+    id = db.Column(db.Integer, primary_key=True)
+    year = db.Column(db.Integer, nullable=False)
+    month = db.Column(db.Integer, nullable=False)
+    revenue_amount = db.Column(db.Float, default=0)
+    input_mode = db.Column(db.String(20), default='amount')
+    notes = db.Column(db.Text)
+    entry_date = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def month_name(self):
+        return datetime(self.year, self.month, 1).strftime('%B %Y')
 # ============= DATABASE INITIALIZATION =============
 
 @app.before_request
@@ -529,6 +544,11 @@ def dashboard():
             query = query.filter(Investor.status == filter_status)
         investors = sorted(query.all(), key=_sort_key)
     
+    # Revenue history for the month/date table
+    revenue_history = RevenueHistory.query.order_by(
+        RevenueHistory.year.desc(), RevenueHistory.month.desc()
+    ).limit(24).all()
+
     return render_template('dashboard.html',
                          investors=investors,
                          sales_reps=sales_reps,
@@ -539,6 +559,7 @@ def dashboard():
                          filter_category=filter_category,
                          filter_sales_rep=filter_sales_rep,
                          filter_status=filter_status,
+                         revenue_history=revenue_history,
                          is_admin=session.get('is_admin', False))
 
 @app.route('/investor/<int:investor_id>')
@@ -1084,50 +1105,102 @@ def customer_monthly_report(investor_id, year, month):
 @app.route('/reports/dashboard')
 @login_required
 def reports_dashboard():
-    """Advanced reporting dashboard"""
-    # Get date range from request
-    date_from = request.args.get('date_from', '')
-    date_to = request.args.get('date_to', '')
-    category = request.args.get('category', '')
-    
-    # Build query
+    """Fully functional reporting dashboard"""
+    date_from   = request.args.get('date_from', '')
+    date_to     = request.args.get('date_to', '')
+    category    = request.args.get('category', '')
+    status_filt = request.args.get('status', '')
+    rep_filt    = request.args.get('sales_rep', '')
+    report_type = request.args.get('report_type', 'investor_summary')  # investor_summary | payout_report | roi_report | outstanding
+
+    # Build investor query
+    _prefix_re = re.compile(r'^(Mr\.?|Mrs\.?|Ms\.?|Dr\.?)\s*', re.IGNORECASE)
+    def _sk(inv): return _prefix_re.sub('', inv.name).strip().lower()
+
     query = Investor.query
-    if date_from:
-        query = query.filter(Investor.investment_date >= datetime.strptime(date_from, '%Y-%m-%d'))
-    if date_to:
-        query = query.filter(Investor.investment_date <= datetime.strptime(date_to, '%Y-%m-%d'))
-    if category:
-        query = query.filter(Investor.category == category)
-    
-    investors = query.all()
-    
-    # Calculate stats
-    total_investment = sum(i.investment_amount for i in investors)
-    total_investors = len(investors)
-    individual_count = len([i for i in investors if i.category == 'Individual'])
-    company_count = len([i for i in investors if i.category == 'Company'])
-    
-    # Get monthly records for the filtered investors
-    investor_ids = [i.id for i in investors]
-    monthly_records = MonthlyRecord.query.filter(MonthlyRecord.investor_id.in_(investor_ids)).all() if investor_ids else []
-    
-    total_revenue = sum(r.revenue_generated for r in monthly_records)
-    total_roi_paid = sum(r.investor_roi_paid + r.sales_roi_paid for r in monthly_records)
-    
+    if category:    query = query.filter(Investor.category == category)
+    if status_filt: query = query.filter(Investor.status == status_filt)
+    if rep_filt:    query = query.join(SalesRep).filter(SalesRep.name.ilike(f'%{rep_filt}%'))
+    investors = sorted(query.all(), key=_sk)
+
+    exchange_rate = get_live_exchange_rate()
+    global_rev    = GlobalRevenue.get_instance()
+    now           = datetime.now()
+
+    # Per-investor enriched rows
+    investor_rows = []
+    total_paid_all = 0.0
+    for inv in investors:
+        txns = InvestmentTransaction.query.filter_by(investor_id=inv.id).all()
+        payouts     = sum(t.amount for t in txns if t.transaction_type == 'Investor Payout')
+        sales_pay   = sum(t.amount for t in txns if t.transaction_type == 'Sales Payout')
+        deposits    = sum(t.amount for t in txns if t.transaction_type == 'Deposit')
+        withdrawals = sum(t.amount for t in txns if t.transaction_type == 'Withdrawal')
+        if inv.contract_start:
+            months_active = max(0,(now.year-inv.contract_start.year)*12+(now.month-inv.contract_start.month))
+        else:
+            months_active = 0
+        total_ever_due  = inv.monthly_investor_roi * months_active
+        outstanding     = total_ever_due - payouts
+        total_paid_all += payouts
+        investor_rows.append({
+            'inv': inv,
+            'capital': inv.total_capital,
+            'monthly_roi': inv.monthly_investor_roi,
+            'sales_monthly': inv.monthly_sales_roi,
+            'payouts': payouts,
+            'sales_pay': sales_pay,
+            'deposits': deposits,
+            'withdrawals': withdrawals,
+            'months_active': months_active,
+            'total_ever_due': total_ever_due,
+            'outstanding': outstanding,
+        })
+
+    total_investment  = sum(r['capital']       for r in investor_rows)
+    total_monthly_due = sum(r['monthly_roi']   for r in investor_rows)
+    total_outstanding = sum(r['outstanding']   for r in investor_rows)
+    total_investors   = len(investor_rows)
+    individual_count  = sum(1 for r in investor_rows if r['inv'].category == 'Individual')
+    company_count     = sum(1 for r in investor_rows if r['inv'].category == 'Company')
+
+    # Revenue history
+    revenue_history = RevenueHistory.query.order_by(
+        RevenueHistory.year.desc(), RevenueHistory.month.desc()).all()
+
+    # Payout report — all payout transactions
+    all_txns = []
+    for r in investor_rows:
+        txns = InvestmentTransaction.query.filter_by(investor_id=r['inv'].id).filter(
+            InvestmentTransaction.transaction_type.in_(['Investor Payout','Sales Payout'])
+        ).order_by(InvestmentTransaction.transaction_date.desc()).all()
+        for t in txns:
+            if date_from and str(t.transaction_date) < date_from: continue
+            if date_to   and str(t.transaction_date) > date_to:   continue
+            all_txns.append({'txn': t, 'investor_name': r['inv'].name})
+
+    sales_reps = SalesRep.query.filter_by(active=True).all()
+
     stats = {
         'total_investment': total_investment,
         'total_investors': total_investors,
         'individual_count': individual_count,
         'company_count': company_count,
-        'total_revenue': total_revenue,
-        'total_roi_paid': total_roi_paid,
+        'total_monthly_due': total_monthly_due,
+        'total_paid': total_paid_all,
+        'total_outstanding': total_outstanding,
+        'global_revenue': global_rev.total_revenue,
     }
-    
+
     return render_template('reports_dashboard.html',
-                         investors=investors,
+                         investor_rows=investor_rows,
+                         all_txns=all_txns,
+                         revenue_history=revenue_history,
+                         sales_reps=sales_reps,
                          stats=stats,
+                         report_type=report_type,
                          filters=request.args,
-                         exchange_rate=EXCHANGE_RATE)
+                         exchange_rate=exchange_rate)
 
 @app.route('/investor/<int:investor_id>/transaction/add', methods=['POST'])
 @admin_required
@@ -1158,14 +1231,47 @@ def add_transaction(investor_id):
     
     # For payout transactions, add payout tracking fields
     if transaction_type in ['Investor Payout', 'Sales Payout']:
-        transaction.payout_month = int(request.form.get('payout_month', datetime.now().month))
-        transaction.payout_year = int(request.form.get('payout_year', datetime.now().year))
-        transaction.source_type = 'Investor ROI' if transaction_type == 'Investor Payout' else 'Sales Share'
-    
+        payout_month = int(request.form.get('payout_month', datetime.now().month))
+        payout_year  = int(request.form.get('payout_year',  datetime.now().year))
+        transaction.payout_month = payout_month
+        transaction.payout_year  = payout_year
+        transaction.source_type  = 'Investor ROI' if transaction_type == 'Investor Payout' else 'Sales Share'
+
+        # ── AUTO-SYNC: upsert ManualROI ledger row for this month ──
+        roi_entry = ManualROI.query.filter_by(
+            investor_id=investor_id, year=payout_year, month=payout_month
+        ).first()
+        if roi_entry:
+            # Update existing: recalculate from ALL payout transactions for this month
+            db.session.add(transaction)   # add first so it's included in sum
+            db.session.flush()
+            month_payouts = InvestmentTransaction.query.filter_by(
+                investor_id=investor_id, payout_year=payout_year, payout_month=payout_month
+            ).filter(InvestmentTransaction.transaction_type.in_(['Investor Payout', 'Sales Payout'])).all()
+            inv_paid   = sum(t.amount for t in month_payouts if t.transaction_type == 'Investor Payout')
+            sales_paid = sum(t.amount for t in month_payouts if t.transaction_type == 'Sales Payout')
+            roi_entry.investor_share = inv_paid
+            roi_entry.sales_share    = sales_paid
+            roi_entry.total_roi_generated = inv_paid + sales_paid
+        else:
+            # Create new ManualROI entry for this month
+            inv_share   = transaction.amount if transaction_type == 'Investor Payout' else 0
+            sales_share = transaction.amount if transaction_type == 'Sales Payout' else 0
+            roi_entry = ManualROI(
+                investor_id=investor_id,
+                year=payout_year,
+                month=payout_month,
+                total_roi_generated=transaction.amount,
+                investor_share=inv_share,
+                sales_share=sales_share,
+                notes=f"Auto-synced from {transaction_type} on {transaction.transaction_date}"
+            )
+            db.session.add(roi_entry)
+
     db.session.add(transaction)
     db.session.commit()
-    
-    flash(f"{transaction.transaction_type} of {transaction.amount:,.2f} AED added successfully!", 'success')
+
+    flash(f"{transaction.transaction_type} of {transaction.amount:,.2f} AED added and synced to ROI Ledger!", 'success')
     return redirect(url_for('investor_detail', investor_id=investor_id))
 
 @app.route('/investor/<int:investor_id>/contract/upload', methods=['POST'])
@@ -1425,28 +1531,43 @@ def delete_manual_roi(investor_id):
 @app.route('/revenue/update', methods=['POST'])
 @admin_required
 def update_global_revenue():
-    """Update total revenue generated"""
+    """Update total revenue generated + save to monthly history"""
     global_revenue = GlobalRevenue.get_instance()
     
-    input_mode = request.form.get('input_mode', 'amount')  # 'amount' or 'percentage'
+    input_mode = request.form.get('input_mode', 'amount')
     input_value = float(request.form['revenue_value'])
-    
-    # Get total investment for percentage calculation
+    rev_month = int(request.form.get('revenue_month', datetime.now().month))
+    rev_year  = int(request.form.get('revenue_year',  datetime.now().year))
+    rev_notes = request.form.get('revenue_notes', '')
+
     investors = Investor.query.all()
     total_investment = sum(i.total_capital for i in investors)
-    
+
     if input_mode == 'percentage':
-        # Convert percentage to amount
-        global_revenue.total_revenue = total_investment * (input_value / 100)
-        flash(f"Revenue set to {input_value}% of Total Investment = {global_revenue.total_revenue:,.2f} AED", 'success')
+        amount = total_investment * (input_value / 100)
+        flash(f"Revenue {input_value}% = {amount:,.2f} AED saved for {datetime(rev_year, rev_month, 1).strftime('%B %Y')}", 'success')
     else:
-        # Direct amount
-        global_revenue.total_revenue = input_value
-        flash(f"Revenue set to {input_value:,.2f} AED", 'success')
-    
+        amount = input_value
+        flash(f"Revenue {amount:,.2f} AED saved for {datetime(rev_year, rev_month, 1).strftime('%B %Y')}", 'success')
+
+    # Update global total
+    global_revenue.total_revenue = amount
     global_revenue.input_mode = input_mode
+
+    # Save/update monthly history
+    hist = RevenueHistory.query.filter_by(year=rev_year, month=rev_month).first()
+    if hist:
+        hist.revenue_amount = amount
+        hist.input_mode = input_mode
+        hist.notes = rev_notes
+        hist.entry_date = datetime.utcnow()
+    else:
+        hist = RevenueHistory(year=rev_year, month=rev_month,
+                              revenue_amount=amount, input_mode=input_mode,
+                              notes=rev_notes)
+        db.session.add(hist)
+
     db.session.commit()
-    
     return redirect(url_for('dashboard'))
 
 @app.route('/analytics')
