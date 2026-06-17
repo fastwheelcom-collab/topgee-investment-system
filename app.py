@@ -1568,46 +1568,43 @@ def update_global_revenue():
         db.session.add(hist)
 
     db.session.commit()
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('analytics_dashboard'))
 
 @app.route('/analytics')
 @login_required
 def analytics_dashboard():
-    """Separate analytics dashboard — investor breakdown, paid vs due, revenue"""
-    import re as _re2
-    _pfx = re.compile(r'^(mr\.?|mrs\.?|ms\.?|dr\.?|prof\.?)\s+', re.I)
+    """Analytics — full business overview + investor breakdown"""
+    _pfx = re.compile(r'^(Mr\.?|Mrs\.?|Ms\.?|Dr\.)\s*', re.IGNORECASE)
     def _skey(inv): return _pfx.sub('', inv.name).strip().lower()
 
-    investors = sorted(Investor.query.all(), key=_skey)
+    investors      = sorted(Investor.query.all(), key=_skey)
     global_revenue = GlobalRevenue.get_instance()
+    now            = datetime.now()
+    current_month  = now.month
+    current_year   = now.year
+    exchange_rate  = get_live_exchange_rate()
 
-    investor_rows = []
+    # ── investor rows ──
+    investor_rows      = []
     total_paid_clients = 0.0
     total_monthly_due  = 0.0
     total_investment   = 0.0
+    today = date.today()
 
     for inv in investors:
-        # All payout transactions ever
-        payouts = InvestmentTransaction.query.filter_by(
-            investor_id=inv.id, transaction_type='payout'
-        ).all()
-        paid = sum(p.amount for p in payouts)
+        txns = InvestmentTransaction.query.filter_by(investor_id=inv.id).all()
+        paid = sum(t.amount for t in txns if t.transaction_type in ['Investor Payout', 'payout'])
         monthly_due = inv.monthly_investor_roi
-
-        # Contract months elapsed → total ever due
-        today = date.today()
         if inv.contract_start:
             months_elapsed = max(0, (today.year - inv.contract_start.year)*12 +
                                     (today.month - inv.contract_start.month))
         else:
             months_elapsed = 0
         total_ever_due = monthly_due * months_elapsed
-        outstanding = total_ever_due - paid
-
+        outstanding    = total_ever_due - paid
         total_paid_clients += paid
         total_monthly_due  += monthly_due
         total_investment   += inv.total_capital
-
         investor_rows.append({
             'id': inv.id,
             'name': inv.name,
@@ -1626,23 +1623,55 @@ def analytics_dashboard():
             'months_elapsed': months_elapsed,
         })
 
-    total_roi_pool       = global_revenue.total_revenue * 0.05 if global_revenue.total_revenue else sum(inv.total_roi_pool for inv in investors)
-    total_inv_roi_share  = sum(inv.monthly_investor_roi for inv in investors)
-    total_sales_share    = sum(inv.monthly_sales_roi    for inv in investors)
-    final_profit         = global_revenue.total_revenue - (total_investment * 0.05)
+    # ── summary stats (same as dashboard) ──
+    total_investment_val      = total_investment
+    investment_roi_5_percent  = total_investment_val * 0.05
+    total_revenue_generated   = global_revenue.total_revenue
+    final_in_hand_profit      = total_revenue_generated - investment_roi_5_percent
+    total_investor_roi        = sum(inv.monthly_investor_roi for inv in investors)
+    total_sales_share         = sum(inv.monthly_sales_roi    for inv in investors)
+    total_roi_pool            = total_investor_roi + total_sales_share
+    investor_roi_percent      = (total_investor_roi / total_roi_pool * 100) if total_roi_pool > 0 else 0
+    sales_share_percent       = (total_sales_share  / total_roi_pool * 100) if total_roi_pool > 0 else 0
+    partner_share             = final_in_hand_profit / 3
+
+    stats = {
+        'total_investors':          len(investors),
+        'total_investment':         total_investment_val,
+        'total_investment_usd':     total_investment_val / exchange_rate,
+        'exchange_rate':            exchange_rate,
+        'investment_roi_5_percent': investment_roi_5_percent,
+        'total_revenue_generated':  total_revenue_generated,
+        'final_in_hand_profit':     final_in_hand_profit,
+        'total_investor_roi':       total_investor_roi,
+        'total_sales_share':        total_sales_share,
+        'investor_roi_percent':     investor_roi_percent,
+        'sales_share_percent':      sales_share_percent,
+        'partner_shafay':           partner_share,
+        'partner_shubham':          partner_share,
+        'partner_kay':              partner_share,
+        'current_month':            now.strftime('%B %Y'),
+    }
+
+    revenue_history = RevenueHistory.query.order_by(
+        RevenueHistory.year.desc(), RevenueHistory.month.desc()
+    ).limit(24).all()
 
     return render_template(
         'analytics_dashboard.html',
-        investor_rows    = investor_rows,
-        total_investment = total_investment,
-        global_revenue   = global_revenue.total_revenue,
+        investor_rows      = investor_rows,
+        investor_count     = len(investor_rows),
+        stats              = stats,
         total_paid_clients = total_paid_clients,
         total_monthly_due  = total_monthly_due,
         total_outstanding  = sum(r['outstanding'] for r in investor_rows),
-        total_inv_roi_share  = total_inv_roi_share,
-        total_sales_share    = total_sales_share,
-        final_profit         = final_profit,
-        investor_count   = len(investor_rows),
+        total_inv_roi_share= total_investor_roi,
+        total_sales_share  = total_sales_share,
+        final_profit       = final_in_hand_profit,
+        revenue_history    = revenue_history,
+        current_month      = current_month,
+        current_year       = current_year,
+        is_admin           = session.get('is_admin', False),
     )
 
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analytics Dashboard - TopGee It</title>
+    <title>Analytics - TopGee It</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
         .summary-grid {
@@ -52,7 +52,7 @@
                 <a href="{{ url_for('advanced_search') }}">Advanced Search</a>
                 <a href="{{ url_for('reports_dashboard') }}">Reports</a>
                 <a href="{{ url_for('monthly_grid') }}">Monthly Grid</a>
-                <a href="{{ url_for('analytics_dashboard') }}" style="background:var(--blue); color:white; padding:0.5rem 1rem; border-radius:6px;">📊 Analytics</a>
+                <a href="{{ url_for('analytics_dashboard') }}" class="active">📊 Analytics</a>
                 <a href="{{ url_for('sales_reps') }}">Sales Team</a>
                 <a href="{{ url_for('change_password') }}">🔑 Password</a>
                 <a href="{{ url_for('logout') }}" class="btn-secondary">Logout</a>
@@ -62,10 +62,87 @@
 
     <div class="container">
 
-        <h2 style="margin-bottom:0.5rem;">📊 Analytics Dashboard</h2>
-        <p style="color:var(--text-secondary); margin-bottom:1.5rem; font-size:.9rem;">
-            Investor breakdown · Total paid to clients · Revenue generated · Outstanding
-        </p>
+        <!-- ── BUSINESS OVERVIEW HEADER ── -->
+        <div class="month-indicator">
+            <h2>Business Overview</h2>
+        </div>
+
+        <!-- ── SET TOTAL REVENUE (Admin Only) ── -->
+        {% if is_admin %}
+        <div class="section" style="background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 8px 16px rgba(255,152,0,0.3);">
+            <h3 style="color: white; margin-bottom: 15px; font-size: 1.3rem;">💸 Set Total Revenue Generated</h3>
+            <form method="POST" action="{{ url_for('update_global_revenue') }}" class="rev-form" style="display: flex; gap: 15px; align-items: end; flex-wrap: wrap;">
+                <div>
+                    <label style="color: white; font-weight: bold;">Month:</label><br>
+                    <select name="revenue_month" style="padding: 10px; font-size: 1rem; border: 2px solid white;">
+                        {% for m in range(1,13) %}
+                        <option value="{{ m }}" {% if m == current_month %}selected{% endif %}>{{ ['January','February','March','April','May','June','July','August','September','October','November','December'][m-1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="color: white; font-weight: bold;">Year:</label><br>
+                    <select name="revenue_year" style="padding: 10px; font-size: 1rem; border: 2px solid white;">
+                        <option value="2025" {% if current_year==2025 %}selected{% endif %}>2025</option>
+                        <option value="2026" {% if current_year==2026 %}selected{% endif %}>2026</option>
+                        <option value="2027" {% if current_year==2027 %}selected{% endif %}>2027</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="color: white; font-weight: bold;">Input Mode:</label><br>
+                    <select name="input_mode" id="input_mode" onchange="updateRevenueLabel()" style="padding: 10px; font-size: 1rem; border: 2px solid white;">
+                        <option value="amount">Fixed Amount (AED)</option>
+                        <option value="percentage">Percentage (%)</option>
+                    </select>
+                </div>
+                <div>
+                    <label id="revenue_label" style="color: white; font-weight: bold;">Revenue Amount (AED):</label><br>
+                    <input type="number" name="revenue_value" step="0.01" required placeholder="e.g. 2617931" style="padding: 10px; width: 180px; font-size: 1rem; border: 2px solid white;">
+                </div>
+                <div>
+                    <label style="color: white; font-weight: bold;">Notes (optional):</label><br>
+                    <input type="text" name="revenue_notes" placeholder="e.g. June trading profit" style="padding: 10px; width: 180px; font-size: 1rem; border: 2px solid white;">
+                </div>
+                <button type="submit" class="btn-primary" style="background: white; color: var(--orange); font-weight: bold; padding: 10px 20px; border: 2px solid var(--orange); border-radius: 8px;">Save Revenue</button>
+            </form>
+            <script>
+                function updateRevenueLabel() {
+                    const mode = document.getElementById('input_mode').value;
+                    const label = document.getElementById('revenue_label');
+                    label.textContent = mode === 'percentage' ? 'Revenue Percentage (%):' : 'Revenue Amount (AED):';
+                }
+            </script>
+
+            <!-- Revenue History Table -->
+            {% if revenue_history %}
+            <div style="margin-top: 20px;">
+                <h4 style="color: white; margin-bottom: 10px;">📅 Revenue History</h4>
+                <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; background:rgba(255,255,255,0.1); border-radius:8px; overflow:hidden;">
+                    <thead>
+                        <tr style="background:rgba(0,0,0,0.2);">
+                            <th style="padding:8px 12px; color:white; text-align:left;">Month</th>
+                            <th style="padding:8px 12px; color:white; text-align:left;">Date Entered</th>
+                            <th style="padding:8px 12px; color:white; text-align:right;">Revenue (AED)</th>
+                            <th style="padding:8px 12px; color:white; text-align:left;">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for h in revenue_history %}
+                        <tr style="border-top:1px solid rgba(255,255,255,0.2);">
+                            <td style="padding:8px 12px; color:white;">{{ h.month_name }}</td>
+                            <td style="padding:8px 12px; color:rgba(255,255,255,0.85);">{{ h.entry_date.strftime('%d %b %Y') }}</td>
+                            <td style="padding:8px 12px; color:white; text-align:right; font-weight:600;">{{ '{:,.0f}'.format(h.revenue_amount) }}</td>
+                            <td style="padding:8px 12px; color:rgba(255,255,255,0.85);">{{ h.notes or '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
 
         <!-- ── STAT CARDS ── -->
         <div class="stats-grid">
@@ -73,7 +150,7 @@
                 <div class="stat-icon">👥</div>
                 <div class="stat-content">
                     <h3>Total Investors</h3>
-                    <p class="stat-value">{{ investor_count }}</p>
+                    <p class="stat-value">{{ stats.total_investors }}</p>
                     <p class="stat-sub">Active clients</p>
                 </div>
             </div>
@@ -81,67 +158,108 @@
                 <div class="stat-icon">💰</div>
                 <div class="stat-content">
                     <h3>Total Investment</h3>
-                    <p class="stat-value">{{ "{:,.0f}".format(total_investment) }}</p>
-                    <p class="stat-sub">AED under management</p>
-                </div>
-            </div>
-            <div class="stat-card stat-card-orange">
-                <div class="stat-icon">📈</div>
-                <div class="stat-content">
-                    <h3>Revenue Generated</h3>
-                    <p class="stat-value">{{ "{:,.0f}".format(global_revenue) }}</p>
-                    <p class="stat-sub">AED gross revenue</p>
-                </div>
-            </div>
-            <div class="stat-card stat-card-green">
-                <div class="stat-icon">💸</div>
-                <div class="stat-content">
-                    <h3>Total Paid to Clients</h3>
-                    <p class="stat-value">{{ "{:,.0f}".format(total_paid_clients) }}</p>
-                    <p class="stat-sub">AED paid out so far</p>
+                    <p class="stat-value">{{ '{:,.0f}'.format(stats.total_investment) }} AED</p>
+                    <p class="stat-sub" style="font-size:1.1rem; font-weight:600; margin-top:0.5rem;">{{ '{:,.0f}'.format(stats.total_investment_usd) }} USD</p>
+                    <p class="stat-sub" style="font-size:0.85rem; margin-top:0.25rem;">Rate: 1 USD = {{ '{:.4f}'.format(stats.exchange_rate) }} AED</p>
                 </div>
             </div>
             <div class="stat-card stat-card-blue">
-                <div class="stat-icon">📅</div>
+                <div class="stat-icon">📊</div>
                 <div class="stat-content">
-                    <h3>Monthly ROI Due</h3>
-                    <p class="stat-value">{{ "{:,.0f}".format(total_monthly_due) }}</p>
-                    <p class="stat-sub">AED / month to all investors</p>
+                    <h3>Investment ROI (5%)</h3>
+                    <p class="stat-value">{{ '{:,.0f}'.format(stats.investment_roi_5_percent) }} AED</p>
+                    <p class="stat-sub">5% of Total Investment</p>
                 </div>
             </div>
             <div class="stat-card stat-card-orange">
-                <div class="stat-icon">⚠️</div>
+                <div class="stat-icon">💵</div>
                 <div class="stat-content">
-                    <h3>Total Outstanding</h3>
-                    <p class="stat-value">{{ "{:,.0f}".format(total_outstanding) }}</p>
-                    <p class="stat-sub">AED unpaid (due − paid)</p>
+                    <h3>Total Revenue Generated</h3>
+                    <p class="stat-value">{{ '{:,.0f}'.format(stats.total_revenue_generated) }} AED</p>
+                    <p class="stat-sub">Gross revenue</p>
+                </div>
+            </div>
+            <div class="stat-card stat-card-green" style="box-shadow: 0 8px 16px rgba(76,175,80,0.3);">
+                <div class="stat-icon">✨</div>
+                <div class="stat-content">
+                    <h3>Final In-Hand Profit</h3>
+                    <p class="stat-value" style="font-size:2rem; font-weight:700;">{{ '{:,.0f}'.format(stats.final_in_hand_profit) }} AED</p>
+                    <p class="stat-sub">Revenue - ROI (5%)</p>
+                </div>
+            </div>
+            <div class="stat-card stat-card-orange">
+                <div class="stat-icon">💸</div>
+                <div class="stat-content">
+                    <h3>Total Paid to Clients</h3>
+                    <p class="stat-value">{{ '{:,.0f}'.format(total_paid_clients) }} AED</p>
+                    <p class="stat-sub">Payouts recorded</p>
                 </div>
             </div>
         </div>
 
-        <!-- ── SUMMARY CARDS ── -->
+        <!-- ── ROI DISTRIBUTION ── -->
+        <div class="section">
+            <h2>📈 ROI Distribution Summary</h2>
+            <div class="partners-grid">
+                <div class="partner-card" style="background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%); color: white; box-shadow: 0 8px 16px rgba(74,144,226,0.3); border-radius: 16px;">
+                    <h3 style="color: white; font-size: 1.3rem;">💼 Investor ROI</h3>
+                    <p class="large-number" style="color: white; font-size: 2.2rem; font-weight: 700;">{{ '{:,.0f}'.format(stats.total_investor_roi) }} AED</p>
+                    <p class="sub-text" style="color: rgba(255,255,255,0.95); font-size: 1.1rem;">{{ '{:.1f}%'.format(stats.investor_roi_percent) }} of total ROI pool</p>
+                </div>
+                <div class="partner-card" style="background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%); color: white; box-shadow: 0 8px 16px rgba(255,152,0,0.3); border-radius: 16px;">
+                    <h3 style="color: white; font-size: 1.3rem;">🎯 Sales Share</h3>
+                    <p class="large-number" style="color: white; font-size: 2.2rem; font-weight: 700;">{{ '{:,.0f}'.format(stats.total_sales_share) }} AED</p>
+                    <p class="sub-text" style="color: rgba(255,255,255,0.95); font-size: 1.1rem;">{{ '{:.1f}%'.format(stats.sales_share_percent) }} of total ROI pool</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── PARTNER PROFIT DISTRIBUTION ── -->
+        <div class="section">
+            <h2>🤝 Partner Profit Distribution</h2>
+            <p style="color: #666; margin-bottom: 20px;">Equal split of Final In-Hand Profit ({{ '{:,.0f}'.format(stats.final_in_hand_profit) }} AED ÷ 3)</p>
+            <div class="partners-grid">
+                <div class="partner-card" style="background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%); color: white; box-shadow: 0 8px 16px rgba(74,144,226,0.3); border-radius: 16px;">
+                    <h3 style="color: white; font-size: 1.3rem;">Mr. Shafay</h3>
+                    <p class="large-number" style="color: white; font-size: 2.2rem; font-weight: 700;">{{ '{:,.0f}'.format(stats.partner_shafay) }} AED</p>
+                    <p class="sub-text" style="color: rgba(255,255,255,0.95); font-size: 1.1rem;">33.33%</p>
+                </div>
+                <div class="partner-card" style="background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%); color: white; box-shadow: 0 8px 16px rgba(76,175,80,0.3); border-radius: 16px;">
+                    <h3 style="color: white; font-size: 1.3rem;">Mr. Shubham</h3>
+                    <p class="large-number" style="color: white; font-size: 2.2rem; font-weight: 700;">{{ '{:,.0f}'.format(stats.partner_shubham) }} AED</p>
+                    <p class="sub-text" style="color: rgba(255,255,255,0.95); font-size: 1.1rem;">33.33%</p>
+                </div>
+                <div class="partner-card" style="background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%); color: white; box-shadow: 0 8px 16px rgba(255,152,0,0.3); border-radius: 16px;">
+                    <h3 style="color: white; font-size: 1.3rem;">Mr. Kay</h3>
+                    <p class="large-number" style="color: white; font-size: 2.2rem; font-weight: 700;">{{ '{:,.0f}'.format(stats.partner_kay) }} AED</p>
+                    <p class="sub-text" style="color: rgba(255,255,255,0.95); font-size: 1.1rem;">33.34%</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── PAYOUT SUMMARY CARDS ── -->
         <div class="summary-grid">
             <div class="summary-card">
                 <h3>💼 Revenue Breakdown</h3>
                 <div class="summary-row">
                     <span class="lbl">Gross Revenue Generated</span>
-                    <span class="val" style="color:var(--green)">{{ "{:,.0f}".format(global_revenue) }} AED</span>
+                    <span class="val" style="color:var(--green)">{{ "{:,.0f}".format(stats.total_revenue_generated) }} AED</span>
                 </div>
                 <div class="summary-row">
                     <span class="lbl">5% ROI Pool (to investors)</span>
-                    <span class="val" style="color:var(--orange)">{{ "{:,.0f}".format(total_investment * 0.05) }} AED</span>
+                    <span class="val" style="color:var(--orange)">{{ "{:,.0f}".format(stats.investment_roi_5_percent) }} AED</span>
                 </div>
                 <div class="summary-row">
                     <span class="lbl">Investor ROI Share / month</span>
-                    <span class="val">{{ "{:,.0f}".format(total_inv_roi_share) }} AED</span>
+                    <span class="val">{{ "{:,.0f}".format(stats.total_investor_roi) }} AED</span>
                 </div>
                 <div class="summary-row">
                     <span class="lbl">Sales Rep Share / month</span>
-                    <span class="val">{{ "{:,.0f}".format(total_sales_share) }} AED</span>
+                    <span class="val">{{ "{:,.0f}".format(stats.total_sales_share) }} AED</span>
                 </div>
                 <div class="summary-row">
                     <span class="lbl">Final In-Hand Profit</span>
-                    <span class="val" style="color:var(--green)">{{ "{:,.0f}".format(final_profit) }} AED</span>
+                    <span class="val" style="color:var(--green)">{{ "{:,.0f}".format(stats.final_in_hand_profit) }} AED</span>
                 </div>
             </div>
             <div class="summary-card">
@@ -152,7 +270,7 @@
                 </div>
                 <div class="summary-row">
                     <span class="lbl">Total Outstanding (unpaid)</span>
-                    <span class="val" style="color:var(--danger)">{{ "{:,.0f}".format(total_outstanding) }} AED</span>
+                    <span class="val" style="color:#e53e3e">{{ "{:,.0f}".format(total_outstanding) }} AED</span>
                 </div>
                 <div class="summary-row">
                     <span class="lbl">Monthly Obligation</span>
@@ -169,8 +287,8 @@
                 </div>
                 <div class="summary-row">
                     <span class="lbl">Revenue vs Investment</span>
-                    {% if total_investment > 0 %}
-                    <span class="val" style="color:var(--blue)">{{ "{:.1f}".format(global_revenue / total_investment * 100) }}%</span>
+                    {% if stats.total_investment > 0 %}
+                    <span class="val" style="color:var(--blue)">{{ "{:.1f}".format(stats.total_revenue_generated / stats.total_investment * 100) }}%</span>
                     {% else %}
                     <span class="val">—</span>
                     {% endif %}
@@ -178,11 +296,11 @@
             </div>
         </div>
 
-        <!-- ── INVESTOR TABLE ── -->
+        <!-- ── INVESTOR DETAIL TABLE ── -->
         <div class="section">
             <div class="section-header">
                 <h2>👤 Investor Detail Breakdown</h2>
-                <span class="badge badge-success">{{ investor_count }} investors</span>
+                <span class="badge badge-success">{{ investor_count }} Investors</span>
             </div>
             <div class="table-container">
                 <table>
@@ -229,7 +347,7 @@
                             <td>{{ "{:,.0f}".format(r.total_ever_due) }}</td>
                             <td style="color:var(--green)"><strong>{{ "{:,.0f}".format(r.paid) }}</strong></td>
                             <td>
-                                <span style="color:{% if r.outstanding > 0 %}var(--danger){% else %}var(--green){% endif %}">
+                                <span style="color:{% if r.outstanding > 0 %}#e53e3e{% else %}var(--green){% endif %}">
                                     <strong>{{ "{:,.0f}".format(r.outstanding) }}</strong>
                                 </span>
                                 {% if r.total_ever_due > 0 %}
@@ -242,7 +360,7 @@
                                 {% if r.contract_start and r.contract_end %}
                                     {{ r.contract_start.strftime('%d %b %y') }} →
                                     {% if r.contract_end.strftime('%Y-%m-%d') < '2026-06-17' %}
-                                        <span style="color:var(--danger)">{{ r.contract_end.strftime('%d %b %y') }} ⚠️</span>
+                                        <span style="color:#e53e3e">{{ r.contract_end.strftime('%d %b %y') }} ⚠️</span>
                                     {% else %}
                                         {{ r.contract_end.strftime('%d %b %y') }}
                                     {% endif %}
@@ -260,7 +378,7 @@
                             <td>—</td>
                             <td><strong>{{ "{:,.0f}".format(ns.t_due) }}</strong></td>
                             <td style="color:var(--green)"><strong>{{ "{:,.0f}".format(ns.t_paid) }}</strong></td>
-                            <td style="color:var(--danger)"><strong>{{ "{:,.0f}".format(ns.t_out) }}</strong></td>
+                            <td style="color:#e53e3e"><strong>{{ "{:,.0f}".format(ns.t_out) }}</strong></td>
                             <td>—</td>
                         </tr>
                     </tfoot>
@@ -269,5 +387,7 @@
         </div>
 
     </div>
+
+    <footer><p>TopGee It</p></footer>
 </body>
 </html>
