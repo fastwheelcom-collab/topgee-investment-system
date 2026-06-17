@@ -52,22 +52,27 @@ body {
 }
 
 .navbar h1 {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     color: #000000;
     font-weight: bold;
+    white-space: nowrap;
 }
 
 .nav-links {
     display: flex;
-    gap: 1rem;
+    gap: 0.4rem;
+    align-items: center;
+    flex-wrap: nowrap;
 }
 
 .nav-links a {
     color: var(--text-primary);
     text-decoration: none;
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 0.75rem;
     border-radius: 6px;
     transition: background 0.2s;
+    font-size: 0.88rem;
+    white-space: nowrap;
 }
 
 .nav-links a:hover {
@@ -617,18 +622,18 @@ footer {
 }
 
 .btn-search {
-    padding: 1rem 2rem;
-    background: var(--primary);
+    padding: 0.6rem 1.4rem;
+    background: var(--blue);
     color: white;
     border: none;
-    border-radius: 12px;
+    border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .btn-search:hover {
-    background: var(--primary-dark);
+    background: var(--blue-dark);
     transform: translateY(-2px);
 }
 
