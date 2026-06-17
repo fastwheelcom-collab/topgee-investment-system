@@ -75,7 +75,8 @@ body {
 }
 
 .nav-links a.active {
-    background: var(--primary);
+    background: var(--blue);
+    color: white;
 }
 
 /* Container */
