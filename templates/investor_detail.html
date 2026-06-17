@@ -404,8 +404,17 @@
                                 <span style="color: #ef4444; font-weight: bold; margin-left: 0.5rem;">❌ UNPAID</span>
                                 {% endif %}
                             </td>
-                            {% if month_data.record %}
-                            <td>{{ '{:,.2f}'.format(month_data.record.total_roi_generated) }} AED</td>
+                            <!-- Total ROI Generated -->
+                            <td>
+                                {% if month_data.record %}
+                                {{ '{:,.2f}'.format(month_data.record.total_roi_generated) }} AED
+                                {% elif month_data.total_paid > 0 %}
+                                {{ '{:,.2f}'.format(month_data.total_paid) }} AED
+                                {% else %}
+                                <span style="color:#999;">—</span>
+                                {% endif %}
+                            </td>
+                            <!-- Investor Share -->
                             <td class="highlight">
                                 {{ '{:,.2f}'.format(month_data.expected_roi) }} AED
                                 {% if month_data.total_paid > 0 %}
@@ -415,8 +424,25 @@
                                 {% endif %}
                                 {% endif %}
                             </td>
-                            <td>{{ '{:,.2f}'.format(month_data.record.sales_share) }} AED</td>
-                            <td style="color: #10b981; font-weight: bold;">{{ '{:,.2f}'.format(month_data.record.total_roi_generated * 0.95) }} AED</td>
+                            <!-- Sales Share -->
+                            <td>
+                                {% if month_data.record %}
+                                {{ '{:,.2f}'.format(month_data.record.sales_share) }} AED
+                                {% else %}
+                                <span style="color:#999;">—</span>
+                                {% endif %}
+                            </td>
+                            <!-- Partners Get -->
+                            <td style="color: #10b981; font-weight: bold;">
+                                {% if month_data.record %}
+                                {{ '{:,.2f}'.format(month_data.record.total_roi_generated * 0.95) }} AED
+                                {% elif month_data.total_paid > 0 %}
+                                {{ '{:,.2f}'.format(month_data.total_paid * 0.95) }} AED
+                                {% else %}
+                                <span style="color:#999;">—</span>
+                                {% endif %}
+                            </td>
+                            <!-- Status — always use paid_status from payout transactions -->
                             <td>
                                 {% if month_data.paid_status == 'paid' %}
                                 <span style="color:#10b981; font-weight:bold;">✅ Paid</span>
@@ -426,10 +452,6 @@
                                 <span style="color:#ef4444; font-weight:bold;">❌ Unpaid</span>
                                 {% endif %}
                             </td>
-                            {% else %}
-                            <td colspan="4" style="color: #999; text-align: center;">Add a Capital Transaction payout to auto-sync</td>
-                            <td><span style="color:#ef4444; font-weight:bold;">❌ Unpaid</span></td>
-                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
