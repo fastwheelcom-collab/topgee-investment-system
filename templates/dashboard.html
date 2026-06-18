@@ -91,13 +91,18 @@
                         {% endfor %}
                     </tbody>
                     <tfoot>
-                        <tr style="background:#1a2a1a; font-weight:700; border-top:2px solid #4CAF50;">
-                            <td colspan="3" style="padding:10px 12px; color:#4CAF50;">📊 TOTAL ({{ investors|length }} investors)</td>
+                        <tr style="background:#1a2a1a; font-weight:700; border-top:2px solid #4CAF50; font-size:13px;">
+                            <td style="padding:10px 12px; color:#4CAF50;">📊</td>
+                            <td style="padding:10px 12px; color:#4CAF50;">TOTAL<br><span style="font-size:11px; color:#aaa;">{{ investors|length }} investors</span></td>
+                            <td style="padding:10px 12px; color:#aaa;">—</td>
                             <td style="padding:10px 12px; color:#4CAF50;">{{ '{:,.0f}'.format(investors|sum(attribute='total_capital')) }} AED</td>
                             <td style="padding:10px 12px; color:#aaa;">—</td>
-                            <td style="padding:10px 12px; color:#4CAF50;">Inv ROI: {{ '{:,.0f}'.format(investors|sum(attribute='monthly_investor_roi')) }} AED | Sales ROI: {{ '{:,.0f}'.format(investors|sum(attribute='monthly_sales_roi')) }} AED</td>
-                            <td style="padding:10px 12px;">—</td>
-                            <td style="padding:10px 12px;">—</td>
+                            <td style="padding:10px 12px;">
+                                <span style="color:#4CAF50;">Inv: {{ '{:,.0f}'.format(investors|sum(attribute='monthly_investor_roi')) }} AED</span><br>
+                                <span style="color:#f0a500;">Sales: {{ '{:,.0f}'.format(investors|sum(attribute='monthly_sales_roi')) }} AED</span>
+                            </td>
+                            <td style="padding:10px 12px; color:#aaa;">—</td>
+                            <td style="padding:10px 12px; color:#aaa;">—</td>
                         </tr>
                     </tfoot>
                 </table>
