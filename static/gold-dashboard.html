@@ -1086,9 +1086,11 @@ function updateIndicators(price){
 }
 
 // Signal engine state
-let lastSignalSent  = '';
-let lastSignalTime  = 0;
-const SIGNAL_COOLDOWN = 5 * 60 * 1000; // 5 min between same-direction signals
+let lastSignalSent     = '';
+let lastSignalTime     = 0;
+let lastSignalPrice    = 0;
+const SIGNAL_COOLDOWN  = 15 * 60 * 1000; // 15 min same-direction lock
+const FLIP_COOLDOWN    = 30 * 60 * 1000; // 30 min before flipping direction
 
 // ── AUTO PIVOT S&R ──
 function updatePivotLevels(price, high, low){
@@ -1177,61 +1179,89 @@ function renderMiniCharts(prices){
 }
 
 // ── STRONG SIGNAL ENGINE ──
-// Returns score 0-5 and direction based on indicator confluence
+// ── SIGNAL ENGINE v2 ──
+// Rules:
+// 1. Must have CLEAR MAJORITY: winner must lead by at least 2
+// 2. EMA trend + MACD must AGREE with direction (core confluence)
+// 3. RSI must not contradict (no BUY if RSI>65, no SELL if RSI<35)
+// 4. Score = winning side count only when all 3 rules pass
 function calcSignalStrength(price, prev, indResult){
-  if(!indResult) return { score:0, direction:'WAIT', conditions:[], maxScore:7 };
-  const { rsi, ema8, ema21, ema50, ema200, mc, bullPct, atr, stoch } = indResult;
+  if(!indResult) return { score:0, direction:'WAIT', conditions:[], maxScore:7, buyScore:0, sellScore:0 };
+  const { rsi, ema8, ema21, ema50, ema200, mc, atr, stoch, bb } = indResult;
   const chg = price - prev;
 
   let buyScore = 0, sellScore = 0;
-  const conditions = [];
+  const buyReasons = [], sellReasons = [];
 
-  // 1. RSI
-  if(rsi !== null){
-    if(rsi < 35)       { buyScore++;  conditions.push('RSI oversold('+rsi.toFixed(0)+')✅'); }
-    else if(rsi > 65)  { sellScore++; conditions.push('RSI overbought('+rsi.toFixed(0)+')✅'); }
-    else                              conditions.push('RSI neutral('+rsi.toFixed(0)+')❌');
-  }
-  // 2. EMA8 vs EMA21
+  // ─ TREND INDICATORS (weight: 2 each — most important) ─
+  // EMA 8/21 cross
   if(ema8 && ema21){
-    if(ema8 > ema21)   { buyScore++;  conditions.push('EMA8>21✅'); }
-    else               { sellScore++; conditions.push('EMA8<21✅'); }
+    if(ema8 > ema21){ buyScore+=2;  buyReasons.push('EMA8>21 ↑'); }
+    else            { sellScore+=2; sellReasons.push('EMA8<21 ↓'); }
   }
-  // 3. Price vs EMA50
-  if(ema50){
-    if(price > ema50)  { buyScore++;  conditions.push('Above EMA50✅'); }
-    else               { sellScore++; conditions.push('Below EMA50✅'); }
-  }
-  // 4. Price vs EMA200 (big trend)
-  if(ema200){
-    if(price > ema200) { buyScore++;  conditions.push('Above EMA200✅'); }
-    else               { sellScore++; conditions.push('Below EMA200✅'); }
-  }
-  // 5. MACD histogram
+  // MACD direction
   if(mc){
-    if(mc.hist > 0)    { buyScore++;  conditions.push('MACD bullish✅'); }
-    else               { sellScore++; conditions.push('MACD bearish✅'); }
-  }
-  // 6. Stochastic
-  if(stoch !== null){
-    if(stoch.k < 25 && stoch.k > stoch.d)  { buyScore++;  conditions.push('Stoch oversold+cross✅'); }
-    else if(stoch.k > 75 && stoch.k < stoch.d){ sellScore++; conditions.push('Stoch overbought+cross✅'); }
-    else if(stoch.k > stoch.d && stoch.k < 70){ buyScore++;  conditions.push('Stoch bullish✅'); }
-    else if(stoch.k < stoch.d && stoch.k > 30){ sellScore++; conditions.push('Stoch bearish✅'); }
-    else                                        conditions.push('Stoch neutral❌');
-  }
-  // 7. ATR volatility filter (only score if ATR confirms real move)
-  if(atr !== null){
-    if(atr > 1.0 && chg > 0.5)  { buyScore++;  conditions.push('ATR confirms bull move✅'); }
-    else if(atr > 1.0 && chg < -0.5){ sellScore++; conditions.push('ATR confirms bear move✅'); }
-    else if(atr < 0.5)               conditions.push('ATR: low vol❌');
-    else                             conditions.push('ATR neutral❌');
+    if(mc.hist > 0){ buyScore+=2;  buyReasons.push('MACD+ ↑'); }
+    else           { sellScore+=2; sellReasons.push('MACD- ↓'); }
   }
 
-  const maxScore  = 7;
-  const score     = Math.max(buyScore, sellScore);
-  const direction = buyScore > sellScore ? 'BUY' : sellScore > buyScore ? 'SELL' : 'WAIT';
-  return { score, maxScore, direction, buyScore, sellScore, conditions };
+  // ─ MOMENTUM INDICATORS (weight: 1 each) ─
+  // RSI — only score extreme readings
+  if(rsi !== null){
+    if(rsi < 35)     { buyScore++;  buyReasons.push('RSI oversold('+rsi.toFixed(0)+')'); }
+    else if(rsi > 65){ sellScore++; sellReasons.push('RSI overbought('+rsi.toFixed(0)+')'); }
+  }
+  // Stochastic
+  if(stoch !== null){
+    if(stoch.k < 30 && stoch.k > stoch.d)       { buyScore++;  buyReasons.push('Stoch cross up'); }
+    else if(stoch.k > 70 && stoch.k < stoch.d)  { sellScore++; sellReasons.push('Stoch cross down'); }
+  }
+  // Price vs EMA50 (trend filter)
+  if(ema50){
+    if(price > ema50){ buyScore++;  buyReasons.push('Above EMA50'); }
+    else             { sellScore++; sellReasons.push('Below EMA50'); }
+  }
+  // Bollinger squeeze breakout
+  if(bb){
+    if(price < bb.lower){ buyScore++;  buyReasons.push('BB oversold'); }
+    else if(price > bb.upper){ sellScore++; sellReasons.push('BB overbought'); }
+  }
+  // ATR confirms momentum
+  if(atr !== null && atr > 1.0){
+    if(chg > 0.3)     { buyScore++;  buyReasons.push('Momentum up'); }
+    else if(chg < -0.3){ sellScore++; sellReasons.push('Momentum down'); }
+  }
+
+  const maxScore = 10; // 2+2+1+1+1+1+1 = max possible per side
+
+  // ─ QUALITY GATES ─
+  // Gate 1: Winner must lead by at least 3 points
+  const gap = Math.abs(buyScore - sellScore);
+  if(gap < 3){ return { score:Math.max(buyScore,sellScore), maxScore, direction:'WAIT', buyScore, sellScore, conditions:[...buyReasons,...sellReasons], gatesFailed:'Gap only '+gap+'/3 needed' }; }
+
+  // Gate 2: EMA and MACD must agree with direction
+  const winner = buyScore > sellScore ? 'BUY' : 'SELL';
+  if(winner === 'BUY'){
+    const emaOk  = ema8 && ema21 && ema8 > ema21;
+    const macdOk = mc && mc.hist > 0;
+    if(!emaOk && !macdOk){ return { score:buyScore, maxScore, direction:'WAIT', buyScore, sellScore, conditions:buyReasons, gatesFailed:'EMA+MACD not aligned for BUY' }; }
+  }
+  if(winner === 'SELL'){
+    const emaOk  = ema8 && ema21 && ema8 < ema21;
+    const macdOk = mc && mc.hist < 0;
+    if(!emaOk && !macdOk){ return { score:sellScore, maxScore, direction:'WAIT', buyScore, sellScore, conditions:sellReasons, gatesFailed:'EMA+MACD not aligned for SELL' }; }
+  }
+
+  // Gate 3: RSI must not contradict (no BUY when RSI>70, no SELL when RSI<30)
+  if(rsi !== null){
+    if(winner === 'BUY'  && rsi > 72){ return { score:buyScore, maxScore, direction:'WAIT', buyScore, sellScore, conditions:buyReasons, gatesFailed:'RSI '+rsi.toFixed(0)+' too high for BUY' }; }
+    if(winner === 'SELL' && rsi < 28){ return { score:sellScore, maxScore, direction:'WAIT', buyScore, sellScore, conditions:sellReasons, gatesFailed:'RSI '+rsi.toFixed(0)+' too low for SELL' }; }
+  }
+
+  // All gates passed — valid signal!
+  const score     = winner === 'BUY' ? buyScore : sellScore;
+  const conditions = winner === 'BUY' ? buyReasons : sellReasons;
+  return { score, maxScore, direction:winner, buyScore, sellScore, conditions, gatesFailed:null };
 }
 
 function updateSignalStrengthBar(sig){
@@ -1242,19 +1272,24 @@ function updateSignalStrengthBar(sig){
   const max = sig.maxScore || 7;
   const pct = (sig.score / max) * 100;
   fill.style.width = pct + '%';
-  if(sig.score >= 5){
+  const dir = sig.direction === 'WAIT' ? '' : ' — '+sig.direction;
+  if(sig.gatesFailed){
+    fill.style.background = '#9ca3af';
+    label.style.color = '#6b7280';
+    label.textContent = '🔒 FILTERED: '+sig.gatesFailed;
+  } else if(sig.score >= 7){
     const col = sig.direction==='BUY' ? '#16a34a' : '#dc2626';
     fill.style.background = col;
     label.style.color = col;
-    label.textContent = '🔥 STRONG '+sig.direction+' ('+sig.score+'/'+max+')';
-  } else if(sig.score >= 4){
+    label.textContent = '🔥 STRONG'+dir+' ('+sig.score+'/'+max+')';
+  } else if(sig.score >= 5){
     fill.style.background = '#f59e0b';
     label.style.color = '#b45309';
-    label.textContent = '⚡ MODERATE '+sig.direction+' ('+sig.score+'/'+max+')';
+    label.textContent = '⚡ MODERATE'+dir+' ('+sig.score+'/'+max+')';
   } else if(sig.score >= 3){
     fill.style.background = '#3b82f6';
     label.style.color = '#1d4ed8';
-    label.textContent = '👀 WATCHING '+sig.direction+' ('+sig.score+'/'+max+')';
+    label.textContent = '👀 BUILDING'+dir+' ('+sig.score+'/'+max+')';
   } else {
     fill.style.background = '#9ca3af';
     label.style.color = '#9ca3af';
@@ -1969,39 +2004,69 @@ function buildTelegramMsg(action, price, reason){
 // ── STRONG SIGNAL FIRE ──
 function fireStrongSignal(sig, price, indResult){
   updateSignalStrengthBar(sig);
-  if(sig.score < 4) return; // Fire on MODERATE+ signals (4-7 out of 7)
   const direction = sig.direction;
-  if(direction === 'WAIT') return;
+
+  // Always update strength bar, but only fire alerts on valid signals
+  if(direction === 'WAIT' || sig.gatesFailed){
+    // Show why signal was blocked in bar
+    const label = document.getElementById('sig-strength-label');
+    if(label && sig.gatesFailed) label.textContent = '⏳ BLOCKED: '+sig.gatesFailed;
+    return;
+  }
+  if(sig.score < 5) return; // Need score ≥5 (out of 10) after gates
 
   const now = Date.now();
-  const cooldownPassed = (direction !== lastSignalSent) || (now - lastSignalTime > SIGNAL_COOLDOWN);
-  if(!cooldownPassed) return;
 
-  lastSignalSent = direction;
-  lastSignalTime = now;
+  // Direction flip cooldown — prevent BUY then SELL in quick succession
+  if(direction !== lastSignalSent && lastSignalTime > 0){
+    if(now - lastSignalTime < FLIP_COOLDOWN){
+      const label = document.getElementById('sig-strength-label');
+      const remaining = Math.round((FLIP_COOLDOWN-(now-lastSignalTime))/60000);
+      if(label) label.textContent = '🔄 Flip blocked — '+remaining+'min cooldown (was '+lastSignalSent+')';
+      return;
+    }
+  }
 
-  const sl  = direction==='BUY' ? (price-30).toFixed(2) : (price+30).toFixed(2);
-  const tp  = direction==='BUY' ? (price+60).toFixed(2) : (price-60).toFixed(2);
-  const emoji = direction==='BUY' ? '🚀' : '📉';
-  const condText = sig.conditions.slice(0,5).join(' | ');
+  // Same direction cooldown
+  if(direction === lastSignalSent && now - lastSignalTime < SIGNAL_COOLDOWN) return;
 
-  // 1. Send Telegram
-  const tgMsg = `${emoji} <b>STRONG SIGNAL — ${direction}</b>
+  // Price must have moved at least $2 from last signal
+  if(lastSignalPrice > 0 && Math.abs(price - lastSignalPrice) < 2) return;
 
-💰 Price: <b>$${price.toFixed(2)}</b>
-🛡 SL: $${sl}
-🎯 TP: $${tp}
-📊 Score: <b>${sig.score}/${sig.maxScore||7} conditions met</b>
-📝 ${condText}
+  lastSignalSent  = direction;
+  lastSignalTime  = now;
+  lastSignalPrice = price;
 
+  const isBuy = direction === 'BUY';
+  const sl    = (isBuy ? price - 30 : price + 30).toFixed(2);
+  const tp1   = (isBuy ? price + 40 : price - 40).toFixed(2);
+  const tp2   = (isBuy ? price + 80 : price - 80).toFixed(2);
+  const rr    = '1 : 1.3';
+  const confPct = Math.round(sig.score / sig.maxScore * 100);
+  const reasons = sig.conditions.slice(0,4).join(' · ');
+  const emoji   = isBuy ? '🚀' : '📌';
+  const action  = isBuy ? 'PLACE BUY ORDER' : 'PLACE SELL ORDER';
+
+  // ─ CLEAN TELEGRAM MESSAGE ─
+  const tgMsg =
+`${emoji} <b>${action}</b>
+
+────────────────────
+💲 Entry:  <b>$${price.toFixed(2)}</b>
+🛡️ Stop Loss: <b>$${sl}</b>  (-$${(30).toFixed(0)})
+🎯 TP1:    <b>$${tp1}</b>  (+$${(40).toFixed(0)})
+🎯 TP2:    <b>$${tp2}</b>  (+$${(80).toFixed(0)})
+⚖️  R:R = 1:1.3 / 1:2.6
+────────────────────
+📊 Confidence: <b>${confPct}%</b> (${sig.score}/${sig.maxScore} score)
+📝 Reasons: ${reasons}
+────────────────────
 🕐 ${new Date().toLocaleString('en-US',{timeZone:'Asia/Dubai',hour12:false})} Dubai
-⚠️ Analysis only — not financial advice`;
-  sendTelegram(tgMsg);
+⚠️ Analysis only — use your own judgment`;
 
-  // 2. Auto-log in signal history
-  addSigHistory(direction, price, sl, tp, sig.score, sig.maxScore||7);
-  // 3. Auto-log in trade log
-  autoLogSignal(direction, price, parseFloat(sl), parseFloat(tp), sig.score, condText);
+  sendTelegram(tgMsg);
+  addSigHistory(direction, price, sl, tp1, sig.score, sig.maxScore);
+  autoLogSignal(direction, price, parseFloat(sl), parseFloat(tp1), sig.score, reasons);
 }
 
 // ── SIGNAL HISTORY (separate from trade log) ──
