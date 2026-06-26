@@ -1582,7 +1582,7 @@ function updateSetups(price, high, low){
   const sellConf = Math.round(bears/total*100);
   const bcLbl = document.getElementById('buy-conf-lbl'),  bcFill = document.getElementById('buy-conf-fill');
   const scLbl = document.getElementById('sell-conf-lbl'), scFill = document.getElementById('sell-conf-fill');
-  if(bcLbl)  bcLbl.textContent  = 'Confidence: '+(buyConf>=70?'HIGH':'buyConf>=50?'MEDIUM':'LOW')+' ('+buyConf+'%)';
+  if(bcLbl)  bcLbl.textContent  = 'Confidence: '+(buyConf>=70?'HIGH':buyConf>=50?'MEDIUM':'LOW')+' ('+buyConf+'%)';
   if(bcFill) bcFill.style.width = buyConf+'%';
   if(scLbl)  scLbl.textContent  = 'Confidence: '+(sellConf>=70?'HIGH':sellConf>=50?'MEDIUM':'LOW')+' ('+sellConf+'%)';
   if(scFill) scFill.style.width = sellConf+'%';
