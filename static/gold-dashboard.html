@@ -720,6 +720,57 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   </div>
 </div>
 
+<!-- NEWS FILTER BANNER -->
+<div id="news-filter-banner" style="display:none;background:linear-gradient(135deg,#fff7ed,#fef3c7);border:2px solid #f59e0b;border-radius:14px;padding:14px 18px;margin-bottom:14px;animation:alertPulse 2s infinite;">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span style="font-size:28px;">📰</span>
+    <div style="flex:1;">
+      <div style="font-size:16px;font-weight:900;color:#b45309;letter-spacing:1px;" id="news-filter-title">HIGH IMPACT NEWS SOON</div>
+      <div style="font-size:12px;color:#92400e;margin-top:3px;" id="news-filter-detail">Signals paused near high-impact event</div>
+    </div>
+    <div style="background:#f59e0b;color:#fff;border-radius:20px;padding:6px 16px;font-weight:900;font-size:12px;">SIGNALS PAUSED</div>
+  </div>
+</div>
+
+<!-- NEWS + CALENDAR ROW -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+
+  <!-- ECONOMIC CALENDAR -->
+  <div style="background:#fff;border:2px solid #3b82f6;border-radius:16px;padding:16px;box-shadow:0 4px 20px rgba(59,130,246,.10);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:36px;height:36px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;">📅</div>
+        <div>
+          <div style="font-size:13px;font-weight:900;color:#111;">Economic Calendar</div>
+          <div style="font-size:10px;color:#9ca3af;">High-impact USD events this week</div>
+        </div>
+      </div>
+      <div id="cal-news-dot" style="width:8px;height:8px;background:#22c55e;border-radius:50%;"></div>
+    </div>
+    <div id="cal-list" style="display:flex;flex-direction:column;gap:6px;">
+      <div style="text-align:center;color:#9ca3af;font-size:12px;padding:10px;">Loading calendar...</div>
+    </div>
+  </div>
+
+  <!-- LIVE NEWS FEED -->
+  <div style="background:#fff;border:2px solid #8b5cf6;border-radius:16px;padding:16px;box-shadow:0 4px 20px rgba(139,92,246,.10);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:36px;height:36px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;">📡</div>
+        <div>
+          <div style="font-size:13px;font-weight:900;color:#111;">Gold News Feed</div>
+          <div style="font-size:10px;color:#9ca3af;">ForexLive · auto-refresh 5min</div>
+        </div>
+      </div>
+      <span id="news-last-upd" style="font-size:9px;color:#9ca3af;">--:--</span>
+    </div>
+    <div id="news-list" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;">
+      <div style="text-align:center;color:#9ca3af;font-size:12px;padding:10px;">Loading news...</div>
+    </div>
+  </div>
+
+</div>
+
 <!-- BOTTOM STATS -->
 <div class="stats-row">
   <div class="stat-card">
@@ -2006,6 +2057,13 @@ function fireStrongSignal(sig, price, indResult){
   updateSignalStrengthBar(sig);
   const direction = sig.direction;
 
+  // ─ NEWS FILTER CHECK ─
+  if(newsFilterActive){
+    const label = document.getElementById('sig-strength-label');
+    if(label) label.textContent = '📰 PAUSED — '+newsFilterEvent+' nearby';
+    return;
+  }
+
   // Always update strength bar, but only fire alerts on valid signals
   if(direction === 'WAIT' || sig.gatesFailed){
     // Show why signal was blocked in bar
@@ -2246,6 +2304,198 @@ function triggerTelegramAlert(action, price, reason, pct, range, indResult){
 // (MT4 bot code removed)
 
 // ── INIT ──
+// ════════════════════════════════════════════
+// NEWS FILTER + ECONOMIC CALENDAR
+// ════════════════════════════════════════════
+let newsFilterActive = false;
+let newsFilterEvent  = '';
+
+// High-impact USD events that move Gold
+// Fetched from Forex Factory via rss2json proxy
+let calendarEvents = [];
+
+async function fetchCalendar(){
+  try{
+    const url = 'https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fnfs.faireconomy.media%2Fff_calendar_thisweek.json&count=50';
+    // ff_calendar doesn't work via rss2json — use hardcoded known USD events + fetch live
+    // Fetch directly (CORS allowed from browser in most cases via allorigins)
+    const r = await fetch('https://api.allorigins.win/get?url='+encodeURIComponent('https://nfs.faireconomy.media/ff_calendar_thisweek.json'),{cache:'no-store'});
+    const outer = await r.json();
+    const events = JSON.parse(outer.contents);
+    // Filter: USD + High/Medium impact only
+    const gold_relevant = ['CPI','PPI','NFP','Non-Farm','FOMC','Fed','Interest Rate','GDP','PCE','Retail Sales','Unemployment','ISM','PMI','Durable','Treasury','Inflation'];
+    calendarEvents = events.filter(e => {
+      if(e.currency !== 'USD') return false;
+      if(!['High','Medium'].includes(e.impact)) return false;
+      return gold_relevant.some(kw => (e.title||'').includes(kw));
+    });
+    renderCalendar();
+    checkNewsFilter();
+  } catch(err){
+    // Fallback: hardcode today's known major events (always show something)
+    renderCalendarFallback();
+  }
+}
+
+function renderCalendar(){
+  const list = document.getElementById('cal-list');
+  if(!list) return;
+  if(calendarEvents.length === 0){ list.innerHTML = '<div style="text-align:center;color:#9ca3af;font-size:12px;padding:10px;">No high-impact USD events this week</div>'; return; }
+
+  const now = new Date();
+  list.innerHTML = calendarEvents.slice(0,8).map(e=>{
+    const evDate = new Date(e.date);
+    const diffMs = evDate - now;
+    const diffMin = Math.round(diffMs / 60000);
+    const isPast    = diffMs < 0;
+    const isSoon    = diffMin >= 0 && diffMin <= 30;
+    const isVSoon   = diffMin >= 0 && diffMin <= 5;
+    const impact    = e.impact === 'High' ? '🔴' : '🟡';
+    const timeStr   = evDate.toLocaleTimeString('en-US',{timeZone:'Asia/Dubai',hour:'2-digit',minute:'2-digit',hour12:false});
+    const status    = isPast ? 'DONE' : isVSoon ? '⚡ NOW' : isSoon ? '⏰ SOON' : timeStr;
+    const bg        = isVSoon?'#fff7ed':isSoon?'#fffbeb':isPast?'#f9fafb':'#f8faff';
+    const border    = isVSoon?'#f59e0b':isSoon?'#fcd34d':isPast?'#e5e7eb':'#bfdbfe';
+    const forecast  = e.forecast ? ' | F: '+e.forecast : '';
+    const prev      = e.previous ? ' | P: '+e.previous : '';
+    return `<div style="background:${bg};border:1px solid ${border};border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:14px;">${impact}</span>
+      <div style="flex:1;">
+        <div style="font-size:11px;font-weight:800;color:#111;">${e.title||''}</div>
+        <div style="font-size:10px;color:#6b7280;">${forecast}${prev}</div>
+      </div>
+      <div style="font-size:11px;font-weight:900;color:${isVSoon?'#b45309':isSoon?'#92400e':isPast?'#9ca3af':'#1d4ed8'};white-space:nowrap;">${status}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderCalendarFallback(){
+  // Show a static placeholder with common USD gold-moving events
+  const list = document.getElementById('cal-list');
+  if(!list) return;
+  list.innerHTML = `
+    <div style="background:#f8faff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 10px;">
+      <div style="font-size:11px;font-weight:800;color:#111;">Calendar loading...</div>
+      <div style="font-size:10px;color:#6b7280;">Check ForexFactory.com for live events</div>
+    </div>
+    <div style="margin-top:8px;padding:8px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;font-size:11px;color:#92400e;">
+      ⚠️ Key gold-moving events: NFP (1st Fri), CPI (mid-month), FOMC (8x/year), Fed speeches
+    </div>`;
+}
+
+// ─ NEWS FILTER ─
+// Blocks signals 15min before and 5min after high-impact events
+function checkNewsFilter(){
+  const banner = document.getElementById('news-filter-banner');
+  const titleEl = document.getElementById('news-filter-title');
+  const detailEl= document.getElementById('news-filter-detail');
+  if(!banner) return;
+
+  const now = new Date();
+  let blocked = false;
+  let blockEvent = '';
+  let blockMsg = '';
+
+  for(const e of calendarEvents){
+    if(e.impact !== 'High') continue;
+    const evDate = new Date(e.date);
+    const diffMin = (evDate - now) / 60000;
+    const timeStr = evDate.toLocaleTimeString('en-US',{timeZone:'Asia/Dubai',hour:'2-digit',minute:'2-digit',hour12:false});
+
+    if(diffMin >= 0 && diffMin <= 15){
+      blocked = true;
+      blockEvent = e.title;
+      blockMsg = '🔴 '+e.title+' in '+Math.round(diffMin)+'min ('+timeStr+') — signals paused';
+      break;
+    } else if(diffMin < 0 && diffMin >= -5){
+      blocked = true;
+      blockEvent = e.title;
+      blockMsg = '🔴 '+e.title+' just released — waiting for dust to settle';
+      break;
+    }
+  }
+
+  newsFilterActive = blocked;
+  newsFilterEvent  = blockEvent;
+
+  if(blocked){
+    banner.style.display = 'block';
+    if(titleEl) titleEl.textContent = '📰 NEWS FILTER ACTIVE — '+blockEvent.toUpperCase();
+    if(detailEl) detailEl.textContent = blockMsg;
+    // Pulse the dot red
+    const dot = document.getElementById('cal-news-dot');
+    if(dot){ dot.style.background='#ef4444'; dot.style.animation='pulse 1s infinite'; }
+  } else {
+    banner.style.display = 'none';
+    const dot = document.getElementById('cal-news-dot');
+    if(dot){ dot.style.background='#22c55e'; dot.style.animation='none'; }
+  }
+}
+
+// ─ LIVE NEWS FEED (ForexLive via rss2json) ─
+async function fetchNews(){
+  try{
+    const url = 'https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.forexlive.com%2Ffeed%2Fnews&count=20';
+    const r = await fetch(url,{cache:'no-store'});
+    const d = await r.json();
+    if(d.status !== 'ok') throw new Error('bad response');
+
+    // Filter gold-relevant news
+    const goldKw = ['gold','xau','metal','fed','fomc','rate','cpi','nfp','inflation','dollar','usd','treasury','powell','tariff','war','geopolit','safe haven','risk'];
+    let items = d.items.filter(i => {
+      const txt = (i.title+' '+(i.description||'')).toLowerCase();
+      return goldKw.some(k => txt.includes(k));
+    });
+    // Fallback: show latest 5 if no gold match
+    if(items.length === 0) items = d.items.slice(0,5);
+
+    renderNews(items.slice(0,8));
+
+    const upd = document.getElementById('news-last-upd');
+    if(upd) upd.textContent = new Date().toLocaleTimeString('en-US',{timeZone:'Asia/Dubai',hour12:false,hour:'2-digit',minute:'2-digit'});
+  } catch(e){
+    const list = document.getElementById('news-list');
+    if(list) list.innerHTML = '<div style="font-size:11px;color:#9ca3af;padding:8px;">News feed unavailable. Check ForexLive.com</div>';
+  }
+}
+
+function renderNews(items){
+  const list = document.getElementById('news-list');
+  if(!list) return;
+  const now = Date.now();
+  list.innerHTML = items.map(item=>{
+    const pub  = new Date(item.pubDate);
+    const age  = Math.round((now - pub)/60000);
+    const ageStr = age < 60 ? age+'m ago' : Math.round(age/60)+'h ago';
+    const title = item.title || '';
+    const link  = item.link  || '#';
+    const isNew = age < 15;
+    const isHot = age < 5;
+    // Sentiment sniff
+    const txt = title.toLowerCase();
+    const isBull = ['rises','surges','climbs','gains','jumps','bullish','buying','higher'].some(w=>txt.includes(w));
+    const isBear = ['falls','drops','slides','loses','bearish','selling','lower','decline'].some(w=>txt.includes(w));
+    const dot = isBull?'🟢':isBear?'🔴':'⚪️';
+    const bg  = isHot?'#fff7ed':isNew?'#f8faff':'#fafafa';
+    const border = isHot?'#f59e0b':isNew?'#c7d2fe':'#e5e7eb';
+    return `<div style="background:${bg};border:1px solid ${border};border-radius:8px;padding:8px 10px;">
+      <div style="display:flex;align-items:flex-start;gap:6px;">
+        <span style="font-size:12px;margin-top:1px;">${dot}</span>
+        <div style="flex:1;">
+          <a href="${link}" target="_blank" style="font-size:11px;font-weight:700;color:#111;text-decoration:none;line-height:1.4;display:block;">${title}</a>
+          <div style="font-size:10px;color:#9ca3af;margin-top:3px;">${ageStr}${isHot?' ⚡️ BREAKING':isNew?' 🔥 NEW':''}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Init
+fetchCalendar();
+setInterval(fetchCalendar, 5 * 60 * 1000);  // refresh calendar every 5min
+setInterval(checkNewsFilter, 60 * 1000);     // check filter every 1min
+fetchNews();
+setInterval(fetchNews, 5 * 60 * 1000);       // refresh news every 5min
+
 fetchPrice();
 setInterval(fetchPrice, 10000);
 
