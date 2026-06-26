@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, send_file, session, flash
+from flask import Flask, render_template, request, redirect, url_for, jsonify, send_file, send_from_directory, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date
 from functools import wraps
@@ -1760,6 +1760,10 @@ with app.app_context():
         print(f"❌ Database initialization error: {e}")
         import traceback
         traceback.print_exc()
+
+@app.route('/gold')
+def gold_dashboard():
+    return send_from_directory('static', 'gold-dashboard.html')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
