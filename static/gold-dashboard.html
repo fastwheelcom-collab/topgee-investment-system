@@ -2205,7 +2205,7 @@ renderSigHistory();
 async function writeSignalToFile(signal){
   // POST to local Python monitor server if running on port 8766
   try{
-    await fetch('http://localhost:8766/signal', {
+    await fetch('http://45.144.242.208:5055/signal', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify(signal),
