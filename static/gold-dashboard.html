@@ -603,7 +603,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     </div>
   </div>
   <div id="sig-hist-list" style="display:flex;flex-direction:column;gap:8px;">
-    <div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">No signals yet. Strong signals (5+/7) will appear here automatically.</div>
+    <div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">No signals yet. Strong signals (7+/10) will appear here automatically.</div>
   </div>
 </div>
 
@@ -713,7 +713,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       </thead>
       <tbody id="log-tbody">
         <tr id="log-empty-row">
-          <td colspan="11" style="text-align:center;padding:24px;color:#9ca3af;font-size:13px;">No signals yet. Dashboard auto-logs strong signals (4+/5) here.</td>
+          <td colspan="11" style="text-align:center;padding:24px;color:#9ca3af;font-size:13px;">No signals yet. Dashboard auto-logs strong signals (7+/10) here.</td>
         </tr>
       </tbody>
     </table>
@@ -1140,7 +1140,7 @@ function updateIndicators(price){
 let lastSignalSent     = '';
 let lastSignalTime     = 0;
 let lastSignalPrice    = 0;
-const SIGNAL_COOLDOWN  = 15 * 60 * 1000; // 15 min same-direction lock
+const SIGNAL_COOLDOWN  = 30 * 60 * 1000; // 30 min same-direction lock
 const FLIP_COOLDOWN    = 30 * 60 * 1000; // 30 min before flipping direction
 
 // ── AUTO PIVOT S&R ──
@@ -1943,7 +1943,7 @@ function renderLog(){
   document.getElementById('log-acc-pct').textContent  = acc !== null ? acc + '% accuracy (' + correct + '/' + decided + ' decided trades)' : 'No completed trades yet';
 
   if(total === 0){
-    tbody.innerHTML = '<tr id="log-empty-row"><td colspan="11" style="text-align:center;padding:24px;color:#9ca3af;font-size:13px;">No signals yet. Dashboard will auto-log strong signals (4+/5) here.</td></tr>';
+    tbody.innerHTML = '<tr id="log-empty-row"><td colspan="11" style="text-align:center;padding:24px;color:#9ca3af;font-size:13px;">No signals yet. Dashboard will auto-log strong signals (7+/10) here.</td></tr>';
     return;
   }
 
@@ -1999,7 +1999,7 @@ async function sendTelegram(msg){
   // Throttle — don't send same signal more than once per 5 minutes
   const now = Date.now();
   const throttleKey = msg.substring(0,80); // compare first 80 chars
-  if(throttleKey === lastTgSignal && now - lastTgTime < 5 * 60 * 1000) return;
+  if(throttleKey === lastTgSignal && now - lastTgTime < 15 * 60 * 1000) return;
   lastTgSignal = throttleKey;
   lastTgTime   = now;
 
@@ -2171,7 +2171,7 @@ function renderSigHistory(){
   if(document.getElementById('sig-hist-acc'))
     document.getElementById('sig-hist-acc').style.color = acc===null?'#9ca3af':acc>=60?'#16a34a':acc>=40?'#b45309':'#dc2626';
   if(sigHistory.length===0){
-    list.innerHTML='<div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">No signals yet. Strong signals (5+/7) will appear here automatically.</div>';
+    list.innerHTML='<div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">No signals yet. Strong signals (7+/10) will appear here automatically.</div>';
     return;
   }
   list.innerHTML = sigHistory.slice(0,15).map(s=>{
