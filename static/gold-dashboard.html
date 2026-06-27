@@ -2057,6 +2057,14 @@ function fireStrongSignal(sig, price, indResult){
   updateSignalStrengthBar(sig);
   const direction = sig.direction;
 
+  // ─ WEEKEND FILTER — Gold market closed Sat & Sun ─
+  const dowDubai = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Dubai'})).getDay();
+  if(dowDubai === 0 || dowDubai === 6){
+    const label = document.getElementById('sig-strength-label');
+    if(label) label.textContent = '🔴 MARKET CLOSED — Weekend (Sat/Sun)';
+    return;
+  }
+
   // ─ NEWS FILTER CHECK ─
   if(newsFilterActive){
     const label = document.getElementById('sig-strength-label');
@@ -2071,7 +2079,7 @@ function fireStrongSignal(sig, price, indResult){
     if(label && sig.gatesFailed) label.textContent = '⏳ BLOCKED: '+sig.gatesFailed;
     return;
   }
-  if(sig.score < 5) return; // Need score ≥5 (out of 10) after gates
+  if(sig.score < 7) return; // Need score ≥7 (out of 10) after gates — strong signals only
 
   const now = Date.now();
 
