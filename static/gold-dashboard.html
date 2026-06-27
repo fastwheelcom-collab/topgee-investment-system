@@ -1807,8 +1807,7 @@ function updateAssistant(price, prev, chg, pct, high, low, range, ind){
 
   // Auto-log removed — only logs when bot actually trades
 
-  // Send Telegram alert / auto trade
-  triggerTelegramAlert(action, price, reason, pct, range);
+  // Telegram alerts handled by fireStrongSignal() only — no WAIT messages sent
 
   // Apply
   actionEl.textContent = action;
