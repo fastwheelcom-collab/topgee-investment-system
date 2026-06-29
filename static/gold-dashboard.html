@@ -1328,7 +1328,7 @@ function updateSignalStrengthBar(sig){
     fill.style.background = '#9ca3af';
     label.style.color = '#6b7280';
     label.textContent = '🔒 FILTERED: '+sig.gatesFailed;
-  } else if(sig.score >= 7){
+  } else if(sig.score >= 5){
     const col = sig.direction==='BUY' ? '#16a34a' : '#dc2626';
     fill.style.background = col;
     label.style.color = col;
@@ -1998,7 +1998,7 @@ async function sendTelegram(msg){
   // Throttle — don't send same signal more than once per 5 minutes
   const now = Date.now();
   const throttleKey = msg.substring(0,80); // compare first 80 chars
-  if(throttleKey === lastTgSignal && now - lastTgTime < 15 * 60 * 1000) return;
+  if(throttleKey === lastTgSignal && now - lastTgTime < 5 * 60 * 1000) return;
   lastTgSignal = throttleKey;
   lastTgTime   = now;
 
@@ -2078,7 +2078,7 @@ function fireStrongSignal(sig, price, indResult){
     if(label && sig.gatesFailed) label.textContent = '⏳ BLOCKED: '+sig.gatesFailed;
     return;
   }
-  if(sig.score < 7) return; // Need score ≥7 (out of 10) after gates — strong signals only
+  if(sig.score < 5) return; // Need score ≥5 (out of 10) after gates
 
   const now = Date.now();
 
