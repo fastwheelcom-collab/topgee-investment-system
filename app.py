@@ -1581,21 +1581,34 @@ def edit_revenue(rev_id):
     rev_notes     = request.form.get('revenue_notes', '').strip()
     currency      = request.form.get('currency', 'AED')
     exchange_rate = float(request.form.get('exchange_rate', 3.67))
+    new_month     = int(request.form.get('revenue_month', hist.month))
+    new_year      = int(request.form.get('revenue_year',  hist.year))
 
     if currency == 'USD':
         amount = input_value * exchange_rate
     elif input_mode == 'percentage':
-        total_investment = sum(inv.capital for inv in Investor.query.all())
+        total_investment = sum(inv.total_capital for inv in Investor.query.all())
         amount = total_investment * (input_value / 100)
     else:
         amount = input_value
 
+    # Capital snapshot
+    investors = Investor.query.all()
+    cap_aed = sum(inv.total_capital for inv in investors)
+    cap_usd = cap_aed / exchange_rate
+    cap_pct = (amount / cap_aed * 100) if cap_aed else None
+
+    hist.month              = new_month
+    hist.year               = new_year
     hist.revenue_amount     = amount
-    hist.revenue_usd        = input_value if currency == 'USD' else None
-    hist.exchange_rate_used = exchange_rate if currency == 'USD' else None
+    hist.revenue_usd        = input_value if currency == 'USD' else round(amount / exchange_rate, 2)
+    hist.exchange_rate_used = exchange_rate
     hist.input_mode         = input_mode
     hist.notes              = rev_notes
     hist.entry_date         = datetime.utcnow()
+    hist.capital_aed        = cap_aed
+    hist.capital_usd        = cap_usd
+    hist.capital_pct        = cap_pct
     db.session.commit()
     flash(f'Revenue updated for {hist.month_name}', 'success')
     return redirect(url_for('analytics_dashboard'))

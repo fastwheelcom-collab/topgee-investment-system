@@ -204,7 +204,7 @@
                             </td>
                             <td style="padding:10px 12px;color:#6b7280;font-size:.8rem;">{{ h.notes or '—' }}</td>
                             <td style="padding:12px 14px;text-align:center;white-space:nowrap;">
-                                <button onclick="openEditModal({{ h.id }}, {{ h.revenue_amount }}, '{{ h.notes or '' }}')" style="background:#1d4ed8;color:white;border:none;padding:5px 12px;border-radius:7px;cursor:pointer;font-size:.78rem;font-weight:700;margin-right:4px;">✏️ Edit</button>
+                                <button onclick="openEditModal({{ h.id }}, {{ h.revenue_amount }}, '{{ h.notes or '' }}', {{ h.month }}, {{ h.year }})" style="background:#1d4ed8;color:white;border:none;padding:5px 12px;border-radius:7px;cursor:pointer;font-size:.78rem;font-weight:700;margin-right:4px;">✏️ Edit</button>
                                 <form method="POST" action="/revenue/delete/{{ h.id }}" style="display:inline;" onsubmit="return confirm('Delete revenue for {{ h.month_name }}?');">
                                     <button type="submit" style="background:#7f1d1d;color:#fca5a5;border:none;padding:5px 12px;border-radius:7px;cursor:pointer;font-size:.78rem;font-weight:700;">🗑 Delete</button>
                                 </form>
@@ -486,6 +486,23 @@
   <div style="background:white;border-radius:16px;padding:32px;width:100%;max-width:440px;position:relative;">
     <h4 style="margin:0 0 20px;color:#111;">✏️ Edit Revenue</h4>
     <form id="editRevenueForm" method="POST">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div>
+          <label style="font-weight:600;font-size:.88rem;display:block;margin-bottom:4px;">Month</label>
+          <select name="revenue_month" id="edit_month" style="width:100%;padding:9px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.9rem;">
+            <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+            <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+            <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+            <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-weight:600;font-size:.88rem;display:block;margin-bottom:4px;">Year</label>
+          <select name="revenue_year" id="edit_year" style="width:100%;padding:9px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.9rem;">
+            <option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option>
+          </select>
+        </div>
+      </div>
       <div style="margin-bottom:14px;">
         <label style="font-weight:600;font-size:.88rem;display:block;margin-bottom:4px;">Currency</label>
         <select name="currency" id="edit_currency" onchange="updateEditLabel()" style="width:100%;padding:9px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.95rem;">
@@ -514,13 +531,15 @@
 </div>
 
 <script>
-function openEditModal(id, amount, notes) {
+function openEditModal(id, amount, notes, month, year) {
     document.getElementById('editRevenueForm').action = '/revenue/edit/' + id;
     document.getElementById('edit_revenue_value').value = amount.toFixed(2);
     document.getElementById('edit_revenue_notes').value = notes;
     document.getElementById('edit_currency').value = 'AED';
     document.getElementById('edit_rate_div').style.display = 'none';
     document.getElementById('edit_amount_label').textContent = 'Revenue Amount (AED)';
+    if(month) document.getElementById('edit_month').value = month;
+    if(year)  document.getElementById('edit_year').value  = year;
     const modal = document.getElementById('editRevenueModal');
     modal.style.display = 'flex';
 }
