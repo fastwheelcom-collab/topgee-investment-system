@@ -65,12 +65,15 @@ def admin_required(f):
     return decorated_function
 
 # Exchange rate (fallback)
-EXCHANGE_RATE = 3.68
+EXCHANGE_RATE = 3.67
 
 # Exchange rate cache (updated every 24 hours)
 exchange_rate_cache = {'rate': EXCHANGE_RATE, 'last_updated': None}
 
 def get_live_exchange_rate():
+    return EXCHANGE_RATE  # Fixed at 3.67 AED per USD
+    # Live fetch disabled — uncomment below to re-enable
+    if False:
     """Fetch live AED to USD exchange rate (cached for 24 hours)"""
     global exchange_rate_cache
     
