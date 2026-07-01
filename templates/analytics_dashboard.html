@@ -207,6 +207,7 @@
                 <div class="stat-content">
                     <h3>Investment ROI (5%)</h3>
                     <p class="stat-value">{{ '{:,.0f}'.format(stats.investment_roi_5_percent) }} AED</p>
+                    <p class="stat-sub" style="font-size:0.9rem; margin-top:4px;">$ {{ '{:,.0f}'.format(stats.investment_roi_5_percent / stats.exchange_rate) }} USD</p>
                     <p class="stat-sub">5% of Total Investment</p>
                 </div>
             </div>
@@ -224,6 +225,7 @@
                 <div class="stat-content">
                     <h3>Final In-Hand Profit</h3>
                     <p class="stat-value" style="font-size:2rem; font-weight:700;">{{ '{:,.0f}'.format(stats.final_in_hand_profit) }} AED</p>
+                    <p class="stat-sub" style="font-size:0.9rem; margin-top:4px;">$ {{ '{:,.0f}'.format(stats.final_in_hand_profit / stats.exchange_rate) }} USD</p>
                     <p class="stat-sub">Revenue - ROI (5%)</p>
                 </div>
             </div>
@@ -232,6 +234,7 @@
                 <div class="stat-content">
                     <h3>Total Paid to Clients</h3>
                     <p class="stat-value">{{ '{:,.0f}'.format(total_paid_clients) }} AED</p>
+                    <p class="stat-sub" style="font-size:0.9rem; margin-top:4px;">$ {{ '{:,.0f}'.format(total_paid_clients / stats.exchange_rate) }} USD</p>
                     <p class="stat-sub">Payouts recorded</p>
                 </div>
             </div>
