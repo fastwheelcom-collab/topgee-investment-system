@@ -1140,8 +1140,8 @@ function updateIndicators(price){
 let lastSignalSent     = '';
 let lastSignalTime     = 0;
 let lastSignalPrice    = 0;
-const SIGNAL_COOLDOWN  = 30 * 60 * 1000; // 30 min same-direction lock
-const FLIP_COOLDOWN    = 30 * 60 * 1000; // 30 min before flipping direction
+const SIGNAL_COOLDOWN  = 45 * 60 * 1000; // 45 min same-direction lock
+const FLIP_COOLDOWN    = 60 * 60 * 1000; // 60 min before flipping direction
 
 // ── AUTO PIVOT S&R ──
 function updatePivotLevels(price, high, low){
@@ -1237,12 +1237,26 @@ function renderMiniCharts(prices){
 // 3. RSI must not contradict (no BUY if RSI>65, no SELL if RSI<35)
 // 4. Score = winning side count only when all 3 rules pass
 function calcSignalStrength(price, prev, indResult){
-  if(!indResult) return { score:0, direction:'WAIT', conditions:[], maxScore:7, buyScore:0, sellScore:0 };
+  if(!indResult) return { score:0, direction:'WAIT', conditions:[], maxScore:10, buyScore:0, sellScore:0 };
   const { rsi, ema8, ema21, ema50, ema200, mc, atr, stoch, bb } = indResult;
   const chg = price - prev;
 
   let buyScore = 0, sellScore = 0;
   const buyReasons = [], sellReasons = [];
+
+  // ─ GATE 0: Need at least 50 candles in buffer for reliable signals ─
+  if(priceBuf.length < 50){
+    return { score:0, direction:'WAIT', conditions:[], maxScore:10, buyScore:0, sellScore:0, gatesFailed:'Warming up ('+priceBuf.length+'/50 candles)' };
+  }
+
+  // ─ SESSION FILTER: Only trade London + NY sessions (best for Gold) ─
+  // Dubai time: London = 11:00-19:00, NY = 16:00-01:00
+  const dubaiHour = parseFloat(new Intl.DateTimeFormat('en',{timeZone:'Asia/Dubai',hour:'numeric',minute:'2-digit',hour12:false}).format(new Date()).replace(':','.'));
+  const inLondon = dubaiHour >= 11 && dubaiHour < 19;
+  const inNY     = dubaiHour >= 16 || dubaiHour < 1;
+  if(!inLondon && !inNY){
+    return { score:0, direction:'WAIT', conditions:[], maxScore:10, buyScore:0, sellScore:0, gatesFailed:'Low liquidity session — wait London/NY' };
+  }
 
   // ─ TREND INDICATORS (weight: 2 each — most important) ─
   // EMA 8/21 cross
@@ -1259,13 +1273,13 @@ function calcSignalStrength(price, prev, indResult){
   // ─ MOMENTUM INDICATORS (weight: 1 each) ─
   // RSI — only score extreme readings
   if(rsi !== null){
-    if(rsi < 35)     { buyScore++;  buyReasons.push('RSI oversold('+rsi.toFixed(0)+')'); }
-    else if(rsi > 65){ sellScore++; sellReasons.push('RSI overbought('+rsi.toFixed(0)+')'); }
+    if(rsi < 40)     { buyScore++;  buyReasons.push('RSI oversold('+rsi.toFixed(0)+')'); }
+    else if(rsi > 60){ sellScore++; sellReasons.push('RSI overbought('+rsi.toFixed(0)+')'); }
   }
   // Stochastic
   if(stoch !== null){
-    if(stoch.k < 30 && stoch.k > stoch.d)       { buyScore++;  buyReasons.push('Stoch cross up'); }
-    else if(stoch.k > 70 && stoch.k < stoch.d)  { sellScore++; sellReasons.push('Stoch cross down'); }
+    if(stoch.k < 25 && stoch.k > stoch.d)       { buyScore++;  buyReasons.push('Stoch cross up'); }
+    else if(stoch.k > 75 && stoch.k < stoch.d)  { sellScore++; sellReasons.push('Stoch cross down'); }
   }
   // Price vs EMA50 (trend filter)
   if(ema50){
@@ -1274,43 +1288,59 @@ function calcSignalStrength(price, prev, indResult){
   }
   // Bollinger squeeze breakout
   if(bb){
-    if(price < bb.lower){ buyScore++;  buyReasons.push('BB oversold'); }
-    else if(price > bb.upper){ sellScore++; sellReasons.push('BB overbought'); }
+    const range = bb.upper - bb.lower;
+    // Only count BB when price clearly breaks out (not just at edge)
+    if(price < bb.lower - range*0.05){ buyScore++;  buyReasons.push('BB oversold'); }
+    else if(price > bb.upper + range*0.05){ sellScore++; sellReasons.push('BB overbought'); }
   }
-  // ATR confirms momentum
-  if(atr !== null && atr > 1.0){
-    if(chg > 0.3)     { buyScore++;  buyReasons.push('Momentum up'); }
-    else if(chg < -0.3){ sellScore++; sellReasons.push('Momentum down'); }
+  // ATR confirms momentum — require stronger move
+  if(atr !== null && atr > 1.5){
+    if(chg > 0.8)      { buyScore++;  buyReasons.push('Momentum up'); }
+    else if(chg < -0.8){ sellScore++; sellReasons.push('Momentum down'); }
+  }
+  // EMA 200 major trend alignment (bonus point)
+  if(ema200){
+    if(price > ema200){ buyScore++;  buyReasons.push('Above EMA200 (bull trend)'); }
+    else              { sellScore++; sellReasons.push('Below EMA200 (bear trend)'); }
   }
 
-  const maxScore = 10; // 2+2+1+1+1+1+1 = max possible per side
+  const maxScore = 11; // 2+2+1+1+1+1+1+1+1 = max
 
   // ─ QUALITY GATES ─
-  // Gate 1: Winner must lead by at least 3 points
-  const gap = Math.abs(buyScore - sellScore);
-  if(gap < 3){ return { score:Math.max(buyScore,sellScore), maxScore, direction:'WAIT', buyScore, sellScore, conditions:[...buyReasons,...sellReasons], gatesFailed:'Gap only '+gap+'/3 needed' }; }
 
-  // Gate 2: EMA and MACD must agree with direction
-  const winner = buyScore > sellScore ? 'BUY' : 'SELL';
+  // Gate 1: BOTH EMA and MACD must agree (not just one)
+  const winner = buyScore > sellScore ? 'BUY' : buyScore < sellScore ? 'SELL' : 'WAIT';
+  if(winner === 'WAIT') return { score:0, maxScore, direction:'WAIT', buyScore, sellScore, conditions:[], gatesFailed:'Equal score — no clear direction' };
+
   if(winner === 'BUY'){
     const emaOk  = ema8 && ema21 && ema8 > ema21;
     const macdOk = mc && mc.hist > 0;
-    if(!emaOk && !macdOk){ return { score:buyScore, maxScore, direction:'WAIT', buyScore, sellScore, conditions:buyReasons, gatesFailed:'EMA+MACD not aligned for BUY' }; }
+    if(!emaOk || !macdOk){ return { score:buyScore, maxScore, direction:'WAIT', buyScore, sellScore, conditions:buyReasons, gatesFailed:'EMA & MACD must BOTH confirm BUY' }; }
   }
   if(winner === 'SELL'){
     const emaOk  = ema8 && ema21 && ema8 < ema21;
     const macdOk = mc && mc.hist < 0;
-    if(!emaOk && !macdOk){ return { score:sellScore, maxScore, direction:'WAIT', buyScore, sellScore, conditions:sellReasons, gatesFailed:'EMA+MACD not aligned for SELL' }; }
+    if(!emaOk || !macdOk){ return { score:sellScore, maxScore, direction:'WAIT', buyScore, sellScore, conditions:sellReasons, gatesFailed:'EMA & MACD must BOTH confirm SELL' }; }
   }
 
-  // Gate 3: RSI must not contradict (no BUY when RSI>70, no SELL when RSI<30)
+  // Gate 2: Winner must lead by at least 4 points (stronger gap)
+  const gap = Math.abs(buyScore - sellScore);
+  if(gap < 4){ return { score:Math.max(buyScore,sellScore), maxScore, direction:'WAIT', buyScore, sellScore, conditions:[...buyReasons,...sellReasons], gatesFailed:'Weak gap '+gap+'/4 needed' }; }
+
+  // Gate 3: RSI must not be in opposite extreme
   if(rsi !== null){
-    if(winner === 'BUY'  && rsi > 72){ return { score:buyScore, maxScore, direction:'WAIT', buyScore, sellScore, conditions:buyReasons, gatesFailed:'RSI '+rsi.toFixed(0)+' too high for BUY' }; }
-    if(winner === 'SELL' && rsi < 28){ return { score:sellScore, maxScore, direction:'WAIT', buyScore, sellScore, conditions:sellReasons, gatesFailed:'RSI '+rsi.toFixed(0)+' too low for SELL' }; }
+    if(winner === 'BUY'  && rsi > 68){ return { score:buyScore, maxScore, direction:'WAIT', buyScore, sellScore, conditions:buyReasons, gatesFailed:'RSI '+rsi.toFixed(0)+' too high for BUY' }; }
+    if(winner === 'SELL' && rsi < 32){ return { score:sellScore, maxScore, direction:'WAIT', buyScore, sellScore, conditions:sellReasons, gatesFailed:'RSI '+rsi.toFixed(0)+' too low for SELL' }; }
   }
 
-  // All gates passed — valid signal!
-  const score     = winner === 'BUY' ? buyScore : sellScore;
+  // Gate 4: EMA50 must agree with direction (major trend filter)
+  if(ema50){
+    if(winner === 'BUY'  && price < ema50 * 0.998){ return { score:buyScore, maxScore, direction:'WAIT', buyScore, sellScore, conditions:buyReasons, gatesFailed:'Price below EMA50 — avoid BUY' }; }
+    if(winner === 'SELL' && price > ema50 * 1.002){ return { score:sellScore, maxScore, direction:'WAIT', buyScore, sellScore, conditions:sellReasons, gatesFailed:'Price above EMA50 — avoid SELL' }; }
+  }
+
+  // All gates passed!
+  const score      = winner === 'BUY' ? buyScore : sellScore;
   const conditions = winner === 'BUY' ? buyReasons : sellReasons;
   return { score, maxScore, direction:winner, buyScore, sellScore, conditions, gatesFailed:null };
 }
@@ -1328,7 +1358,7 @@ function updateSignalStrengthBar(sig){
     fill.style.background = '#9ca3af';
     label.style.color = '#6b7280';
     label.textContent = '🔒 FILTERED: '+sig.gatesFailed;
-  } else if(sig.score >= 5){
+  } else if(sig.score >= 7){
     const col = sig.direction==='BUY' ? '#16a34a' : '#dc2626';
     fill.style.background = col;
     label.style.color = col;
@@ -2073,12 +2103,11 @@ function fireStrongSignal(sig, price, indResult){
 
   // Always update strength bar, but only fire alerts on valid signals
   if(direction === 'WAIT' || sig.gatesFailed){
-    // Show why signal was blocked in bar
     const label = document.getElementById('sig-strength-label');
     if(label && sig.gatesFailed) label.textContent = '⏳ BLOCKED: '+sig.gatesFailed;
     return;
   }
-  if(sig.score < 5) return; // Need score ≥5 (out of 10) after gates
+  if(sig.score < 7) return; // Need score ≥7 (out of 11) — high confidence only
 
   const now = Date.now();
 
@@ -2095,8 +2124,8 @@ function fireStrongSignal(sig, price, indResult){
   // Same direction cooldown
   if(direction === lastSignalSent && now - lastSignalTime < SIGNAL_COOLDOWN) return;
 
-  // Price must have moved at least $2 from last signal
-  if(lastSignalPrice > 0 && Math.abs(price - lastSignalPrice) < 2) return;
+  // Price must have moved at least $5 from last signal
+  if(lastSignalPrice > 0 && Math.abs(price - lastSignalPrice) < 5) return;
 
   lastSignalSent  = direction;
   lastSignalTime  = now;
@@ -2531,7 +2560,8 @@ async function preSeedBuffer(){
         console.log('✅ Synthetic seed from Coinbase:', base);
         fetchPrice();
       }
-    } catch(e2){ console.log('Pre-seed failed:', e2.message); }
+    } catch(e2){ console.log('Pre-seed skipped — will warm up naturally:', e2.message); }
+    // DO NOT use random synthetic data — causes wrong signals
   }
 }
 setTimeout(preSeedBuffer, 1500); // run 1.5s after first price fetch
