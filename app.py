@@ -313,7 +313,9 @@ class RevenueHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     year = db.Column(db.Integer, nullable=False)
     month = db.Column(db.Integer, nullable=False)
-    revenue_amount = db.Column(db.Float, default=0)
+    revenue_amount = db.Column(db.Float, default=0)       # always in AED
+    revenue_usd    = db.Column(db.Float, nullable=True)   # original USD if entered in USD
+    exchange_rate_used = db.Column(db.Float, nullable=True)  # rate used at time of entry
     input_mode = db.Column(db.String(20), default='amount')
     notes = db.Column(db.Text)
     entry_date = db.Column(db.DateTime, default=datetime.utcnow)
@@ -342,6 +344,22 @@ def ensure_db_ready():
                 db.session.commit()
                 print(f"✅ Added {len(reps)} sample sales reps")
             
+            # Add new columns if missing (safe migration)
+            try:
+                with db.engine.connect() as conn:
+                    conn.execute(db.text('ALTER TABLE revenue_history ADD COLUMN revenue_usd FLOAT'))
+                    conn.commit()
+                    print('✅ Added revenue_usd column')
+            except Exception:
+                pass  # column already exists
+            try:
+                with db.engine.connect() as conn:
+                    conn.execute(db.text('ALTER TABLE revenue_history ADD COLUMN exchange_rate_used FLOAT'))
+                    conn.commit()
+                    print('✅ Added exchange_rate_used column')
+            except Exception:
+                pass  # column already exists
+
             app._db_initialized = True
             print("✅ Database initialized successfully")
         except Exception as e:
@@ -1594,10 +1612,12 @@ def edit_revenue(rev_id):
     else:
         amount = input_value
 
-    hist.revenue_amount = amount
-    hist.input_mode     = input_mode
-    hist.notes          = rev_notes
-    hist.entry_date     = datetime.utcnow()
+    hist.revenue_amount     = amount
+    hist.revenue_usd        = input_value if currency == 'USD' else None
+    hist.exchange_rate_used = exchange_rate if currency == 'USD' else None
+    hist.input_mode         = input_mode
+    hist.notes              = rev_notes
+    hist.entry_date         = datetime.utcnow()
     db.session.commit()
     flash(f'Revenue updated for {hist.month_name}', 'success')
     return redirect(url_for('analytics_dashboard'))
@@ -1648,14 +1668,18 @@ def update_global_revenue():
     # Save/update monthly history
     hist = RevenueHistory.query.filter_by(year=rev_year, month=rev_month).first()
     if hist:
-        hist.revenue_amount = amount
-        hist.input_mode = input_mode
-        hist.notes = rev_notes
-        hist.entry_date = datetime.utcnow()
+        hist.revenue_amount     = amount
+        hist.revenue_usd        = input_value if currency == 'USD' else None
+        hist.exchange_rate_used = exchange_rate if currency == 'USD' else None
+        hist.input_mode         = input_mode
+        hist.notes              = rev_notes
+        hist.entry_date         = datetime.utcnow()
     else:
         hist = RevenueHistory(year=rev_year, month=rev_month,
-                              revenue_amount=amount, input_mode=input_mode,
-                              notes=rev_notes)
+                              revenue_amount=amount,
+                              revenue_usd=input_value if currency == 'USD' else None,
+                              exchange_rate_used=exchange_rate if currency == 'USD' else None,
+                              input_mode=input_mode, notes=rev_notes)
         db.session.add(hist)
 
     db.session.commit()

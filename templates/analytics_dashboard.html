@@ -159,7 +159,13 @@
                             <td style="padding:8px 12px; color:white;">{{ h.month_name }}</td>
                             <td style="padding:8px 12px; color:rgba(255,255,255,0.85);">{{ h.entry_date.strftime('%d %b %Y') }}</td>
                             <td style="padding:8px 12px; color:white; text-align:right; font-weight:600;">{{ '{:,.0f}'.format(h.revenue_amount) }}</td>
-                            <td style="padding:8px 12px; color:rgba(255,255,255,0.8); text-align:right;">$ {{ '{:,.0f}'.format(h.revenue_amount / stats.exchange_rate) }}</td>
+                            <td style="padding:8px 12px; color:rgba(255,255,255,0.8); text-align:right;">
+                                {% if h.revenue_usd %}
+                                    $ {{ '{:,.0f}'.format(h.revenue_usd) }}
+                                {% else %}
+                                    $ {{ '{:,.0f}'.format(h.revenue_amount / stats.exchange_rate) }}
+                                {% endif %}
+                            </td>
                             <td style="padding:8px 12px; color:rgba(255,255,255,0.85);">{{ h.notes or '—' }}</td>
                             <td style="padding:8px 12px; text-align:center;">
                                 <button onclick="openEditModal({{ h.id }}, {{ h.revenue_amount }}, '{{ h.notes or '' }}')" style="background:#3b82f6;color:white;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:0.82rem;margin-right:4px;">✏️ Edit</button>
