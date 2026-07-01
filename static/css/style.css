@@ -223,7 +223,7 @@ tbody td {
 }
 
 /* Buttons */
-.btn-primary, .btn-secondary, .btn-sm, .btn-danger, .btn-delete {
+.btn-primary, .btn-green, .btn-secondary, .btn-sm, .btn-danger, .btn-delete {
     padding: 0.5rem 1rem;
     border: none;
     border-radius: 6px;
@@ -243,6 +243,17 @@ tbody td {
 .btn-primary:hover {
     background: var(--blue-dark) !important;
     border-color: var(--blue-dark) !important;
+}
+
+.btn-green {
+    background: var(--green) !important;
+    color: white !important;
+    border: 2px solid var(--green) !important;
+}
+
+.btn-green:hover {
+    background: var(--green-dark) !important;
+    border-color: var(--green-dark) !important;
 }
 
 .btn-secondary {
