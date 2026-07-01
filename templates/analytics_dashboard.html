@@ -91,11 +91,22 @@
                     </select>
                 </div>
                 <div>
+                    <label style="color: white; font-weight: bold;">Currency:</label><br>
+                    <select name="currency" id="currency" onchange="updateRevenueLabel()" style="padding: 10px; font-size: 1rem; border: 2px solid white;">
+                        <option value="AED">AED</option>
+                        <option value="USD">USD</option>
+                    </select>
+                </div>
+                <div>
                     <label style="color: white; font-weight: bold;">Input Mode:</label><br>
                     <select name="input_mode" id="input_mode" onchange="updateRevenueLabel()" style="padding: 10px; font-size: 1rem; border: 2px solid white;">
-                        <option value="amount">Fixed Amount (AED)</option>
+                        <option value="amount">Fixed Amount</option>
                         <option value="percentage">Percentage (%)</option>
                     </select>
+                </div>
+                <div id="exchange_rate_div" style="display:none;">
+                    <label style="color: white; font-weight: bold;">Rate (1 USD = ? AED):</label><br>
+                    <input type="number" name="exchange_rate" id="exchange_rate" step="0.0001" value="3.67" style="padding: 10px; width: 120px; font-size: 1rem; border: 2px solid white;">
                 </div>
                 <div>
                     <label id="revenue_label" style="color: white; font-weight: bold;">Revenue Amount (AED):</label><br>
@@ -110,8 +121,19 @@
             <script>
                 function updateRevenueLabel() {
                     const mode = document.getElementById('input_mode').value;
+                    const currency = document.getElementById('currency').value;
                     const label = document.getElementById('revenue_label');
-                    label.textContent = mode === 'percentage' ? 'Revenue Percentage (%):' : 'Revenue Amount (AED):';
+                    const rateDiv = document.getElementById('exchange_rate_div');
+                    if (currency === 'USD') {
+                        label.textContent = 'Revenue Amount (USD):';
+                        rateDiv.style.display = 'block';
+                    } else if (mode === 'percentage') {
+                        label.textContent = 'Revenue Percentage (%):';
+                        rateDiv.style.display = 'none';
+                    } else {
+                        label.textContent = 'Revenue Amount (AED):';
+                        rateDiv.style.display = 'none';
+                    }
                 }
             </script>
 
@@ -127,6 +149,7 @@
                             <th style="padding:8px 12px; color:white; text-align:left;">Date Entered</th>
                             <th style="padding:8px 12px; color:white; text-align:right;">Revenue (AED)</th>
                             <th style="padding:8px 12px; color:white; text-align:left;">Notes</th>
+                            <th style="padding:8px 12px; color:white; text-align:center;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -136,6 +159,12 @@
                             <td style="padding:8px 12px; color:rgba(255,255,255,0.85);">{{ h.entry_date.strftime('%d %b %Y') }}</td>
                             <td style="padding:8px 12px; color:white; text-align:right; font-weight:600;">{{ '{:,.0f}'.format(h.revenue_amount) }}</td>
                             <td style="padding:8px 12px; color:rgba(255,255,255,0.85);">{{ h.notes or '—' }}</td>
+                            <td style="padding:8px 12px; text-align:center;">
+                                <button onclick="openEditModal({{ h.id }}, {{ h.revenue_amount }}, '{{ h.notes or '' }}')" style="background:#3b82f6;color:white;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:0.82rem;margin-right:4px;">✏️ Edit</button>
+                                <form method="POST" action="/revenue/delete/{{ h.id }}" style="display:inline;" onsubmit="return confirm('Delete revenue for {{ h.month_name }}?');">
+                                    <button type="submit" style="background:#ef4444;color:white;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:0.82rem;">🗑️ Delete</button>
+                                </form>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -391,5 +420,62 @@
     </div>
 
     <footer><p>TopGee It</p></footer>
+
+<!-- Edit Revenue Modal -->
+<div id="editRevenueModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;padding:32px;width:100%;max-width:440px;position:relative;">
+    <h4 style="margin:0 0 20px;color:#111;">✏️ Edit Revenue</h4>
+    <form id="editRevenueForm" method="POST">
+      <div style="margin-bottom:14px;">
+        <label style="font-weight:600;font-size:.88rem;display:block;margin-bottom:4px;">Currency</label>
+        <select name="currency" id="edit_currency" onchange="updateEditLabel()" style="width:100%;padding:9px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.95rem;">
+          <option value="AED">AED</option>
+          <option value="USD">USD</option>
+        </select>
+      </div>
+      <div id="edit_rate_div" style="display:none;margin-bottom:14px;">
+        <label style="font-weight:600;font-size:.88rem;display:block;margin-bottom:4px;">Rate (1 USD = ? AED)</label>
+        <input type="number" name="exchange_rate" id="edit_exchange_rate" value="3.67" step="0.0001" style="width:100%;padding:9px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.95rem;">
+      </div>
+      <div style="margin-bottom:14px;">
+        <label id="edit_amount_label" style="font-weight:600;font-size:.88rem;display:block;margin-bottom:4px;">Revenue Amount (AED)</label>
+        <input type="number" name="revenue_value" id="edit_revenue_value" step="0.01" required style="width:100%;padding:9px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.95rem;">
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="font-weight:600;font-size:.88rem;display:block;margin-bottom:4px;">Notes (optional)</label>
+        <input type="text" name="revenue_notes" id="edit_revenue_notes" style="width:100%;padding:9px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.95rem;">
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button type="submit" style="flex:1;background:#d4a017;color:white;border:none;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;">Save Changes</button>
+        <button type="button" onclick="closeEditModal()" style="flex:1;background:#f3f4f6;color:#374151;border:none;padding:10px;border-radius:8px;font-weight:600;cursor:pointer;">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openEditModal(id, amount, notes) {
+    document.getElementById('editRevenueForm').action = '/revenue/edit/' + id;
+    document.getElementById('edit_revenue_value').value = amount.toFixed(2);
+    document.getElementById('edit_revenue_notes').value = notes;
+    document.getElementById('edit_currency').value = 'AED';
+    document.getElementById('edit_rate_div').style.display = 'none';
+    document.getElementById('edit_amount_label').textContent = 'Revenue Amount (AED)';
+    const modal = document.getElementById('editRevenueModal');
+    modal.style.display = 'flex';
+}
+function closeEditModal() {
+    document.getElementById('editRevenueModal').style.display = 'none';
+}
+function updateEditLabel() {
+    const c = document.getElementById('edit_currency').value;
+    document.getElementById('edit_amount_label').textContent = c === 'USD' ? 'Revenue Amount (USD)' : 'Revenue Amount (AED)';
+    document.getElementById('edit_rate_div').style.display = c === 'USD' ? 'block' : 'none';
+}
+document.getElementById('editRevenueModal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+});
+</script>
+
 </body>
 </html>

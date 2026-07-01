@@ -1576,14 +1576,54 @@ def delete_manual_roi(investor_id):
         flash('ROI entry not found', 'error')
     return redirect(url_for('investor_detail', investor_id=investor_id))
 
+@app.route('/revenue/edit/<int:rev_id>', methods=['POST'])
+@admin_required
+def edit_revenue(rev_id):
+    hist = RevenueHistory.query.get_or_404(rev_id)
+    input_mode    = request.form.get('input_mode', 'amount')
+    input_value   = float(request.form.get('revenue_value', 0))
+    rev_notes     = request.form.get('revenue_notes', '').strip()
+    currency      = request.form.get('currency', 'AED')
+    exchange_rate = float(request.form.get('exchange_rate', 3.67))
+
+    if currency == 'USD':
+        amount = input_value * exchange_rate
+    elif input_mode == 'percentage':
+        total_investment = sum(inv.capital for inv in Investor.query.all())
+        amount = total_investment * (input_value / 100)
+    else:
+        amount = input_value
+
+    hist.revenue_amount = amount
+    hist.input_mode     = input_mode
+    hist.notes          = rev_notes
+    hist.entry_date     = datetime.utcnow()
+    db.session.commit()
+    flash(f'Revenue updated for {hist.month_name}', 'success')
+    return redirect(url_for('analytics_dashboard'))
+
+
+@app.route('/revenue/delete/<int:rev_id>', methods=['POST'])
+@admin_required
+def delete_revenue(rev_id):
+    hist = RevenueHistory.query.get_or_404(rev_id)
+    month_name = hist.month_name
+    db.session.delete(hist)
+    db.session.commit()
+    flash(f'Revenue entry for {month_name} deleted.', 'success')
+    return redirect(url_for('analytics_dashboard'))
+
+
 @app.route('/revenue/update', methods=['POST'])
 @admin_required
 def update_global_revenue():
     """Update total revenue generated + save to monthly history"""
     global_revenue = GlobalRevenue.get_instance()
     
-    input_mode = request.form.get('input_mode', 'amount')
-    input_value = float(request.form['revenue_value'])
+    input_mode    = request.form.get('input_mode', 'amount')
+    input_value   = float(request.form['revenue_value'])
+    currency      = request.form.get('currency', 'AED')
+    exchange_rate = float(request.form.get('exchange_rate', 3.67))
     rev_month = int(request.form.get('revenue_month', datetime.now().month))
     rev_year  = int(request.form.get('revenue_year',  datetime.now().year))
     rev_notes = request.form.get('revenue_notes', '')
@@ -1591,7 +1631,10 @@ def update_global_revenue():
     investors = Investor.query.all()
     total_investment = sum(i.total_capital for i in investors)
 
-    if input_mode == 'percentage':
+    if currency == 'USD':
+        amount = input_value * exchange_rate
+        flash(f"Revenue ${input_value:,.2f} USD = {amount:,.2f} AED saved for {datetime(rev_year, rev_month, 1).strftime('%B %Y')}", 'success')
+    elif input_mode == 'percentage':
         amount = total_investment * (input_value / 100)
         flash(f"Revenue {input_value}% = {amount:,.2f} AED saved for {datetime(rev_year, rev_month, 1).strftime('%B %Y')}", 'success')
     else:
