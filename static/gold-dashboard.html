@@ -2191,6 +2191,20 @@ function updateSigHistoryResult(id, result, exitPrice){
   renderSigHistory();
 }
 
+function deleteSigEntry(id){
+  sigHistory = sigHistory.filter(s=>s.id!==id);
+  saveSigHistory();
+  renderSigHistory();
+}
+
+function markSig(id, result){
+  const s = sigHistory.find(x=>x.id===id);
+  if(!s) return;
+  s.result = result;
+  saveSigHistory();
+  renderSigHistory();
+}
+
 function renderSigHistory(){
   const list = document.getElementById('sig-hist-list');
   if(!list) return;
@@ -2207,30 +2221,44 @@ function renderSigHistory(){
   if(document.getElementById('sig-hist-acc'))
     document.getElementById('sig-hist-acc').style.color = acc===null?'#9ca3af':acc>=60?'#16a34a':acc>=40?'#b45309':'#dc2626';
   if(sigHistory.length===0){
-    list.innerHTML='<div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">No signals yet. Strong signals (7+/10) will appear here automatically.</div>';
+    list.innerHTML='<div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">No signals yet. Strong signals (7+/11) will appear here automatically.</div>';
     return;
   }
-  list.innerHTML = sigHistory.slice(0,15).map(s=>{
+  list.innerHTML = sigHistory.slice(0,20).map(s=>{
     const dirColor = s.direction==='BUY'?'#16a34a':'#dc2626';
     const dirBg    = s.direction==='BUY'?'#dcfce7':'#fee2e2';
+    const rowBg    = s.result==='win'?'#f0fdf4':s.result==='loss'?'#fff5f5':'#f8faff';
+    const rowBdr   = s.result==='win'?'#86efac':s.result==='loss'?'#fca5a5':'#bfdbfe';
+    const exitStr  = s.exit ? ' → $'+parseFloat(s.exit).toFixed(2) : '';
+    const scoreBar = '★'.repeat(Math.min(s.score,s.maxScore||11))+'☆'.repeat(Math.max(0,(s.maxScore||11)-s.score));
+
     const resBadge = s.result==='win'
-      ? '<span style="background:#dcfce7;color:#16a34a;border:1px solid #86efac;border-radius:8px;padding:2px 10px;font-weight:800;font-size:11px;">✅ WIN</span>'
+      ? `<span style="background:#dcfce7;color:#16a34a;border:1px solid #86efac;border-radius:8px;padding:3px 10px;font-weight:800;font-size:11px;">✅ WIN</span>`
       : s.result==='loss'
-      ? '<span style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;padding:2px 10px;font-weight:800;font-size:11px;">❌ LOSS</span>'
-      : '<span style="background:#fffbeb;color:#b45309;border:1px solid #fcd34d;border-radius:8px;padding:2px 10px;font-weight:800;font-size:11px;">⏳ WATCHING</span>';
-    const exitStr  = s.exit ? ' → Exit: $'+parseFloat(s.exit).toFixed(2) : '';
-    const scoreBar = '★'.repeat(s.score)+'☆'.repeat((s.maxScore||7)-s.score);
-    return `<div style="background:${s.result==='win'?'#f0fdf4':s.result==='loss'?'#fff5f5':'#f8faff'};border:1px solid ${s.result==='win'?'#86efac':s.result==='loss'?'#fca5a5':'#bfdbfe'};border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span style="background:${dirBg};color:${dirColor};border-radius:8px;padding:4px 12px;font-weight:900;font-size:13px;">${s.direction}</span>
-        <div>
-          <div style="font-size:12px;font-weight:800;color:#111;">$${parseFloat(s.price).toFixed(2)}${exitStr}</div>
-          <div style="font-size:10px;color:#9ca3af;">${s.time} · SL $${s.sl} · TP $${s.tp}</div>
+      ? `<span style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;padding:3px 10px;font-weight:800;font-size:11px;">❌ LOSS</span>`
+      : `<span style="background:#fffbeb;color:#b45309;border:1px solid #fcd34d;border-radius:8px;padding:3px 10px;font-weight:800;font-size:11px;">⏳ WATCHING</span>`;
+
+    // Action buttons — show Win/Loss only if still pending
+    const actionBtns = s.result==='pending' ? `
+      <button onclick="markSig(${s.id},'win')" style="background:#16a34a;color:#fff;border:none;border-radius:7px;padding:4px 10px;font-size:11px;font-weight:800;cursor:pointer;">✅ Win</button>
+      <button onclick="markSig(${s.id},'loss')" style="background:#dc2626;color:#fff;border:none;border-radius:7px;padding:4px 10px;font-size:11px;font-weight:800;cursor:pointer;">❌ Loss</button>
+    ` : `
+      <button onclick="markSig(${s.id},'pending')" style="background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;border-radius:7px;padding:4px 8px;font-size:10px;cursor:pointer;" title="Reset to pending">↩</button>
+    `;
+
+    return `<div style="background:${rowBg};border:1px solid ${rowBdr};border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+        <span style="background:${dirBg};color:${dirColor};border-radius:8px;padding:4px 11px;font-weight:900;font-size:13px;white-space:nowrap;">${s.direction}</span>
+        <div style="min-width:0;">
+          <div style="font-size:12px;font-weight:800;color:#111;white-space:nowrap;">$${parseFloat(s.price).toFixed(2)}${exitStr}</div>
+          <div style="font-size:10px;color:#9ca3af;">${s.time} &middot; SL $${s.sl} &middot; TP $${s.tp}</div>
+          <div style="font-size:10px;color:#9ca3af;margin-top:1px;">${scoreBar} ${s.score}/${s.maxScore||11}</div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:11px;color:#6b7280;" title="${s.score}/${s.maxScore||7} conditions">${scoreBar} ${s.score}/${s.maxScore||7}</span>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
         ${resBadge}
+        ${actionBtns}
+        <button onclick="deleteSigEntry(${s.id})" style="background:#f3f4f6;color:#ef4444;border:1px solid #fca5a5;border-radius:7px;padding:4px 8px;font-size:12px;cursor:pointer;" title="Delete entry">🗑</button>
       </div>
     </div>`;
   }).join('');
