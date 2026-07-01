@@ -1772,21 +1772,35 @@ def analytics_dashboard():
         RevenueHistory.year.desc(), RevenueHistory.month.desc()
     ).limit(24).all()
 
+    # Compute total USD: use stored revenue_usd if available, else convert from AED
+    total_revenue_usd = sum(
+        h.revenue_usd if h.revenue_usd else h.revenue_amount / exchange_rate
+        for h in revenue_history
+    ) if revenue_history else total_revenue_generated / exchange_rate
+
+    # For the card, use most recent entry's USD if it matches the global revenue
+    latest = revenue_history[0] if revenue_history else None
+    if latest and latest.revenue_usd and abs(latest.revenue_amount - total_revenue_generated) < 1:
+        total_revenue_usd_display = latest.revenue_usd
+    else:
+        total_revenue_usd_display = total_revenue_generated / exchange_rate
+
     return render_template(
         'analytics_dashboard.html',
-        investor_rows      = investor_rows,
-        investor_count     = len(investor_rows),
-        stats              = stats,
-        total_paid_clients = total_paid_clients,
-        total_monthly_due  = total_monthly_due,
-        total_outstanding  = sum(r['outstanding'] for r in investor_rows),
-        total_inv_roi_share= total_investor_roi,
-        total_sales_share  = total_sales_share,
-        final_profit       = final_in_hand_profit,
-        revenue_history    = revenue_history,
-        current_month      = current_month,
-        current_year       = current_year,
-        is_admin           = session.get('is_admin', False),
+        investor_rows           = investor_rows,
+        investor_count          = len(investor_rows),
+        stats                   = stats,
+        total_paid_clients      = total_paid_clients,
+        total_monthly_due       = total_monthly_due,
+        total_outstanding       = sum(r['outstanding'] for r in investor_rows),
+        total_inv_roi_share     = total_investor_roi,
+        total_sales_share       = total_sales_share,
+        final_profit            = final_in_hand_profit,
+        revenue_history         = revenue_history,
+        total_revenue_usd       = total_revenue_usd_display,
+        current_month           = current_month,
+        current_year            = current_year,
+        is_admin                = session.get('is_admin', False),
     )
 
 
