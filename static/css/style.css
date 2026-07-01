@@ -82,7 +82,32 @@ body {
 .nav-links a.active {
     background: var(--blue);
     color: white;
+    /* Individual colour overrides below take precedence */
 }
+
+/* Nav link individual colours */
+.nav-links a.nav-investors { color: #4A90E2; font-weight: 600; }
+.nav-links a.nav-dashboard  { color: #9B59B6; font-weight: 600; }
+.nav-links a.nav-reports    { color: #E67E22; font-weight: 600; }
+.nav-links a.nav-monthly    { color: #16A085; font-weight: 600; }
+.nav-links a.nav-sales      { color: #C0392B; font-weight: 600; }
+.nav-links a.nav-password   { color: #7F8C8D; font-weight: 600; }
+
+/* Active state overrides colour with solid background */
+.nav-links a.nav-investors.active { background: #4A90E2; color: white !important; }
+.nav-links a.nav-dashboard.active  { background: #9B59B6; color: white !important; }
+.nav-links a.nav-reports.active    { background: #E67E22; color: white !important; }
+.nav-links a.nav-monthly.active    { background: #16A085; color: white !important; }
+.nav-links a.nav-sales.active      { background: #C0392B; color: white !important; }
+.nav-links a.nav-password.active   { background: #7F8C8D; color: white !important; }
+
+/* Hover: light tinted background */
+.nav-links a.nav-investors:hover { background: rgba(74,144,226,0.12); }
+.nav-links a.nav-dashboard:hover  { background: rgba(155,89,182,0.12); }
+.nav-links a.nav-reports:hover    { background: rgba(230,126,34,0.12); }
+.nav-links a.nav-monthly:hover    { background: rgba(22,160,133,0.12); }
+.nav-links a.nav-sales:hover      { background: rgba(192,57,43,0.12); }
+.nav-links a.nav-password:hover   { background: rgba(127,140,141,0.12); }
 
 /* Container */
 .container {
