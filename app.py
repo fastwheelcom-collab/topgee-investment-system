@@ -71,36 +71,7 @@ EXCHANGE_RATE = 3.67
 exchange_rate_cache = {'rate': EXCHANGE_RATE, 'last_updated': None}
 
 def get_live_exchange_rate():
-    return EXCHANGE_RATE  # Fixed at 3.67 AED per USD
-    # Live fetch disabled — uncomment below to re-enable
-    if False:
-    """Fetch live AED to USD exchange rate (cached for 24 hours)"""
-    global exchange_rate_cache
-    
-    # Check if cache is valid (within 24 hours)
-    if exchange_rate_cache['last_updated']:
-        time_diff = datetime.now() - exchange_rate_cache['last_updated']
-        if time_diff < timedelta(hours=24):
-            return exchange_rate_cache['rate']
-    
-    # Try to fetch live rate
-    try:
-        # Using exchangerate-api.com (free tier, no API key needed)
-        response = requests.get('https://api.exchangerate-api.com/v4/latest/AED', timeout=3)
-        if response.status_code == 200:
-            data = response.json()
-            usd_rate = data['rates']['USD']
-            
-            # Update cache
-            exchange_rate_cache['rate'] = 1 / usd_rate  # Convert to AED per USD
-            exchange_rate_cache['last_updated'] = datetime.now()
-            
-            print(f"✅ Live exchange rate fetched: 1 USD = {exchange_rate_cache['rate']:.4f} AED")
-            return exchange_rate_cache['rate']
-    except Exception as e:
-        print(f"⚠️ Failed to fetch live exchange rate: {e}")
-    
-    # Fallback to static rate
+    """Fixed at 3.67 AED per USD"""
     return EXCHANGE_RATE
 
 # Partners

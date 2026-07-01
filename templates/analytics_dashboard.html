@@ -213,9 +213,9 @@
                         {% endfor %}
                         <!-- Total row -->
                         <tr style="border-top:2px solid #334155;background:#1e293b;">
-                            <td colspan="2" style="padding:12px 14px;color:#f8fafc;font-weight:800;font-size:.85rem;">TOTAL</td>
+                            <td colspan="2" style="padding:12px 14px;color:#f8fafc;font-weight:800;font-size:.85rem;">TOTAL ({{ revenue_history|length }} months)</td>
                             <td style="padding:12px 14px;color:#f8fafc;font-weight:800;text-align:right;">{{ '{:,.0f}'.format(revenue_history|sum(attribute='revenue_amount')) }}</td>
-                            <td style="padding:12px 14px;color:#f59e0b;font-weight:800;text-align:right;">$ {{ '{:,.0f}'.format(revenue_history|sum(attribute='revenue_usd') if revenue_history[0].revenue_usd else revenue_history|sum(attribute='revenue_amount') / stats.exchange_rate) }}</td>
+                            <td style="padding:12px 14px;color:#f59e0b;font-weight:800;text-align:right;">$ {{ '{:,.0f}'.format(revenue_history|sum(attribute='revenue_amount') / stats.exchange_rate) }}</td>
                             <td colspan="5"></td>
                         </tr>
                     </tbody>
