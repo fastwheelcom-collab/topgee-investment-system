@@ -313,12 +313,16 @@ class RevenueHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     year = db.Column(db.Integer, nullable=False)
     month = db.Column(db.Integer, nullable=False)
-    revenue_amount = db.Column(db.Float, default=0)       # always in AED
-    revenue_usd    = db.Column(db.Float, nullable=True)   # original USD if entered in USD
-    exchange_rate_used = db.Column(db.Float, nullable=True)  # rate used at time of entry
-    input_mode = db.Column(db.String(20), default='amount')
-    notes = db.Column(db.Text)
-    entry_date = db.Column(db.DateTime, default=datetime.utcnow)
+    revenue_amount     = db.Column(db.Float, default=0)    # always in AED
+    revenue_usd        = db.Column(db.Float, nullable=True) # original USD if entered in USD
+    exchange_rate_used = db.Column(db.Float, nullable=True) # rate used at time of entry
+    input_mode         = db.Column(db.String(20), default='amount')
+    notes              = db.Column(db.Text)
+    entry_date         = db.Column(db.DateTime, default=datetime.utcnow)
+    # Capital snapshot for this month
+    capital_aed        = db.Column(db.Float, nullable=True) # total capital AED at time of entry
+    capital_usd        = db.Column(db.Float, nullable=True) # total capital USD at time of entry
+    capital_pct        = db.Column(db.Float, nullable=True) # revenue as % of capital
 
     @property
     def month_name(self):
@@ -345,20 +349,20 @@ def ensure_db_ready():
                 print(f"✅ Added {len(reps)} sample sales reps")
             
             # Add new columns if missing (safe migration)
-            try:
-                with db.engine.connect() as conn:
-                    conn.execute(db.text('ALTER TABLE revenue_history ADD COLUMN revenue_usd FLOAT'))
-                    conn.commit()
-                    print('✅ Added revenue_usd column')
-            except Exception:
-                pass  # column already exists
-            try:
-                with db.engine.connect() as conn:
-                    conn.execute(db.text('ALTER TABLE revenue_history ADD COLUMN exchange_rate_used FLOAT'))
-                    conn.commit()
-                    print('✅ Added exchange_rate_used column')
-            except Exception:
-                pass  # column already exists
+            for col, typ in [
+                ('revenue_usd',        'FLOAT'),
+                ('exchange_rate_used', 'FLOAT'),
+                ('capital_aed',        'FLOAT'),
+                ('capital_usd',        'FLOAT'),
+                ('capital_pct',        'FLOAT'),
+            ]:
+                try:
+                    with db.engine.connect() as conn:
+                        conn.execute(db.text(f'ALTER TABLE revenue_history ADD COLUMN {col} {typ}'))
+                        conn.commit()
+                        print(f'✅ Added {col} column')
+                except Exception:
+                    pass  # already exists
 
             app._db_initialized = True
             print("✅ Database initialized successfully")
@@ -1661,6 +1665,11 @@ def update_global_revenue():
         amount = input_value
         flash(f"Revenue {amount:,.2f} AED saved for {datetime(rev_year, rev_month, 1).strftime('%B %Y')}", 'success')
 
+    # Capital snapshot
+    cap_aed = total_investment
+    cap_usd = total_investment / exchange_rate if exchange_rate else None
+    cap_pct = (amount / total_investment * 100) if total_investment else None
+
     # Update global total
     global_revenue.total_revenue = amount
     global_revenue.input_mode = input_mode
@@ -1669,17 +1678,21 @@ def update_global_revenue():
     hist = RevenueHistory.query.filter_by(year=rev_year, month=rev_month).first()
     if hist:
         hist.revenue_amount     = amount
-        hist.revenue_usd        = input_value if currency == 'USD' else None
-        hist.exchange_rate_used = exchange_rate if currency == 'USD' else None
+        hist.revenue_usd        = input_value if currency == 'USD' else round(amount / exchange_rate, 2)
+        hist.exchange_rate_used = exchange_rate
         hist.input_mode         = input_mode
         hist.notes              = rev_notes
         hist.entry_date         = datetime.utcnow()
+        hist.capital_aed        = cap_aed
+        hist.capital_usd        = cap_usd
+        hist.capital_pct        = cap_pct
     else:
         hist = RevenueHistory(year=rev_year, month=rev_month,
                               revenue_amount=amount,
-                              revenue_usd=input_value if currency == 'USD' else None,
-                              exchange_rate_used=exchange_rate if currency == 'USD' else None,
-                              input_mode=input_mode, notes=rev_notes)
+                              revenue_usd=input_value if currency == 'USD' else round(amount / exchange_rate, 2),
+                              exchange_rate_used=exchange_rate,
+                              input_mode=input_mode, notes=rev_notes,
+                              capital_aed=cap_aed, capital_usd=cap_usd, capital_pct=cap_pct)
         db.session.add(hist)
 
     db.session.commit()

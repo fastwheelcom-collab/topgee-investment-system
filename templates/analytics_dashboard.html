@@ -146,9 +146,12 @@
                     <thead>
                         <tr style="background:rgba(0,0,0,0.2);">
                             <th style="padding:8px 12px; color:white; text-align:left;">Month</th>
-                            <th style="padding:8px 12px; color:white; text-align:left;">Date Entered</th>
+                            <th style="padding:8px 12px; color:white; text-align:left;">Date</th>
                             <th style="padding:8px 12px; color:white; text-align:right;">Revenue (AED)</th>
                             <th style="padding:8px 12px; color:white; text-align:right;">Revenue (USD)</th>
+                            <th style="padding:8px 12px; color:white; text-align:right;">Capital (AED)</th>
+                            <th style="padding:8px 12px; color:white; text-align:right;">Capital (USD)</th>
+                            <th style="padding:8px 12px; color:white; text-align:right;">Rev %</th>
                             <th style="padding:8px 12px; color:white; text-align:left;">Notes</th>
                             <th style="padding:8px 12px; color:white; text-align:center;">Actions</th>
                         </tr>
@@ -159,12 +162,17 @@
                             <td style="padding:8px 12px; color:white;">{{ h.month_name }}</td>
                             <td style="padding:8px 12px; color:rgba(255,255,255,0.85);">{{ h.entry_date.strftime('%d %b %Y') }}</td>
                             <td style="padding:8px 12px; color:white; text-align:right; font-weight:600;">{{ '{:,.0f}'.format(h.revenue_amount) }}</td>
-                            <td style="padding:8px 12px; color:rgba(255,255,255,0.8); text-align:right;">
-                                {% if h.revenue_usd %}
-                                    $ {{ '{:,.0f}'.format(h.revenue_usd) }}
-                                {% else %}
-                                    $ {{ '{:,.0f}'.format(h.revenue_amount / stats.exchange_rate) }}
-                                {% endif %}
+                            <td style="padding:8px 12px; color:rgba(255,255,255,0.9); text-align:right; font-weight:600;">
+                                $ {{ '{:,.0f}'.format(h.revenue_usd) if h.revenue_usd else '{:,.0f}'.format(h.revenue_amount / stats.exchange_rate) }}
+                            </td>
+                            <td style="padding:8px 12px; color:rgba(255,255,255,0.85); text-align:right;">
+                                {{ '{:,.0f}'.format(h.capital_aed) if h.capital_aed else '—' }}
+                            </td>
+                            <td style="padding:8px 12px; color:rgba(255,255,255,0.85); text-align:right;">
+                                {{ '$ {:,.0f}'.format(h.capital_usd) if h.capital_usd else '—' }}
+                            </td>
+                            <td style="padding:8px 12px; color:#fcd34d; text-align:right; font-weight:700;">
+                                {{ '{:.2f}%'.format(h.capital_pct) if h.capital_pct else '—' }}
                             </td>
                             <td style="padding:8px 12px; color:rgba(255,255,255,0.85);">{{ h.notes or '—' }}</td>
                             <td style="padding:8px 12px; text-align:center;">
@@ -247,11 +255,13 @@
                 <div class="partner-card" style="background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%); color: white; box-shadow: 0 8px 16px rgba(74,144,226,0.3); border-radius: 16px;">
                     <h3 style="color: white; font-size: 1.3rem;">💼 Investor ROI</h3>
                     <p class="large-number" style="color: white; font-size: 2.2rem; font-weight: 700;">{{ '{:,.0f}'.format(stats.total_investor_roi) }} AED</p>
+                    <p style="color:rgba(255,255,255,0.85);font-size:1rem;font-weight:600;margin-top:4px;">$ {{ '{:,.0f}'.format(stats.total_investor_roi / stats.exchange_rate) }} USD</p>
                     <p class="sub-text" style="color: rgba(255,255,255,0.95); font-size: 1.1rem;">{{ '{:.1f}%'.format(stats.investor_roi_percent) }} of total ROI pool</p>
                 </div>
                 <div class="partner-card" style="background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%); color: white; box-shadow: 0 8px 16px rgba(255,152,0,0.3); border-radius: 16px;">
                     <h3 style="color: white; font-size: 1.3rem;">🎯 Sales Share</h3>
                     <p class="large-number" style="color: white; font-size: 2.2rem; font-weight: 700;">{{ '{:,.0f}'.format(stats.total_sales_share) }} AED</p>
+                    <p style="color:rgba(255,255,255,0.85);font-size:1rem;font-weight:600;margin-top:4px;">$ {{ '{:,.0f}'.format(stats.total_sales_share / stats.exchange_rate) }} USD</p>
                     <p class="sub-text" style="color: rgba(255,255,255,0.95); font-size: 1.1rem;">{{ '{:.1f}%'.format(stats.sales_share_percent) }} of total ROI pool</p>
                 </div>
             </div>
@@ -265,16 +275,19 @@
                 <div class="partner-card" style="background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%); color: white; box-shadow: 0 8px 16px rgba(74,144,226,0.3); border-radius: 16px;">
                     <h3 style="color: white; font-size: 1.3rem;">Mr. Shafay</h3>
                     <p class="large-number" style="color: white; font-size: 2.2rem; font-weight: 700;">{{ '{:,.0f}'.format(stats.partner_shafay) }} AED</p>
+                    <p style="color:rgba(255,255,255,0.85);font-size:1rem;font-weight:600;margin-top:4px;">$ {{ '{:,.0f}'.format(stats.partner_shafay / stats.exchange_rate) }} USD</p>
                     <p class="sub-text" style="color: rgba(255,255,255,0.95); font-size: 1.1rem;">33.33%</p>
                 </div>
                 <div class="partner-card" style="background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%); color: white; box-shadow: 0 8px 16px rgba(76,175,80,0.3); border-radius: 16px;">
                     <h3 style="color: white; font-size: 1.3rem;">Mr. Shubham</h3>
                     <p class="large-number" style="color: white; font-size: 2.2rem; font-weight: 700;">{{ '{:,.0f}'.format(stats.partner_shubham) }} AED</p>
+                    <p style="color:rgba(255,255,255,0.85);font-size:1rem;font-weight:600;margin-top:4px;">$ {{ '{:,.0f}'.format(stats.partner_shubham / stats.exchange_rate) }} USD</p>
                     <p class="sub-text" style="color: rgba(255,255,255,0.95); font-size: 1.1rem;">33.33%</p>
                 </div>
                 <div class="partner-card" style="background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%); color: white; box-shadow: 0 8px 16px rgba(255,152,0,0.3); border-radius: 16px;">
                     <h3 style="color: white; font-size: 1.3rem;">Mr. Kay</h3>
                     <p class="large-number" style="color: white; font-size: 2.2rem; font-weight: 700;">{{ '{:,.0f}'.format(stats.partner_kay) }} AED</p>
+                    <p style="color:rgba(255,255,255,0.85);font-size:1rem;font-weight:600;margin-top:4px;">$ {{ '{:,.0f}'.format(stats.partner_kay / stats.exchange_rate) }} USD</p>
                     <p class="sub-text" style="color: rgba(255,255,255,0.95); font-size: 1.1rem;">33.34%</p>
                 </div>
             </div>
