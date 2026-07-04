@@ -526,22 +526,23 @@ def dashboard():
     global_revenue = GlobalRevenue.get_instance()
     total_revenue_generated = global_revenue.total_revenue
     
-    # Final In-Hand Profit
-    final_in_hand_profit = total_revenue_generated - investment_roi_5_percent
-    
+    # Gross Profit = Total Revenue - 5% ROI Pool
+    gross_profit         = total_revenue_generated - investment_roi_5_percent
+    final_in_hand_profit = gross_profit  # alias for backward compat
+
     # ROI Distribution Summary (based on ALL investors' ROI splits)
     total_investor_roi = sum(i.monthly_investor_roi for i in investors)
     total_sales_share  = sum(i.monthly_sales_roi for i in investors)
     # Extra Profit = 5% ROI Pool - Actual ROI (unused portion of pool)
     extra_profit = max(0, investment_roi_5_percent - total_investor_roi)
-    
+
     # Calculate percentages for ROI Distribution
-    total_roi_pool = total_investor_roi + total_sales_share
+    total_roi_pool       = total_investor_roi + total_sales_share
     investor_roi_percent = (total_investor_roi / total_roi_pool * 100) if total_roi_pool > 0 else 0
-    sales_share_percent = (total_sales_share / total_roi_pool * 100) if total_roi_pool > 0 else 0
-    
-    # Partner Profit Distribution (equal 3-way split)
-    partner_share = final_in_hand_profit / 3
+    sales_share_percent  = (total_sales_share  / total_roi_pool * 100) if total_roi_pool > 0 else 0
+
+    # Partner Profit = Gross Profit / 3
+    partner_share = gross_profit / 3
     
     # Current month totals (OLD - for reference)
     monthly_revenue = sum(r.revenue_generated for r in current_records)
@@ -559,6 +560,7 @@ def dashboard():
         'investment_roi_5_percent': investment_roi_5_percent,
         'total_revenue_generated': total_revenue_generated,
         'final_in_hand_profit': final_in_hand_profit,
+        'gross_profit':         gross_profit,
         'total_investor_roi': total_investor_roi,
         'total_sales_share':  total_sales_share,
         'extra_profit':       extra_profit,
@@ -1872,13 +1874,14 @@ def analytics_dashboard():
     total_investment_val      = total_investment
     investment_roi_5_percent  = total_investment_val * 0.05
     total_revenue_generated   = global_revenue.total_revenue
-    final_in_hand_profit      = total_revenue_generated - investment_roi_5_percent
+    gross_profit              = total_revenue_generated - investment_roi_5_percent
+    final_in_hand_profit      = gross_profit
     total_investor_roi        = sum(inv.monthly_investor_roi for inv in investors)
     total_sales_share         = sum(inv.monthly_sales_roi    for inv in investors)
     total_roi_pool            = total_investor_roi + total_sales_share
     investor_roi_percent      = (total_investor_roi / total_roi_pool * 100) if total_roi_pool > 0 else 0
     sales_share_percent       = (total_sales_share  / total_roi_pool * 100) if total_roi_pool > 0 else 0
-    partner_share             = final_in_hand_profit / 3
+    partner_share             = gross_profit / 3
     extra_profit              = max(0, investment_roi_5_percent - total_investor_roi)
 
     stats = {
@@ -1889,6 +1892,7 @@ def analytics_dashboard():
         'investment_roi_5_percent': investment_roi_5_percent,
         'total_revenue_generated':  total_revenue_generated,
         'final_in_hand_profit':     final_in_hand_profit,
+        'gross_profit':             gross_profit,
         'total_investor_roi':       total_investor_roi,
         'total_sales_share':        total_sales_share,
         'extra_profit':             extra_profit,
