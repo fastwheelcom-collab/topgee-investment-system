@@ -283,7 +283,7 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if user.is_active %}
+                        {% if user.active %}
                             <span class="badge badge-active">Active</span>
                         {% else %}
                             <span class="badge badge-disabled">Disabled</span>
@@ -315,7 +315,7 @@
                             <form method="POST" action="{{ url_for('users') }}" style="display:inline;">
                                 <input type="hidden" name="action" value="toggle">
                                 <input type="hidden" name="user_id" value="{{ user.id }}">
-                                {% if user.is_active %}
+                                {% if user.active %}
                                     <button type="submit" class="btn btn-sm btn-secondary"
                                             onclick="return confirm('Disable {{ user.username }}?')">
                                         🔒 Disable

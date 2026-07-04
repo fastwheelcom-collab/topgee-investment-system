@@ -2127,8 +2127,8 @@ def users():
             audit('EDIT', 'User', user.display_name, user.id, 'Password reset')
             flash(f'Password reset for {user.display_name}', 'success')
         return redirect(url_for('users'))
-    accounts = UserAccount.query.order_by(UserAccount.created_at.desc()).all()
-    return render_template('users.html', accounts=accounts)
+    users = UserAccount.query.order_by(UserAccount.created_at.desc()).all()
+    return render_template('users.html', accounts=users, users=users)
 
 @app.route('/users/add', methods=['POST'])
 @admin_required
