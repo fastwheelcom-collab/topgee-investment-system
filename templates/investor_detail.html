@@ -91,11 +91,7 @@
                 <p>{{ '{:,.2f}'.format(investor_payouts) }} AED</p>
                 <p style="font-size: 0.9rem; margin-top: 0.5rem;">{{ transactions|selectattr('transaction_type', 'equalto', 'Investor Payout')|list|length }} payout(s)</p>
             </div>
-            <div class="summary-card stat-card-orange">
-                <h4>🤝 Sales Payouts</h4>
-                <p>{{ '{:,.2f}'.format(sales_payouts) }} AED</p>
-                <p style="font-size: 0.9rem; margin-top: 0.5rem;">{{ transactions|selectattr('transaction_type', 'equalto', 'Sales Payout')|list|length }} payout(s)</p>
-            </div>
+
         </div>
 
         <!-- ROI Summary -->
@@ -108,10 +104,7 @@
                 <h4>💵 Total ROI Paid to Investor</h4>
                 <p><strong>{{ '{:,.2f}'.format(total_investor_roi) }} AED</strong></p>
             </div>
-            <div class="summary-card stat-card-orange">
-                <h4>🤝 Total Paid to Sales Team</h4>
-                <p>{{ '{:,.2f}'.format(total_sales_roi) }} AED</p>
-            </div>
+
         </div>
 
         <!-- Contract Management Section -->
@@ -192,7 +185,7 @@
                                 <option value="Deposit">Deposit</option>
                                 <option value="Withdrawal">Withdrawal</option>
                                 <option value="Investor Payout">Investor Payout</option>
-                                <option value="Sales Payout">Sales Payout</option>
+
                             </select>
                         </div>
                         <div class="form-group">
@@ -269,7 +262,7 @@
                                 <td><span class="badge badge-{{ 'success' if tx.transaction_type == 'Deposit' else 'inactive' }}">{{ tx.transaction_type }}</span></td>
                                 <td class="{{ 'highlight' if tx.transaction_type == 'Deposit' else '' }}">{{ '{:,.2f}'.format(tx.amount) }} AED</td>
                                 <td>
-                                    {% if tx.transaction_type in ['Investor Payout', 'Sales Payout'] and tx.payout_month %}
+                                    {% if tx.transaction_type in ['Investor Payout'] and tx.payout_month %}
                                     <span style="font-weight: 600; color: #2563eb;">
                                         {{ ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][tx.payout_month-1] }} {{ tx.payout_year }}
                                     </span>
@@ -310,7 +303,7 @@
                                                     <option value="Deposit" {% if tx.transaction_type == 'Deposit' %}selected{% endif %}>Deposit</option>
                                                     <option value="Withdrawal" {% if tx.transaction_type == 'Withdrawal' %}selected{% endif %}>Withdrawal</option>
                                                     <option value="Investor Payout" {% if tx.transaction_type == 'Investor Payout' %}selected{% endif %}>Investor Payout</option>
-                                                    <option value="Sales Payout" {% if tx.transaction_type == 'Sales Payout' %}selected{% endif %}>Sales Payout</option>
+        
                                                 </select>
                                             </div>
                                             <div class="form-group">
@@ -323,7 +316,7 @@
                                                 <input type="date" name="transaction_date" required value="{{ tx.transaction_date.strftime('%Y-%m-%d') }}">
                                             </div>
                                         </div>
-                                        <div id="editPayoutFields{{ tx.id }}" style="{% if tx.transaction_type not in ['Investor Payout', 'Sales Payout'] %}display: none;{% endif %}">
+                                        <div id="editPayoutFields{{ tx.id }}" style="{% if tx.transaction_type != 'Investor Payout' %}display: none;{% endif %}">
                                             <div class="form-row">
                                                 <div class="form-group">
                                                     <label>Payout For Month *</label>
@@ -530,7 +523,7 @@
         }
         // ROI amounts for auto-fill
         const INVESTOR_ROI = {{ '{:.2f}'.format(investor.monthly_investor_roi) }};
-        const SALES_ROI = {{ '{:.2f}'.format(investor.monthly_sales_roi) }};
+
         
         function togglePayoutFields(formType) {
             // Toggle payout tracking fields based on transaction type
@@ -544,31 +537,16 @@
             
             if (typeField && payoutFields) {
                 const txType = typeField.value;
-                if (txType === 'Investor Payout' || txType === 'Sales Payout') {
+                if (txType === 'Investor Payout') {
                     payoutFields.style.display = 'block';
-                    
-                    // Auto-fill amount (only for add form, not edit)
                     if (isAddForm && amountField && hintField) {
-                        if (txType === 'Investor Payout') {
-                            amountField.value = INVESTOR_ROI.toFixed(2);
-                            hintField.textContent = '💡 Auto-filled: Investor ROI share ({{ investor.investor_roi_percent }}% of {{ "{:,.0f}".format(investor.total_capital) }} AED)';
-                            hintField.style.display = 'block';
-                        } else if (txType === 'Sales Payout') {
-                            amountField.value = SALES_ROI.toFixed(2);
-                            hintField.textContent = '💡 Auto-filled: ROI ({{ investor.investor_roi_percent }}% of {{ "{:,.0f}".format(investor.total_capital) }} AED)';
-                            hintField.style.display = 'block';
-                        }
+                        amountField.value = INVESTOR_ROI.toFixed(2);
+                        hintField.textContent = '💡 Auto-filled: Investor ROI ({{ investor.investor_roi_percent }}% of {{ "{:,.0f}".format(investor.total_capital) }} AED)';
+                        hintField.style.display = 'block';
                     }
-                    
-                    // For edit form, just show a hint without changing the value
                     if (!isAddForm && hintField) {
-                        if (txType === 'Investor Payout') {
-                            hintField.textContent = '💡 Expected: ' + INVESTOR_ROI.toFixed(2) + ' AED (Investor ROI share)';
-                            hintField.style.display = 'block';
-                        } else if (txType === 'Sales Payout') {
-                            hintField.textContent = '💡 Expected: ' + SALES_ROI.toFixed(2) + ' AED (Sales share)';
-                            hintField.style.display = 'block';
-                        }
+                        hintField.textContent = '💡 Expected: ' + INVESTOR_ROI.toFixed(2) + ' AED';
+                        hintField.style.display = 'block';
                     }
                 } else {
                     payoutFields.style.display = 'none';
