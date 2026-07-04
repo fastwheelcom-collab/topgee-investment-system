@@ -278,9 +278,15 @@
         </div>
 
         <!-- ── TAB SWITCHER ── -->
-        <div style="display:flex;gap:8px;margin-bottom:24px;border-bottom:2px solid var(--border);padding-bottom:0;">
-            <button onclick="switchTab('overview')" id="tab-overview" style="padding:10px 22px;font-size:.9rem;font-weight:700;border:none;cursor:pointer;border-radius:8px 8px 0 0;background:#1d4ed8;color:#fff;margin-bottom:-2px;border-bottom:2px solid #1d4ed8;">📊 Overview</button>
-            <button onclick="switchTab('revenue')"  id="tab-revenue"  style="padding:10px 22px;font-size:.9rem;font-weight:700;border:none;cursor:pointer;border-radius:8px 8px 0 0;background:#f3f4f6;color:#374151;margin-bottom:-2px;border-bottom:2px solid transparent;">💰 Revenue</button>
+        <div style="display:flex;gap:10px;margin-bottom:28px;">
+            <button onclick="switchTab('overview')" id="tab-overview"
+                style="display:flex;align-items:center;gap:8px;padding:11px 24px;font-size:.92rem;font-weight:700;border:2px solid #1d4ed8;cursor:pointer;border-radius:10px;background:#1d4ed8;color:#fff;box-shadow:0 4px 12px rgba(29,78,216,0.3);transition:all .15s;">
+                📊 Overview
+            </button>
+            <button onclick="switchTab('revenue')" id="tab-revenue"
+                style="display:flex;align-items:center;gap:8px;padding:11px 24px;font-size:.92rem;font-weight:700;border:2px solid #f97316;cursor:pointer;border-radius:10px;background:#fff;color:#f97316;transition:all .15s;">
+                💰 Revenue
+            </button>
         </div>
 
         <!-- ── OVERVIEW TAB ── -->
@@ -675,27 +681,24 @@ document.getElementById('editRevenueModal').addEventListener('click', function(e
 </script>
 
 <script>
+var TAB_STYLES = {
+    'overview': { active: { bg:'#1d4ed8', color:'#fff', border:'#1d4ed8', shadow:'0 4px 12px rgba(29,78,216,0.35)' },
+                  inactive:{ bg:'#fff',    color:'#1d4ed8', border:'#1d4ed8', shadow:'none' } },
+    'revenue':  { active: { bg:'#f97316', color:'#fff', border:'#f97316', shadow:'0 4px 12px rgba(249,115,22,0.35)' },
+                  inactive:{ bg:'#fff',    color:'#f97316', border:'#f97316', shadow:'none' } }
+};
 function switchTab(name) {
-    // Hide all panes
     document.getElementById('pane-overview').style.display = 'none';
     document.getElementById('pane-revenue').style.display  = 'none';
-    // Show selected
-    document.getElementById('pane-' + name).style.display = 'block';
-    // Update tab buttons
-    var tabs = ['overview','revenue'];
-    tabs.forEach(function(t) {
+    document.getElementById('pane-' + name).style.display  = 'block';
+    ['overview','revenue'].forEach(function(t) {
         var btn = document.getElementById('tab-' + t);
-        if (t === name) {
-            btn.style.background   = '#1d4ed8';
-            btn.style.color        = '#fff';
-            btn.style.borderBottom = '2px solid #1d4ed8';
-        } else {
-            btn.style.background   = '#f3f4f6';
-            btn.style.color        = '#374151';
-            btn.style.borderBottom = '2px solid transparent';
-        }
+        var s   = t === name ? TAB_STYLES[t].active : TAB_STYLES[t].inactive;
+        btn.style.background  = s.bg;
+        btn.style.color       = s.color;
+        btn.style.borderColor = s.border;
+        btn.style.boxShadow   = s.shadow;
     });
-    // Save to URL hash
     window.location.hash = name;
 }
 // Restore tab from URL hash on load
