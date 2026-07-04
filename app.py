@@ -38,6 +38,11 @@ print(f"✅ Database configured: {app.config['SQLALCHEMY_DATABASE_URI'][:60]}...
 
 db = SQLAlchemy(app)
 
+# Inject is_admin into all templates automatically
+@app.context_processor
+def inject_globals():
+    return dict(is_admin=session.get('is_admin', False))
+
 # Admin credentials (username: admin, password: admin123)
 ADMIN_USERNAME = 'admin'
 ADMIN_PASSWORD_HASH = hashlib.sha256('admin123'.encode()).hexdigest()

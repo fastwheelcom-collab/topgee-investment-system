@@ -327,7 +327,8 @@
                                 {% endif %}
                             </form>
 
-                            <!-- Delete -->
+                            <!-- Delete (admin only) -->
+                            {% if is_admin %}
                             <form method="POST" action="{{ url_for('users') }}" style="display:inline;">
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="user_id" value="{{ user.id }}">
@@ -336,6 +337,7 @@
                                     🗑 Delete
                                 </button>
                             </form>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>
