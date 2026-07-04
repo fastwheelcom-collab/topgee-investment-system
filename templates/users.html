@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users – TopGee It</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* ── Page-level extras ── */
+        .page-header {
+            margin: 1.5rem 0 1rem;
+        }
+        .page-header h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        /* ── Card / form ── */
+        .card {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 1px 6px rgba(0,0,0,.08);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 1rem;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: .35rem;
+        }
+        .form-group label {
+            font-size: .8rem;
+            font-weight: 600;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+        .form-group input,
+        .form-group select {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: .5rem .75rem;
+            font-size: .9rem;
+            color: #1e293b;
+            background: #f8fafc;
+            transition: border-color .15s;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #1d4ed8;
+            background: #fff;
+        }
+        .form-actions {
+            margin-top: 1.25rem;
+            display: flex;
+            gap: .75rem;
+        }
+
+        /* ── Buttons ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            padding: .45rem 1rem;
+            border-radius: 6px;
+            font-size: .85rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            transition: opacity .15s, transform .1s;
+        }
+        .btn:hover { opacity: .88; transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+        .btn-primary  { background: #1d4ed8; color: #fff; }
+        .btn-success  { background: #16a34a; color: #fff; }
+        .btn-warning  { background: #d97706; color: #fff; }
+        .btn-danger   { background: #dc2626; color: #fff; }
+        .btn-secondary{ background: #e2e8f0; color: #475569; }
+        .btn-sm { padding: .3rem .7rem; font-size: .78rem; }
+
+        /* ── Badges ── */
+        .badge {
+            display: inline-block;
+            padding: .2rem .65rem;
+            border-radius: 9999px;
+            font-size: .75rem;
+            font-weight: 700;
+            letter-spacing: .03em;
+        }
+        .badge-admin   { background: #dbeafe; color: #1d4ed8; }
+        .badge-partner { background: #dcfce7; color: #16a34a; }
+        .badge-active  { background: #dcfce7; color: #16a34a; }
+        .badge-disabled{ background: #fee2e2; color: #dc2626; }
+
+        /* ── Table ── */
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: 10px;
+            box-shadow: 0 1px 6px rgba(0,0,0,.08);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            font-size: .88rem;
+        }
+        thead th {
+            background: #1d4ed8;
+            color: #fff;
+            padding: .75rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        tbody tr { border-bottom: 1px solid #f1f5f9; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: #f8fafc; }
+        tbody td {
+            padding: .7rem 1rem;
+            color: #334155;
+            vertical-align: middle;
+        }
+        .actions-cell {
+            display: flex;
+            gap: .4rem;
+            flex-wrap: wrap;
+        }
+
+        /* ── Flash messages ── */
+        .alert {
+            padding: .8rem 1.2rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: .9rem;
+            font-weight: 500;
+        }
+        .alert-success { background: #dcfce7; color: #15803d; border-left: 4px solid #16a34a; }
+        .alert-danger  { background: #fee2e2; color: #b91c1c; border-left: 4px solid #dc2626; }
+        .alert-warning { background: #fef9c3; color: #92400e; border-left: 4px solid #d97706; }
+        .alert-info    { background: #dbeafe; color: #1e40af; border-left: 4px solid #1d4ed8; }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #fff;
+            border-radius: 12px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 8px 32px rgba(0,0,0,.2);
+        }
+        .modal h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 1rem;
+        }
+        .modal .form-actions { justify-content: flex-end; }
+    </style>
+</head>
+<body>
+
+<!-- ── Navigation ── -->
+<nav class="navbar">
+    <div class="container">
+        <h1>🏦 TopGee It</h1>
+        <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
+        <div class="nav-links">
+                <a href="{{ url_for('dashboard') }}" class="nav-investors">All Investors</a>
+                <a href="{{ url_for('analytics_dashboard') }}" class="nav-dashboard">Dashboard</a>
+                <a href="{{ url_for('reports_dashboard') }}" class="nav-reports">Reports</a>
+                <a href="{{ url_for('monthly_grid') }}" class="nav-monthly">Monthly Grid</a>
+                <a href="{{ url_for('sales_reps') }}" class="nav-sales">Sales Team</a>
+                {% if is_admin %}<a href="{{ url_for('add_investor') }}" class="btn-green">+ Add Investor</a>{% endif %}
+                <a href="{{ url_for('backup') }}" class="nav-backup">Backup</a>
+                <a href="{{ url_for('users') }}" class="nav-users active">Users</a>
+                <a href="{{ url_for('audit_log') }}" class="nav-audit">Audit Log</a>
+                <a href="{{ url_for('change_password') }}" class="nav-password">Password</a>
+                <a href="{{ url_for('logout') }}" class="nav-logout">Logout</a>
+            </div>
+    </div>
+</nav>
+
+<!-- ── Main content ── -->
+<div class="container" style="padding-top:1.5rem; padding-bottom:3rem;">
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="page-header">
+        <h2>👥 Partner Accounts</h2>
+    </div>
+
+    <!-- ── Create New Partner Login ── -->
+    <div class="card">
+        <h3>➕ Create New Partner Login</h3>
+        <form method="POST" action="{{ url_for('users') }}" autocomplete="off">
+            <input type="hidden" name="action" value="create">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="display_name">Display Name</label>
+                    <input type="text" id="display_name" name="display_name"
+                           placeholder="e.g. John Smith" required>
+                </div>
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username"
+                           placeholder="e.g. jsmith" required autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password"
+                           placeholder="Minimum 8 characters" required autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="role">Role</label>
+                    <select id="role" name="role">
+                        <option value="partner">Partner</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Create Account</button>
+                <button type="reset" class="btn btn-secondary">Clear</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- ── User Accounts Table ── -->
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Display Name</th>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Last Login</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td><strong>{{ user.display_name }}</strong></td>
+                    <td>{{ user.username }}</td>
+                    <td>
+                        {% if user.role == 'admin' %}
+                            <span class="badge badge-admin">Admin</span>
+                        {% else %}
+                            <span class="badge badge-partner">Partner</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.is_active %}
+                            <span class="badge badge-active">Active</span>
+                        {% else %}
+                            <span class="badge badge-disabled">Disabled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.last_login %}
+                            {{ user.last_login.strftime('%d %b %Y %H:%M') }}
+                        {% else %}
+                            <span style="color:#94a3b8;">Never</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.created_at %}
+                            {{ user.created_at.strftime('%d %b %Y') }}
+                        {% else %}
+                            <span style="color:#94a3b8;">–</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="actions-cell">
+                            <!-- Reset Password -->
+                            <button class="btn btn-sm btn-warning"
+                                    onclick="openResetModal('{{ user.id }}', '{{ user.username }}')">
+                                🔑 Reset
+                            </button>
+
+                            <!-- Enable / Disable toggle -->
+                            <form method="POST" action="{{ url_for('users') }}" style="display:inline;">
+                                <input type="hidden" name="action" value="toggle">
+                                <input type="hidden" name="user_id" value="{{ user.id }}">
+                                {% if user.is_active %}
+                                    <button type="submit" class="btn btn-sm btn-secondary"
+                                            onclick="return confirm('Disable {{ user.username }}?')">
+                                        🔒 Disable
+                                    </button>
+                                {% else %}
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        🔓 Enable
+                                    </button>
+                                {% endif %}
+                            </form>
+
+                            <!-- Delete -->
+                            <form method="POST" action="{{ url_for('users') }}" style="display:inline;">
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="user_id" value="{{ user.id }}">
+                                <button type="submit" class="btn btn-sm btn-danger"
+                                        onclick="return confirm('Permanently delete {{ user.username }}? This cannot be undone.')">
+                                    🗑 Delete
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align:center; color:#94a3b8; padding:2rem;">
+                        No user accounts found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div><!-- /container -->
+
+<!-- ── Reset Password Modal ── -->
+<div class="modal-overlay" id="resetModal">
+    <div class="modal">
+        <h3>🔑 Reset Password</h3>
+        <p style="color:#64748b; font-size:.9rem; margin-bottom:1rem;">
+            Set a new password for <strong id="resetUsername"></strong>.
+        </p>
+        <form method="POST" action="{{ url_for('users') }}">
+            <input type="hidden" name="action" value="reset_password">
+            <input type="hidden" name="user_id" id="resetUserId">
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label for="new_password">New Password</label>
+                <input type="password" id="new_password" name="new_password"
+                       placeholder="Minimum 8 characters" required autocomplete="new-password">
+            </div>
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label for="confirm_password">Confirm Password</label>
+                <input type="password" id="confirm_password" name="confirm_password"
+                       placeholder="Repeat password" required autocomplete="new-password">
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save Password</button>
+                <button type="button" class="btn btn-secondary" onclick="closeResetModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openResetModal(userId, username) {
+        document.getElementById('resetUserId').value = userId;
+        document.getElementById('resetUsername').textContent = username;
+        document.getElementById('resetModal').classList.add('active');
+    }
+    function closeResetModal() {
+        document.getElementById('resetModal').classList.remove('active');
+    }
+    // Close on overlay click
+    document.getElementById('resetModal').addEventListener('click', function(e) {
+        if (e.target === this) closeResetModal();
+    });
+</script>
+
+</body>
+</html>

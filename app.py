@@ -302,7 +302,46 @@ class RevenueHistory(db.Model):
     @property
     def month_name(self):
         return datetime(self.year, self.month, 1).strftime('%B %Y')
+
+class UserAccount(db.Model):
+    """Partner/admin accounts"""
+    id           = db.Column(db.Integer, primary_key=True)
+    username     = db.Column(db.String(80), unique=True, nullable=False)
+    display_name = db.Column(db.String(120), nullable=False)
+    password_hash= db.Column(db.String(256), nullable=False)
+    role         = db.Column(db.String(20), default='partner')  # 'admin' or 'partner'
+    active       = db.Column(db.Boolean, default=True)
+    created_at   = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login   = db.Column(db.DateTime, nullable=True)
+
+class AuditLog(db.Model):
+    """Track every add / edit / delete action"""
+    id          = db.Column(db.Integer, primary_key=True)
+    timestamp   = db.Column(db.DateTime, default=datetime.utcnow)
+    username    = db.Column(db.String(80), nullable=False)   # who did it
+    action      = db.Column(db.String(20), nullable=False)   # ADD / EDIT / DELETE / LOGIN / LOGOUT
+    target_type = db.Column(db.String(60), nullable=False)   # Investor / Transaction / Revenue / etc.
+    target_id   = db.Column(db.Integer,   nullable=True)     # id of affected record
+    target_name = db.Column(db.String(200),nullable=True)    # human label e.g. investor name
+    detail      = db.Column(db.Text,      nullable=True)     # extra detail / old value
+
 # ============= DATABASE INITIALIZATION =============
+
+def audit(action, target_type, target_name='', target_id=None, detail=''):
+    """Write one audit log entry for the current session user"""
+    try:
+        entry = AuditLog(
+            username    = session.get('username', 'unknown'),
+            action      = action,
+            target_type = target_type,
+            target_id   = target_id,
+            target_name = target_name,
+            detail      = detail,
+        )
+        db.session.add(entry)
+        db.session.commit()
+    except Exception as e:
+        print(f'Audit log error: {e}')
 
 @app.before_request
 def ensure_db_ready():
@@ -354,20 +393,36 @@ def login():
         username = request.form['username']
         password = request.form['password']
         password_hash = hashlib.sha256(password.encode()).hexdigest()
-        
+
+        # Check master admin first
         if username == ADMIN_USERNAME and password_hash == ADMIN_PASSWORD_HASH:
             session['logged_in'] = True
-            session['is_admin'] = True
-            session['username'] = username
+            session['is_admin']  = True
+            session['username']  = username
+            session['display_name'] = 'Admin'
+            audit('LOGIN', 'System', username)
             flash('Login successful!', 'success')
             return redirect(url_for('dashboard'))
-        else:
-            flash('Invalid credentials', 'error')
-    
+
+        # Check UserAccount table
+        user = UserAccount.query.filter_by(username=username, active=True).first()
+        if user and user.password_hash == password_hash:
+            session['logged_in']    = True
+            session['is_admin']     = (user.role == 'admin')
+            session['username']     = user.username
+            session['display_name'] = user.display_name
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+            audit('LOGIN', 'System', username)
+            flash(f'Welcome, {user.display_name}!', 'success')
+            return redirect(url_for('dashboard'))
+
+        flash('Invalid credentials', 'error')
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
+    audit('LOGOUT', 'System', session.get('username',''))
     session.clear()
     flash('Logged out successfully', 'success')
     return redirect(url_for('login'))
@@ -693,6 +748,7 @@ def add_investor():
         )
         db.session.add(investor)
         db.session.commit()
+        audit('ADD', 'Investor', investor.name, investor.id, f'Capital: {investment_aed:,.0f} AED, ROI: {investor.investor_roi_percent}%')
         return redirect(url_for('dashboard'))
     
     sales_reps = SalesRep.query.filter_by(active=True).all()
@@ -734,6 +790,7 @@ def edit_investor(investor_id):
         investor.notes = request.form.get('notes', '')
         
         db.session.commit()
+        audit('EDIT', 'Investor', investor.name, investor.id, f'Capital: {investment_aed:,.0f} AED, ROI: {investor.investor_roi_percent}%')
         return redirect(url_for('investor_detail', investor_id=investor.id))
     
     sales_reps = SalesRep.query.filter_by(active=True).all()
@@ -743,6 +800,7 @@ def edit_investor(investor_id):
 @admin_required
 def delete_investor(investor_id):
     investor = Investor.query.get_or_404(investor_id)
+    audit('DELETE', 'Investor', investor.name, investor.id, f'Capital was: {investor.total_capital:,.0f} AED')
     db.session.delete(investor)
     db.session.commit()
     return redirect(url_for('dashboard'))
@@ -1340,7 +1398,8 @@ def add_transaction(investor_id):
 
     db.session.add(transaction)
     db.session.commit()
-
+    audit('ADD', 'Transaction', investor.name, transaction.id,
+          f'{transaction.transaction_type}: {transaction.amount:,.0f} AED on {transaction.transaction_date}')
     flash(f"{transaction.transaction_type} of {transaction.amount:,.2f} AED added and synced to ROI Ledger!", 'success')
     return redirect(url_for('investor_detail', investor_id=investor_id))
 
@@ -1514,12 +1573,13 @@ def delete_transaction(investor_id, transaction_id):
         flash('Invalid transaction', 'error')
         return redirect(url_for('investor_detail', investor_id=investor_id))
     
-    tx_type = transaction.transaction_type
+    tx_type   = transaction.transaction_type
     tx_amount = transaction.amount
-    
+    inv_name  = transaction.investor.name if transaction.investor else str(investor_id)
+    audit('DELETE', 'Transaction', inv_name, transaction_id,
+          f'{tx_type}: {tx_amount:,.0f} AED on {transaction.transaction_date}')
     db.session.delete(transaction)
     db.session.commit()
-    
     flash(f"{tx_type} of {tx_amount:,.2f} AED deleted successfully!", 'success')
     return redirect(url_for('investor_detail', investor_id=investor_id))
 
@@ -1645,6 +1705,7 @@ def edit_revenue(rev_id):
 def delete_revenue(rev_id):
     hist = RevenueHistory.query.get_or_404(rev_id)
     month_name = hist.month_name
+    audit('DELETE', 'Revenue', month_name, rev_id, f'{hist.revenue_amount:,.0f} AED')
     db.session.delete(hist)
     db.session.commit()
     flash(f'Revenue entry for {month_name} deleted.', 'success')
@@ -1867,6 +1928,91 @@ with app.app_context():
         print(f"❌ Database initialization error: {e}")
         import traceback
         traceback.print_exc()
+
+# ══════════════════════════════════════════════════
+# USERS MANAGEMENT (admin only)
+# ══════════════════════════════════════════════════
+@app.route('/users')
+@admin_required
+def users():
+    accounts = UserAccount.query.order_by(UserAccount.created_at.desc()).all()
+    return render_template('users.html', accounts=accounts)
+
+@app.route('/users/add', methods=['POST'])
+@admin_required
+def add_user():
+    username     = request.form['username'].strip()
+    display_name = request.form['display_name'].strip()
+    password     = request.form['password']
+    role         = request.form.get('role', 'partner')
+    if UserAccount.query.filter_by(username=username).first():
+        flash(f'Username "{username}" already exists.', 'error')
+        return redirect(url_for('users'))
+    user = UserAccount(
+        username=username,
+        display_name=display_name,
+        password_hash=hashlib.sha256(password.encode()).hexdigest(),
+        role=role,
+    )
+    db.session.add(user)
+    db.session.commit()
+    audit('ADD', 'User', display_name, user.id, f'role={role}')
+    flash(f'User "{display_name}" created successfully!', 'success')
+    return redirect(url_for('users'))
+
+@app.route('/users/<int:user_id>/reset-password', methods=['POST'])
+@admin_required
+def reset_user_password(user_id):
+    user = UserAccount.query.get_or_404(user_id)
+    new_pw = request.form['new_password']
+    user.password_hash = hashlib.sha256(new_pw.encode()).hexdigest()
+    db.session.commit()
+    audit('EDIT', 'User', user.display_name, user.id, 'Password reset')
+    flash(f'Password reset for {user.display_name}', 'success')
+    return redirect(url_for('users'))
+
+@app.route('/users/<int:user_id>/toggle', methods=['POST'])
+@admin_required
+def toggle_user(user_id):
+    user = UserAccount.query.get_or_404(user_id)
+    user.active = not user.active
+    db.session.commit()
+    status = 'enabled' if user.active else 'disabled'
+    audit('EDIT', 'User', user.display_name, user.id, f'Account {status}')
+    flash(f'{user.display_name} {status}.', 'success')
+    return redirect(url_for('users'))
+
+@app.route('/users/<int:user_id>/delete', methods=['POST'])
+@admin_required
+def delete_user(user_id):
+    user = UserAccount.query.get_or_404(user_id)
+    audit('DELETE', 'User', user.display_name, user.id)
+    db.session.delete(user)
+    db.session.commit()
+    flash(f'User deleted.', 'success')
+    return redirect(url_for('users'))
+
+# ══════════════════════════════════════════════════
+# AUDIT LOG
+# ══════════════════════════════════════════════════
+@app.route('/audit-log')
+@admin_required
+def audit_log():
+    page      = request.args.get('page', 1, type=int)
+    user_filt = request.args.get('username', '')
+    act_filt  = request.args.get('action', '')
+    type_filt = request.args.get('target_type', '')
+    q = AuditLog.query.order_by(AuditLog.timestamp.desc())
+    if user_filt: q = q.filter(AuditLog.username == user_filt)
+    if act_filt:  q = q.filter(AuditLog.action == act_filt)
+    if type_filt: q = q.filter(AuditLog.target_type == type_filt)
+    logs      = q.paginate(page=page, per_page=50)
+    all_users = db.session.query(AuditLog.username).distinct().all()
+    all_types = db.session.query(AuditLog.target_type).distinct().all()
+    return render_template('audit_log.html', logs=logs,
+        all_users=all_users, all_types=all_types,
+        filters=request.args)
+
 
 @app.route('/gold')
 def gold_dashboard():
