@@ -53,9 +53,9 @@
             </div>
 
             <div class="detail-card stat-card-blue">
-                <h3>💎 Investor ROI</h3>
+                <h3>💎 Actual ROI</h3>
                 <p class="large-number">{{ '{:,.2f}'.format(investor.monthly_investor_roi) }} AED</p>
-                <p class="sub-text">{{ investor.investor_roi_percent }}% of capital (monthly)</p>
+                <p class="sub-text">{{ investor.investor_roi_percent }}% of {{ '{:,.0f}'.format(investor.total_capital) }} AED (monthly)</p>
             </div>
 
 
@@ -94,18 +94,7 @@
 
         </div>
 
-        <!-- ROI Summary -->
-        <div class="summary-grid">
-            <div class="summary-card stat-card-orange">
-                <h4>📊 Total Revenue Generated</h4>
-                <p>{{ '{:,.2f}'.format(total_revenue) }} AED</p>
-            </div>
-            <div class="summary-card stat-card-blue">
-                <h4>💵 Total ROI Paid to Investor</h4>
-                <p><strong>{{ '{:,.2f}'.format(total_investor_roi) }} AED</strong></p>
-            </div>
 
-        </div>
 
         <!-- Contract Management Section -->
         {% if is_admin %}
