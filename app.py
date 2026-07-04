@@ -1879,6 +1879,7 @@ def analytics_dashboard():
     investor_roi_percent      = (total_investor_roi / total_roi_pool * 100) if total_roi_pool > 0 else 0
     sales_share_percent       = (total_sales_share  / total_roi_pool * 100) if total_roi_pool > 0 else 0
     partner_share             = final_in_hand_profit / 3
+    extra_profit              = max(0, total_investor_roi - investment_roi_5_percent)
 
     stats = {
         'total_investors':          len(investors),
@@ -1890,6 +1891,7 @@ def analytics_dashboard():
         'final_in_hand_profit':     final_in_hand_profit,
         'total_investor_roi':       total_investor_roi,
         'total_sales_share':        total_sales_share,
+        'extra_profit':             extra_profit,
         'investor_roi_percent':     investor_roi_percent,
         'sales_share_percent':      sales_share_percent,
         'partner_shafay':           partner_share,
