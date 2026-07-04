@@ -1188,21 +1188,46 @@ def reports_dashboard():
     if rep_id_filt:
         sales_rep_rows = [r for r in sales_rep_rows if str(r['rep'].id) == rep_id_filt]
 
-    # Month-wise rows
+    # Month-wise rows — support date range (date_from / date_to)
     yr = int(year_filt) if year_filt else now.year
     month_rows = []
     total_investment_val = sum(r['capital'] for r in all_rows)
-    for m in range(1, 13):
-        if month_filt and str(m) != month_filt: continue
-        key = (yr, m)
+
+    # Parse date range for month-wise
+    mw_from = None
+    mw_to   = None
+    if report_type == 'monthwise':
+        if date_from:
+            try: mw_from = datetime.strptime(date_from, '%Y-%m-%d')
+            except: pass
+        if date_to:
+            try: mw_to = datetime.strptime(date_to, '%Y-%m-%d')
+            except: pass
+
+    # Build month range covering the date span (or full year if no range)
+    if mw_from and mw_to:
+        months_to_show = []
+        cur = mw_from.replace(day=1)
+        end = mw_to.replace(day=1)
+        while cur <= end:
+            months_to_show.append((cur.year, cur.month))
+            if cur.month == 12:
+                cur = cur.replace(year=cur.year+1, month=1)
+            else:
+                cur = cur.replace(month=cur.month+1)
+    else:
+        months_to_show = [(yr, m) for m in range(1, 13)]
+
+    for (y_key, m_key) in months_to_show:
+        key = (y_key, m_key)
         inv_paid   = sum(r['monthly'].get(key,{}).get('inv',0)   for r in all_rows)
         sales_paid = sum(r['monthly'].get(key,{}).get('sales',0) for r in all_rows)
-        rev        = next((h.revenue_amount for h in revenue_history if h.year==yr and h.month==m), 0)
+        rev        = next((h.revenue_amount for h in revenue_history if h.year==y_key and h.month==m_key), 0)
         partner    = rev - (total_investment_val * 0.05) if rev else 0
         month_rows.append({
-            'month_name':  MONTHS[m-1],
-            'month_num':   m,
-            'year':        yr,
+            'month_name':  f"{MONTHS[m_key-1]} {y_key}",
+            'month_num':   m_key,
+            'year':        y_key,
             'inv_paid':    inv_paid,
             'sales_paid':  sales_paid,
             'revenue':     rev,
