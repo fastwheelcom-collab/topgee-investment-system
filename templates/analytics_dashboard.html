@@ -262,7 +262,7 @@
                 <div style="font-size:.75rem;margin-top:6px;opacity:.75;">Sum of each investor's actual ROI%</div>
             </div>
 
-            <!-- Card 4: Extra Profit - Green -->
+            <!-- Card 4: Extra Profit - Green when > 0, grey when 0 -->
             <div style="background:{% if stats.extra_profit > 0 %}linear-gradient(135deg,#16a34a 0%,#15803d 100%){% else %}linear-gradient(135deg,#64748b 0%,#475569 100%){% endif %};border-radius:18px;padding:24px 22px;box-shadow:0 8px 24px rgba(22,163,74,0.35);color:#fff;">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
                     <span style="font-size:1.6rem;">✨</span>
@@ -271,7 +271,7 @@
                 <div style="font-size:2rem;font-weight:800;letter-spacing:-1px;line-height:1;">{{ '{:,.0f}'.format(stats.extra_profit) }}</div>
                 <div style="font-size:.82rem;margin-top:8px;opacity:.85;font-weight:600;">AED &nbsp;|&nbsp; $ {{ '{:,.0f}'.format(stats.extra_profit / stats.exchange_rate) }} USD</div>
                 <div style="font-size:.75rem;margin-top:6px;opacity:.75;">
-                    {% if stats.extra_profit > 0 %}Actual ROI − 5% Pool = {{ '{:,.0f}'.format(stats.extra_profit) }} AED extra{% else %}Actual ROI ≤ 5% Pool (no extra profit){% endif %}
+                    {% if stats.extra_profit > 0 %}5% Pool − Actual ROI = {{ '{:,.0f}'.format(stats.extra_profit) }} AED unused{% else %}5% Pool fully utilized{% endif %}
                 </div>
             </div>
 
