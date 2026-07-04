@@ -445,9 +445,14 @@
                                 <strong style="color:var(--green);">{{ "{:,.0f}".format(r.paid) }}</strong>
                             </td>
                             <td>
-                                <strong style="color:{% if r.outstanding > 0 %}#e53e3e{% else %}var(--green){% endif %};">{{ "{:,.0f}".format(r.outstanding) }}</strong>
                                 {% if r.outstanding < 0 %}
-                                    <br><small style="color:#e53e3e; font-size:.75rem;">⚠️ overpaid</small>
+                                    <strong style="color:#f97316;">0</strong>
+                                    <br><small style="color:#f97316; font-size:.75rem;">+{{ "{:,.0f}".format(r.outstanding|abs) }} credit</small>
+                                {% elif r.outstanding == 0 %}
+                                    <strong style="color:var(--green);">0</strong>
+                                    <br><small style="color:var(--green); font-size:.75rem;">✅ fully paid</small>
+                                {% else %}
+                                    <strong style="color:#e53e3e;">{{ "{:,.0f}".format(r.outstanding) }}</strong>
                                 {% endif %}
                                 {% if r.total_ever_due > 0 %}
                                 <div class="prog-wrap" style="margin-top:4px;">
