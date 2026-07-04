@@ -12,7 +12,7 @@
                             <th>Month</th>
                             <th>Total ROI Generated</th>
                             <th>Investor Share (5%)</th>
-                            <th>Sales Share (5%)</th>
+                            
                             <th>Partners Get (95%)</th>
                             <th>Actions</th>
                         </tr>
@@ -24,7 +24,7 @@
                             {% if month_data.record %}
                             <td>{{ '{:,.2f}'.format(month_data.record.total_roi_generated) }} AED</td>
                             <td class="highlight">{{ '{:,.2f}'.format(month_data.record.investor_share) }} AED</td>
-                            <td>{{ '{:,.2f}'.format(month_data.record.sales_share) }} AED</td>
+                            
                             <td class="text-success"><strong>{{ '{:,.2f}'.format(month_data.record.total_roi_generated * 0.95) }} AED</strong></td>
                             <td>
                                 {% if is_admin %}
@@ -58,7 +58,7 @@
                     <input type="number" name="total_roi_generated" id="modalAmount" step="0.01" required placeholder="100000.00" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary);">
                     <small style="color: var(--text-secondary); display: block; margin-top: 0.5rem;">
                         System will auto-distribute:<br>
-                        • 5% → Investor ({{ investor.investor_roi_percent }}%) + Sales ({{ investor.sales_roi_percent }}%)<br>
+                        • Investor ROI: {{ investor.investor_roi_percent }}%<br>
                         • 95% → Partners (Shafaqat/Shubham/Kay equally)
                     </small>
                 </div>

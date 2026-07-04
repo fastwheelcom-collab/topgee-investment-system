@@ -919,19 +919,18 @@ def download_investor_ledger(investor_id):
     <b>Investment Amount:</b> {investor.investment_amount:,.2f} AED<br/>
     <b>Investment Date:</b> {investor.investment_date.strftime('%d-%b-%Y')}<br/>
     <b>Sales Representative:</b> {investor.sales_rep.name if investor.sales_rep else 'N/A'}<br/>
-    <b>ROI Split:</b> Investor {investor.investor_roi_percent}% | Sales {investor.sales_roi_percent}%
+    <b>Actual ROI:</b> {investor.investor_roi_percent}% monthly
     """
     elements.append(Paragraph(details, styles['Normal']))
     elements.append(Spacer(1, 0.3*inch))
     
     # Monthly records table
-    data = [['Month', 'Revenue', 'Your ROI', 'Sales ROI', 'Payment Date']]
+    data = [['Month', 'Revenue', 'Your ROI', 'Payment Date']]
     for rec in records:
         data.append([
             rec.month_name,
             f"{rec.revenue_generated:,.2f}",
             f"{rec.investor_roi_paid:,.2f}",
-            f"{rec.sales_roi_paid:,.2f}",
             rec.payment_date.strftime('%d-%b-%Y') if rec.payment_date else '-'
         ])
     

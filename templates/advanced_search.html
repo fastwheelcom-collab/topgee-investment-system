@@ -112,7 +112,7 @@
                     <th>Investment (AED)</th>
                     <th>Investment (USD)</th>
                     <th>Date</th>
-                    <th>ROI Split</th>
+                    <th>Actual ROI</th>
                     <th>Sales Rep</th>
                     <th>Actions</th>
                 </tr>
@@ -125,7 +125,7 @@
                     <td>{{ "{:,.0f}".format(investor.investment_amount) }} AED</td>
                     <td>{{ "{:,.0f}".format(investor.investment_amount / exchange_rate) }} USD</td>
                     <td>{{ investor.investment_date.strftime('%d %b %Y') }}</td>
-                    <td>{{ investor.investor_roi_percent }}% / {{ investor.sales_roi_percent }}%</td>
+                    <td>{{ investor.investor_roi_percent }}%</td>
                     <td>{{ investor.sales_rep.name if investor.sales_rep else 'Unassigned' }}</td>
                     <td>
                         <a href="{{ url_for('investor_detail', investor_id=investor.id) }}" class="btn-view">View</a>

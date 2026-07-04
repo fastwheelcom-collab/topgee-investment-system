@@ -435,7 +435,7 @@
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Total Monthly ROI/Profit (AED) *</label>
                     <input type="number" name="total_roi_generated" id="modalAmount" step="0.01" required placeholder="100000.00" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px;">
                     <small style="display: block; margin-top: 0.5rem; color: #6b7280;">
-                        System distributes: 5% → Investor ({{ investor.investor_roi_percent }}%) + Sales ({{ investor.sales_roi_percent }}%), 95% → Partners
+                        Investor ROI: {{ investor.investor_roi_percent }}% monthly
                     </small>
                 </div>
                 
@@ -555,7 +555,7 @@
                             hintField.style.display = 'block';
                         } else if (txType === 'Sales Payout') {
                             amountField.value = SALES_ROI.toFixed(2);
-                            hintField.textContent = '💡 Auto-filled: Sales share ({{ investor.sales_roi_percent }}% of {{ "{:,.0f}".format(investor.total_capital) }} AED)';
+                            hintField.textContent = '💡 Auto-filled: ROI ({{ investor.investor_roi_percent }}% of {{ "{:,.0f}".format(investor.total_capital) }} AED)';
                             hintField.style.display = 'block';
                         }
                     }

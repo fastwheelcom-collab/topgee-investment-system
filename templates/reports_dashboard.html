@@ -317,7 +317,7 @@
         <div class="table-container">
             <table>
                 <thead><tr>
-                    <th>Investor</th><th>Capital (AED)</th><th>Sales %</th>
+                    <th>Investor</th><th>Capital (AED)</th>
                     <th>Monthly Due</th>
                     {% if has_date_filter %}<th style="background:#7c3aed;color:#fff;">📅 Paid in Range</th>{% endif %}
                     <th>Total Paid (All Time)</th>
@@ -327,7 +327,6 @@
                     <tr>
                         <td><a href="{{ url_for('investor_detail', investor_id=r.inv.id) }}" class="client-link">{{ r.inv.name }}</a></td>
                         <td><strong>{{ "{:,.0f}".format(r.capital) }}</strong></td>
-                        <td class="hi">{{ r.inv.sales_roi_percent }}%</td>
                         <td class="or">{{ "{:,.0f}".format(r.sales_monthly) }}</td>
                         {% if has_date_filter %}
                         <td style="color:#7c3aed;font-weight:700;">{{ "{:,.0f}".format(r.total_sales_paid_filtered) }}</td>

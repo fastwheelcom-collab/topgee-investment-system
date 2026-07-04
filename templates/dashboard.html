@@ -66,7 +66,7 @@
                             <th>Category</th>
                             <th>Investment</th>
                             <th>Sales Rep</th>
-                            <th>ROI Split</th>
+                            <th>Actual ROI</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -79,7 +79,7 @@
                             <td>{{ investor.category }}</td>
                             <td>{{ '{:,.0f}'.format(investor.total_capital) }} AED</td>
                             <td>{{ investor.sales_rep.name if investor.sales_rep else '-' }}</td>
-                            <td>Inv: {{ investor.investor_roi_percent }}% | Sales: {{ investor.sales_roi_percent }}%</td>
+                            <td>{{ investor.investor_roi_percent }}%</td>
                             <td><span class="badge badge-{{ 'success' if investor.status == 'Active' else 'inactive' }}">{{ investor.status }}</span></td>
                             <td>
                                 <a href="{{ url_for('investor_detail', investor_id=investor.id) }}" class="btn-sm">View</a>
