@@ -215,13 +215,22 @@
 
     <!-- ══════════ INVESTOR PAID REPORT ══════════ -->
     {% elif report_type == 'investor_paid' %}
-    <div class="section-title">💸 Investor Paid Report — {% if filters.investor_id %}Individual{% else %}All Investors{% endif %}</div>
+    <div class="section-title">💸 Investor Paid Report —
+        {% if filters.investor_id %}{{ filtered_rows[0].inv.name if filtered_rows else 'Individual' }}{% else %}All Investors{% endif %}
+        {% if has_date_filter %}<span style="font-size:.82rem;color:var(--text-secondary);font-weight:400;"> &nbsp;| {{ date_from }} → {{ date_to }}</span>{% endif %}
+    </div>
+
+    {% if has_date_filter %}
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 18px;margin-bottom:16px;font-size:.88rem;color:#92400e;">
+        📅 Showing payouts between <strong>{{ date_from }}</strong> and <strong>{{ date_to }}</strong>
+    </div>
+    {% endif %}
 
     <div class="table-container">
         <table id="reportTable">
             <thead><tr>
                 <th>#</th><th>Investor</th><th>Sales Rep</th>
-                <th>Date</th><th>For Month</th><th>Amount (AED)</th><th>Notes</th>
+                <th>Date</th><th>For Month</th><th>Amount (AED)</th><th>Amount (USD)</th><th>Notes</th>
             </tr></thead>
             <tbody>
                 {% set ns = namespace(grand=0, count=0) %}
@@ -237,28 +246,26 @@
                             <td>{{ t.transaction_date.strftime('%d %b %Y') }}</td>
                             <td>
                                 {% if t.payout_month %}
-                                <strong>{{ MONTHS[t.payout_month-1][:3] }} {{ t.payout_year }}</strong>
+                                <strong>{{ MONTHS[t.payout_month-1] }} {{ t.payout_year }}</strong>
                                 {% else %}—{% endif %}
                             </td>
                             <td class="hi"><strong>{{ "{:,.2f}".format(t.amount) }}</strong></td>
+                            <td style="color:#0284c7;font-weight:600;">$ {{ "{:,.2f}".format(t.amount / exchange_rate) }}</td>
                             <td style="color:var(--text-secondary); font-size:.82rem;">{{ t.notes or '—' }}</td>
                         </tr>
                         {% endfor %}
-                    {% elif not filters.investor_id %}
-                    <tr>
-                        <td></td>
-                        <td><a href="{{ url_for('investor_detail', investor_id=r.inv.id) }}" class="client-link">{{ r.inv.name }}</a></td>
-                        <td style="color:var(--text-secondary)">{{ r.rep_name }}</td>
-                        <td colspan="3" style="color:#999;">No payouts recorded</td>
-                        <td></td>
-                    </tr>
                     {% endif %}
+                    {# Hide 'No payouts' rows — paid report only shows paid #}
                 {% endfor %}
+                {% if ns.count == 0 %}
+                <tr><td colspan="8" class="no-data">📢 No payouts found{% if has_date_filter %} for this date range{% endif %}. {% if not has_date_filter %}Try setting a date range filter above.{% endif %}</td></tr>
+                {% endif %}
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="5">TOTAL PAID ({{ ns.count }} transactions)</td>
-                    <td class="hi"><strong>{{ "{:,.2f}".format(ns.grand) }} AED</strong></td>
+                    <td colspan="5" style="font-weight:800;">TOTAL PAID ({{ ns.count }} transactions)</td>
+                    <td class="hi" style="font-size:1.1rem;"><strong>{{ "{:,.2f}".format(ns.grand) }} AED</strong></td>
+                    <td style="color:#0284c7;font-weight:700;">$ {{ "{:,.2f}".format(ns.grand / exchange_rate) }}</td>
                     <td></td>
                 </tr>
             </tfoot>
