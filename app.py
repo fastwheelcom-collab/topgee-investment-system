@@ -1301,17 +1301,45 @@ def reports_dashboard():
     total_monthly_due = sum(r['monthly_roi'] for r in all_rows)
     total_sales_paid  = sum(r['total_sales_paid'] for r in all_rows)
 
+    # Correct ROI calculations
+    total_investor_roi_mo = sum(r['monthly_roi']    for r in all_rows)  # sum of each investor's actual ROI%
+    total_sales_roi_mo    = sum(r['sales_monthly']  for r in all_rows)  # sum of sales rep shares
+    total_roi_pool_mo     = total_investor_roi_mo + total_sales_roi_mo  # total monthly obligation
+    gross_revenue         = global_rev.total_revenue
+    # Partner profit = Revenue - what we owe investors - what we owe sales
+    partner_profit        = gross_revenue - total_investor_roi_mo - total_sales_roi_mo
+    er                    = exchange_rate if exchange_rate else 3.67
+
     stats = {
-        'total_investors':   len(all_rows),
-        'individual_count':  sum(1 for r in all_rows if r['inv'].category == 'Individual'),
-        'company_count':     sum(1 for r in all_rows if r['inv'].category == 'Company'),
-        'total_investment':  total_investment,
-        'total_paid':        total_paid_all,
-        'total_outstanding': total_outstanding,
-        'total_monthly_due': total_monthly_due,
-        'total_sales_paid':  total_sales_paid,
-        'global_revenue':    global_rev.total_revenue,
-        'partner_share':     global_rev.total_revenue - (total_investment * 0.05),
+        'total_investors':      len(all_rows),
+        'individual_count':     sum(1 for r in all_rows if r['inv'].category == 'Individual'),
+        'company_count':        sum(1 for r in all_rows if r['inv'].category == 'Company'),
+        'total_investment':     total_investment,
+        'total_investment_usd': total_investment / er,
+        'total_paid':           total_paid_all,
+        'total_paid_usd':       total_paid_all / er,
+        'total_outstanding':    total_outstanding,
+        'total_outstanding_usd':total_outstanding / er,
+        'total_monthly_due':    total_monthly_due,
+        'total_sales_paid':     total_sales_paid,
+        'total_sales_paid_usd': total_sales_paid / er,
+        'global_revenue':       gross_revenue,
+        'global_revenue_usd':   gross_revenue / er,
+        # Correct ROI figures
+        'total_investor_roi_mo':    total_investor_roi_mo,
+        'total_investor_roi_mo_usd':total_investor_roi_mo / er,
+        'total_sales_roi_mo':       total_sales_roi_mo,
+        'total_sales_roi_mo_usd':   total_sales_roi_mo / er,
+        'total_roi_pool_mo':        total_roi_pool_mo,
+        'total_roi_pool_mo_usd':    total_roi_pool_mo / er,
+        'partner_profit':           partner_profit,
+        'partner_profit_usd':       partner_profit / er,
+        'partner_each':             partner_profit / 3,
+        'partner_each_usd':         partner_profit / 3 / er,
+        # Keep old key for backward compat
+        'partner_share':            partner_profit,
+        'global_revenue_raw':       gross_revenue,
+        'exchange_rate':            er,
     }
 
     return render_template('reports_dashboard.html',

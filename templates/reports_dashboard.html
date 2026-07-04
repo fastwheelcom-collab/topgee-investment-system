@@ -339,55 +339,59 @@
     <!-- ══════════ REVENUE & SHARES ══════════ -->
     {% elif report_type == 'revenue' %}
     <div class="section-title">📈 Revenue & Shareholder Distribution</div>
+    <p style="color:var(--text-secondary);font-size:.82rem;margin-bottom:16px;">Rate: 1 USD = {{ "{:.2f}".format(stats.exchange_rate) }} AED</p>
 
-    <div class="stats-grid" style="margin-bottom:24px;">
-        <div class="stat-card stat-card-orange">
-            <div class="stat-icon">💵</div>
-            <div class="stat-content">
-                <h3>Total Revenue Generated</h3>
-                <p class="stat-value">{{ "{:,.0f}".format(stats.global_revenue) }}</p>
-                <p class="stat-sub">AED gross</p>
-            </div>
+    <!-- Summary Cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:28px;">
+
+        <div style="background:linear-gradient(135deg,#f97316,#ea580c);border-radius:14px;padding:20px;color:#fff;">
+            <div style="font-size:.75rem;font-weight:700;opacity:.85;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">💵 Total Revenue</div>
+            <div style="font-size:1.6rem;font-weight:800;">{{ "{:,.0f}".format(stats.global_revenue) }} <span style="font-size:.9rem;">AED</span></div>
+            <div style="font-size:.85rem;margin-top:4px;opacity:.9;">$ {{ "{:,.0f}".format(stats.global_revenue_usd) }} USD</div>
         </div>
-        <div class="stat-card stat-card-blue">
-            <div class="stat-icon">💼</div>
-            <div class="stat-content">
-                <h3>5% ROI Pool</h3>
-                <p class="stat-value">{{ "{:,.0f}".format(stats.total_investment * 0.05) }}</p>
-                <p class="stat-sub">AED to investors</p>
-            </div>
+
+        <div style="background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:14px;padding:20px;color:#fff;">
+            <div style="font-size:.75rem;font-weight:700;opacity:.85;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">💼 Monthly Investor ROI Due</div>
+            <div style="font-size:1.6rem;font-weight:800;">{{ "{:,.0f}".format(stats.total_investor_roi_mo) }} <span style="font-size:.9rem;">AED</span></div>
+            <div style="font-size:.85rem;margin-top:4px;opacity:.9;">$ {{ "{:,.0f}".format(stats.total_investor_roi_mo_usd) }} USD</div>
+            <div style="font-size:.75rem;margin-top:4px;opacity:.75;">Sum of each investor's actual ROI%</div>
         </div>
-        <div class="stat-card stat-card-green">
-            <div class="stat-icon">✨</div>
-            <div class="stat-content">
-                <h3>Partner In-Hand Profit</h3>
-                <p class="stat-value">{{ "{:,.0f}".format(stats.partner_share) }}</p>
-                <p class="stat-sub">AED after ROI</p>
-            </div>
+
+        <div style="background:linear-gradient(135deg,#0ea5e9,#0284c7);border-radius:14px;padding:20px;color:#fff;">
+            <div style="font-size:.75rem;font-weight:700;opacity:.85;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">🤝 Monthly Sales Share Due</div>
+            <div style="font-size:1.6rem;font-weight:800;">{{ "{:,.0f}".format(stats.total_sales_roi_mo) }} <span style="font-size:.9rem;">AED</span></div>
+            <div style="font-size:.85rem;margin-top:4px;opacity:.9;">$ {{ "{:,.0f}".format(stats.total_sales_roi_mo_usd) }} USD</div>
         </div>
-        <div class="stat-card stat-card-green">
-            <div class="stat-icon">💸</div>
-            <div class="stat-content">
-                <h3>Total Paid to Investors</h3>
-                <p class="stat-value">{{ "{:,.0f}".format(stats.total_paid) }}</p>
-                <p class="stat-sub">AED paid so far</p>
-            </div>
+
+        <div style="background:linear-gradient(135deg,#16a34a,#15803d);border-radius:14px;padding:20px;color:#fff;">
+            <div style="font-size:.75rem;font-weight:700;opacity:.85;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">✨ Partner In-Hand Profit</div>
+            <div style="font-size:1.6rem;font-weight:800;">{{ "{:,.0f}".format(stats.partner_profit) }} <span style="font-size:.9rem;">AED</span></div>
+            <div style="font-size:.85rem;margin-top:4px;opacity:.9;">$ {{ "{:,.0f}".format(stats.partner_profit_usd) }} USD</div>
+            <div style="font-size:.75rem;margin-top:4px;opacity:.75;">Revenue − Investor ROI − Sales Share</div>
         </div>
-        <div class="stat-card stat-card-blue">
-            <div class="stat-icon">🤝</div>
-            <div class="stat-content">
-                <h3>Total Sales Paid</h3>
-                <p class="stat-value">{{ "{:,.0f}".format(stats.total_sales_paid) }}</p>
-                <p class="stat-sub">AED to sales reps</p>
-            </div>
+
+        <div style="background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:14px;padding:20px;color:#fff;">
+            <div style="font-size:.75rem;font-weight:700;opacity:.85;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">💸 Total Paid to Investors</div>
+            <div style="font-size:1.6rem;font-weight:800;">{{ "{:,.0f}".format(stats.total_paid) }} <span style="font-size:.9rem;">AED</span></div>
+            <div style="font-size:.85rem;margin-top:4px;opacity:.9;">$ {{ "{:,.0f}".format(stats.total_paid_usd) }} USD</div>
         </div>
-        <div class="stat-card stat-card-orange">
-            <div class="stat-icon">⚠️</div>
-            <div class="stat-content">
-                <h3>Outstanding to Investors</h3>
-                <p class="stat-value">{{ "{:,.0f}".format(stats.total_outstanding) }}</p>
-                <p class="stat-sub">AED still owed</p>
-            </div>
+
+        <div style="background:linear-gradient(135deg,#dc2626,#b91c1c);border-radius:14px;padding:20px;color:#fff;">
+            <div style="font-size:.75rem;font-weight:700;opacity:.85;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">⚠️ Outstanding to Investors</div>
+            <div style="font-size:1.6rem;font-weight:800;">{{ "{:,.0f}".format(stats.total_outstanding) }} <span style="font-size:.9rem;">AED</span></div>
+            <div style="font-size:.85rem;margin-top:4px;opacity:.9;">$ {{ "{:,.0f}".format(stats.total_outstanding_usd) }} USD</div>
+        </div>
+
+    </div>
+
+    <!-- Calculation breakdown -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px;">
+        <div style="font-weight:700;font-size:.95rem;margin-bottom:12px;">🧮 How Partner Profit is Calculated</div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:.9rem;">
+            <div style="display:flex;justify-content:space-between;"><span>Gross Revenue</span><span style="color:#f97316;font-weight:700;">{{ "{:,.0f}".format(stats.global_revenue) }} AED</span></div>
+            <div style="display:flex;justify-content:space-between;"><span>− Investor ROI Due (monthly)</span><span style="color:#dc2626;font-weight:700;">− {{ "{:,.0f}".format(stats.total_investor_roi_mo) }} AED</span></div>
+            <div style="display:flex;justify-content:space-between;"><span>− Sales Rep Share (monthly)</span><span style="color:#dc2626;font-weight:700;">− {{ "{:,.0f}".format(stats.total_sales_roi_mo) }} AED</span></div>
+            <div style="border-top:2px solid var(--border);margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-weight:800;font-size:1rem;"><span>= Partner In-Hand Profit</span><span style="color:#16a34a;">{{ "{:,.0f}".format(stats.partner_profit) }} AED &nbsp;|&nbsp; $ {{ "{:,.0f}".format(stats.partner_profit_usd) }} USD</span></div>
         </div>
     </div>
 
@@ -395,14 +399,14 @@
     <div class="section-title">🤝 Partner Profit Split (Equal 3-Way)</div>
     <div class="table-container">
         <table id="reportTable">
-            <thead><tr><th>Partner</th><th>Share %</th><th>Amount (AED)</th></tr></thead>
+            <thead><tr><th>Partner</th><th>Share %</th><th>Amount (AED)</th><th>Amount (USD)</th></tr></thead>
             <tbody>
-                <tr><td><strong>Mr. Shafay</strong></td><td>33.33%</td><td class="hi"><strong>{{ "{:,.0f}".format(stats.partner_share / 3) }}</strong></td></tr>
-                <tr><td><strong>Mr. Shubham</strong></td><td>33.33%</td><td class="hi"><strong>{{ "{:,.0f}".format(stats.partner_share / 3) }}</strong></td></tr>
-                <tr><td><strong>Mr. Kay</strong></td><td>33.34%</td><td class="hi"><strong>{{ "{:,.0f}".format(stats.partner_share / 3) }}</strong></td></tr>
+                <tr><td><strong>Mr. Shafay</strong></td><td>33.33%</td><td class="hi"><strong>{{ "{:,.0f}".format(stats.partner_each) }}</strong></td><td style="color:#0284c7;font-weight:700;">$ {{ "{:,.0f}".format(stats.partner_each_usd) }}</td></tr>
+                <tr><td><strong>Mr. Shubham</strong></td><td>33.33%</td><td class="hi"><strong>{{ "{:,.0f}".format(stats.partner_each) }}</strong></td><td style="color:#0284c7;font-weight:700;">$ {{ "{:,.0f}".format(stats.partner_each_usd) }}</td></tr>
+                <tr><td><strong>Mr. Kay</strong></td><td>33.34%</td><td class="hi"><strong>{{ "{:,.0f}".format(stats.partner_each) }}</strong></td><td style="color:#0284c7;font-weight:700;">$ {{ "{:,.0f}".format(stats.partner_each_usd) }}</td></tr>
             </tbody>
             <tfoot>
-                <tr><td>TOTAL</td><td>100%</td><td class="hi"><strong>{{ "{:,.0f}".format(stats.partner_share) }} AED</strong></td></tr>
+                <tr><td>TOTAL</td><td>100%</td><td class="hi"><strong>{{ "{:,.0f}".format(stats.partner_profit) }} AED</strong></td><td style="color:#0284c7;font-weight:800;">$ {{ "{:,.0f}".format(stats.partner_profit_usd) }}</td></tr>
             </tfoot>
         </table>
     </div>
@@ -411,20 +415,23 @@
     <div class="section-title">📅 Revenue History by Month</div>
     <div class="table-container">
         <table>
-            <thead><tr><th>#</th><th>Month</th><th>Date Entered</th><th>Revenue (AED)</th><th>5% ROI Pool</th><th>Partner Profit</th><th>Notes</th></tr></thead>
+            <thead><tr><th>#</th><th>Month</th><th>Date Entered</th><th>Revenue (AED)</th><th>Revenue (USD)</th><th>Investor ROI Due</th><th>Sales Share Due</th><th>Partner Profit</th><th>Notes</th></tr></thead>
             <tbody>
                 {% for h in revenue_history %}
+                {% set h_partner = h.revenue_amount - stats.total_investor_roi_mo - stats.total_sales_roi_mo %}
                 <tr>
                     <td style="color:var(--text-secondary)">{{ loop.index }}</td>
                     <td><strong>{{ h.month_name }}</strong></td>
                     <td style="color:var(--text-secondary); font-size:.82rem;">{{ h.entry_date.strftime('%d %b %Y') }}</td>
                     <td class="hi"><strong>{{ "{:,.0f}".format(h.revenue_amount) }}</strong></td>
-                    <td class="or">{{ "{:,.0f}".format(stats.total_investment * 0.05) }}</td>
-                    <td class="hi">{{ "{:,.0f}".format(h.revenue_amount - stats.total_investment * 0.05) }}</td>
+                    <td style="color:#0284c7;font-weight:700;">$ {{ "{:,.0f}".format(h.revenue_amount / stats.exchange_rate) }}</td>
+                    <td class="or">{{ "{:,.0f}".format(stats.total_investor_roi_mo) }}</td>
+                    <td style="color:#0ea5e9;font-weight:600;">{{ "{:,.0f}".format(stats.total_sales_roi_mo) }}</td>
+                    <td class="hi">{{ "{:,.0f}".format(h_partner) }}</td>
                     <td style="color:var(--text-secondary); font-size:.82rem;">{{ h.notes or '—' }}</td>
                 </tr>
                 {% else %}
-                <tr><td colspan="7" class="no-data">No revenue entries yet.</td></tr>
+                <tr><td colspan="9" class="no-data">No revenue entries yet.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
