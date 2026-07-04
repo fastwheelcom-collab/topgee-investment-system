@@ -12,6 +12,7 @@ from reportlab.lib.units import inch
 import os
 import csv
 import re
+import json
 import requests
 from datetime import datetime, timedelta
 
@@ -1870,6 +1871,120 @@ with app.app_context():
 @app.route('/gold')
 def gold_dashboard():
     return send_from_directory('static', 'gold-dashboard.html')
+
+
+# ══════════════════════════════════════════════════════
+# BACKUP ROUTE — exports ALL data as structured JSON
+# ══════════════════════════════════════════════════════
+@app.route('/backup')
+@admin_required
+def backup():
+    return render_template('backup.html')
+
+@app.route('/backup/download')
+@admin_required
+def backup_download():
+    """Download full DB snapshot as structured JSON"""
+    now = datetime.now()
+
+    def fmt_date(d):
+        return d.isoformat() if d else None
+
+    # --- Investors ---
+    investors = []
+    for inv in Investor.query.all():
+        txns = InvestmentTransaction.query.filter_by(investor_id=inv.id).all()
+        investors.append({
+            'id':               inv.id,
+            'name':             inv.name,
+            'category':         inv.category,
+            'investment_amount':inv.investment_amount,
+            'investor_roi_percent': inv.investor_roi_percent,
+            'sales_roi_percent':    inv.sales_roi_percent,
+            'contract_start':   fmt_date(inv.contract_start),
+            'contract_end':     fmt_date(inv.contract_end),
+            'status':           inv.status,
+            'sales_rep_id':     inv.sales_rep_id,
+            'transactions': [
+                {
+                    'id':               t.id,
+                    'transaction_type': t.transaction_type,
+                    'amount':           float(t.amount),
+                    'payout_month':     t.payout_month,
+                    'payout_year':      t.payout_year,
+                    'transaction_date': fmt_date(t.transaction_date),
+                    'notes':            t.notes,
+                } for t in txns
+            ]
+        })
+
+    # --- Sales Reps ---
+    sales_reps = [
+        {'id': r.id, 'name': r.name, 'email': r.email, 'active': r.active}
+        for r in SalesRep.query.all()
+    ]
+
+    # --- Revenue History ---
+    revenue_history = [
+        {
+            'id':             h.id,
+            'year':           h.year,
+            'month':          h.month,
+            'revenue_amount': float(h.revenue_amount),
+            'revenue_usd':    float(h.revenue_usd) if h.revenue_usd else None,
+            'capital_aed':    float(h.capital_aed) if h.capital_aed else None,
+            'capital_usd':    float(h.capital_usd) if h.capital_usd else None,
+            'capital_pct':    float(h.capital_pct) if h.capital_pct else None,
+            'notes':          h.notes,
+            'entry_date':     fmt_date(h.entry_date),
+        }
+        for h in RevenueHistory.query.order_by(RevenueHistory.year, RevenueHistory.month).all()
+    ]
+
+    # --- Global Revenue ---
+    global_rev = GlobalRevenue.get_instance()
+
+    # --- ManualROI ---
+    manual_roi = [
+        {
+            'id':                 r.id,
+            'investor_id':        r.investor_id,
+            'year':               r.year,
+            'month':              r.month,
+            'total_roi_generated':float(r.total_roi_generated),
+            'investor_share':     float(r.investor_share),
+            'sales_share':        float(r.sales_share),
+        }
+        for r in ManualROI.query.all()
+    ]
+
+    backup_data = {
+        'backup_info': {
+            'created_at':    now.isoformat(),
+            'created_by':    'TopGee It System',
+            'version':       '1.0',
+            'description':   'Full database backup — investors, transactions, revenue, ROI records',
+        },
+        'summary': {
+            'total_investors':       len(investors),
+            'total_sales_reps':      len(sales_reps),
+            'total_revenue_entries': len(revenue_history),
+            'total_manual_roi':      len(manual_roi),
+            'global_revenue_aed':    float(global_rev.total_revenue),
+            'total_investment_aed':  sum(inv['investment_amount'] for inv in investors),
+        },
+        'investors':       investors,
+        'sales_reps':      sales_reps,
+        'revenue_history': revenue_history,
+        'manual_roi':      manual_roi,
+        'global_revenue':  {'total_revenue': float(global_rev.total_revenue)},
+    }
+
+    json_bytes = json.dumps(backup_data, indent=2, ensure_ascii=False).encode('utf-8')
+    buf = BytesIO(json_bytes)
+    buf.seek(0)
+    filename = f'TopGeeIt_Backup_{now.strftime("%Y-%m-%d_%H-%M")}.json'
+    return send_file(buf, as_attachment=True, download_name=filename, mimetype='application/json')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))

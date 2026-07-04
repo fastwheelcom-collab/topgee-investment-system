@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backup - TopGee It</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .backup-hero {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            border-radius: 20px;
+            padding: 40px 36px;
+            color: #fff;
+            text-align: center;
+            margin-bottom: 32px;
+            box-shadow: 0 8px 32px rgba(29,78,216,0.3);
+        }
+        .backup-hero h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; }
+        .backup-hero p  { font-size: 1rem; opacity: .85; margin: 0; }
+
+        .backup-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px 28px;
+            margin-bottom: 20px;
+        }
+        .backup-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; color: var(--text-primary); }
+        .backup-card p  { color: var(--text-secondary); font-size: .9rem; margin-bottom: 18px; line-height: 1.6; }
+
+        .what-inside { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; }
+        .wi-item {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border: 1px solid #bae6fd;
+            border-radius: 12px;
+            padding: 16px 18px;
+        }
+        .wi-item .wi-icon { font-size: 1.6rem; margin-bottom: 6px; }
+        .wi-item .wi-label { font-size: .82rem; font-weight: 700; color: #0369a1; text-transform: uppercase; letter-spacing: .5px; }
+        .wi-item .wi-desc  { font-size: .78rem; color: #475569; margin-top: 3px; }
+
+        .btn-backup {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #16a34a, #15803d);
+            color: #fff;
+            font-size: 1.05rem;
+            font-weight: 800;
+            padding: 15px 36px;
+            border-radius: 14px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: 0 6px 20px rgba(22,163,74,0.35);
+            transition: transform .15s, box-shadow .15s;
+        }
+        .btn-backup:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(22,163,74,0.45); color:#fff; }
+
+        .how-to { background: #fffbeb; border: 1px solid #fde68a; border-radius: 14px; padding: 20px 24px; margin-top: 24px; }
+        .how-to h4 { font-size: .95rem; font-weight: 700; color: #92400e; margin-bottom: 10px; }
+        .how-to ol  { margin: 0; padding-left: 20px; color: #78350f; font-size: .88rem; line-height: 1.8; }
+
+        .restore-card { background: #fef2f2; border: 1px solid #fecaca; border-radius: 14px; padding: 20px 24px; margin-top: 16px; }
+        .restore-card h4 { color: #991b1b; font-size: .95rem; font-weight: 700; margin-bottom: 8px; }
+        .restore-card p  { color: #7f1d1d; font-size: .87rem; line-height: 1.6; margin: 0; }
+
+        .format-box {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 16px 20px;
+            font-family: monospace;
+            font-size: .82rem;
+            color: #94a3b8;
+            margin-top: 16px;
+            overflow-x: auto;
+        }
+        .format-box .key   { color: #7dd3fc; }
+        .format-box .val   { color: #86efac; }
+        .format-box .str   { color: #fca5a5; }
+        .format-box .num   { color: #fdba74; }
+    </style>
+</head>
+<body>
+<nav class="navbar">
+    <div class="container">
+        <h1>🏦 TopGee It</h1>
+        <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
+        <div class="nav-links">
+            <a href="{{ url_for('dashboard') }}"          class="nav-investors">All Investors</a>
+            <a href="{{ url_for('analytics_dashboard') }}" class="nav-dashboard">📊 Dashboard</a>
+            <a href="{{ url_for('reports_dashboard') }}"  class="nav-reports">Reports</a>
+            <a href="{{ url_for('monthly_grid') }}"       class="nav-monthly">Monthly Grid</a>
+            <a href="{{ url_for('sales_reps') }}"         class="nav-sales">Sales Team</a>
+            {% if is_admin %}<a href="{{ url_for('add_investor') }}" class="btn-green">+ Add Investor</a>{% endif %}
+            <a href="{{ url_for('backup') }}"             class="nav-backup active">💾 Backup</a>
+            <a href="{{ url_for('change_password') }}"    class="nav-password">🔑 Password</a>
+            <a href="{{ url_for('logout') }}"             class="btn-secondary">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container" style="max-width:860px; padding-top:32px;">
+
+    <!-- Hero -->
+    <div class="backup-hero">
+        <div style="font-size:3rem; margin-bottom:12px;">💾</div>
+        <h2>Data Backup</h2>
+        <p>One click — downloads everything to your Mac mini as a structured JSON file</p>
+    </div>
+
+    <!-- What's inside -->
+    <div class="backup-card">
+        <h3>📦 What's Inside the Backup File</h3>
+        <p>Every single record from the database — investors, transactions, revenue, ROI entries — saved in a format both you and Tom can read and restore from.</p>
+
+        <div class="what-inside">
+            <div class="wi-item">
+                <div class="wi-icon">👥</div>
+                <div class="wi-label">All Investors</div>
+                <div class="wi-desc">Name, capital, ROI%, contract dates, status, sales rep</div>
+            </div>
+            <div class="wi-item">
+                <div class="wi-icon">💸</div>
+                <div class="wi-label">All Transactions</div>
+                <div class="wi-desc">Deposits, withdrawals, payouts — every transaction per investor</div>
+            </div>
+            <div class="wi-item">
+                <div class="wi-icon">📈</div>
+                <div class="wi-label">Revenue History</div>
+                <div class="wi-desc">Monthly revenue entries in AED + USD with capital snapshots</div>
+            </div>
+            <div class="wi-item">
+                <div class="wi-icon">🤝</div>
+                <div class="wi-label">Sales Reps</div>
+                <div class="wi-desc">All sales team members and their details</div>
+            </div>
+            <div class="wi-item">
+                <div class="wi-icon">📊</div>
+                <div class="wi-label">ROI Ledger</div>
+                <div class="wi-desc">ManualROI records — investor share, sales share per month</div>
+            </div>
+            <div class="wi-item">
+                <div class="wi-icon">💰</div>
+                <div class="wi-label">Global Revenue</div>
+                <div class="wi-desc">Total cumulative revenue figure</div>
+            </div>
+        </div>
+
+        <!-- Download Button -->
+        <div style="text-align:center; margin-top:8px;">
+            <a href="{{ url_for('backup_download') }}" class="btn-backup">
+                ⬇️ Download Backup Now
+            </a>
+            <p style="margin-top:12px; font-size:.82rem; color:var(--text-secondary);">
+                File name: <code>TopGeeIt_Backup_YYYY-MM-DD_HH-MM.json</code>
+            </p>
+        </div>
+    </div>
+
+    <!-- How to use -->
+    <div class="how-to">
+        <h4>📋 How to Save & Use This Backup</h4>
+        <ol>
+            <li>Click <strong>Download Backup Now</strong> — file saves to your Mac mini's Downloads folder</li>
+            <li>Move it to a safe folder like <code>~/Desktop/TopGee Backups/</code></li>
+            <li>Name it clearly — the file already includes date + time in the name</li>
+            <li>To restore: send the file to Tom and say <em>"restore this backup"</em> — Tom knows the format</li>
+            <li>Recommended: take a backup every week or before making big changes</li>
+        </ol>
+    </div>
+
+    <!-- Restore note -->
+    <div class="restore-card" style="margin-top:16px;">
+        <h4>🔄 How to Restore from Backup</h4>
+        <p>
+            If data is lost or you move to a new server, share the JSON backup file with Tom.<br>
+            Tom will read the file and restore all investors, transactions, and revenue history exactly as they were.<br>
+            The format is structured so Tom can verify each record before restoring.
+        </p>
+    </div>
+
+    <!-- Format preview -->
+    <div class="backup-card" style="margin-top:20px;">
+        <h3>🔍 Backup File Format (preview)</h3>
+        <p>The file is human-readable JSON — you can open it in any text editor to verify your data is there.</p>
+        <div class="format-box">
+<span class="key">"backup_info"</span>: {<br>
+&nbsp;&nbsp;<span class="key">"created_at"</span>: <span class="str">"2026-07-04T12:00:00"</span>,<br>
+&nbsp;&nbsp;<span class="key">"version"</span>: <span class="str">"1.0"</span><br>
+},<br>
+<span class="key">"summary"</span>: {<br>
+&nbsp;&nbsp;<span class="key">"total_investors"</span>: <span class="num">26</span>,<br>
+&nbsp;&nbsp;<span class="key">"total_investment_aed"</span>: <span class="num">10544681</span><br>
+},<br>
+<span class="key">"investors"</span>: [<br>
+&nbsp;&nbsp;{ <span class="key">"name"</span>: <span class="str">"Mr. Hamza"</span>, <span class="key">"investment_amount"</span>: <span class="num">300000</span>, <span class="key">"transactions"</span>: [...] }<br>
+],<br>
+<span class="key">"revenue_history"</span>: [...],<br>
+<span class="key">"sales_reps"</span>: [...]
+        </div>
+    </div>
+
+</div>
+
+<footer><p>TopGee It</p></footer>
+</body>
+</html>

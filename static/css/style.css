@@ -91,6 +91,7 @@ body {
 .nav-links a.nav-reports    { color: #E67E22; font-weight: 600; }
 .nav-links a.nav-monthly    { color: #16A085; font-weight: 600; }
 .nav-links a.nav-sales      { color: #C0392B; font-weight: 600; }
+.nav-links a.nav-backup    { color: #059669; font-weight: 600; }
 .nav-links a.nav-password   { color: #7F8C8D; font-weight: 600; }
 
 /* Active state overrides colour with solid background */
@@ -99,6 +100,7 @@ body {
 .nav-links a.nav-reports.active    { background: #E67E22; color: white !important; }
 .nav-links a.nav-monthly.active    { background: #16A085; color: white !important; }
 .nav-links a.nav-sales.active      { background: #C0392B; color: white !important; }
+.nav-links a.nav-backup.active    { background: #059669; color: white !important; }
 .nav-links a.nav-password.active   { background: #7F8C8D; color: white !important; }
 
 /* Hover: light tinted background */
@@ -107,6 +109,7 @@ body {
 .nav-links a.nav-reports:hover    { background: rgba(230,126,34,0.12); }
 .nav-links a.nav-monthly:hover    { background: rgba(22,160,133,0.12); }
 .nav-links a.nav-sales:hover      { background: rgba(192,57,43,0.12); }
+.nav-links a.nav-backup:hover    { background: rgba(5,150,105,0.12); }
 .nav-links a.nav-password:hover   { background: rgba(127,140,141,0.12); }
 
 /* Container */
