@@ -301,12 +301,7 @@
                     <p style="color:rgba(255,255,255,0.85);font-size:1rem;font-weight:600;margin-top:4px;">$ {{ '{:,.0f}'.format(stats.total_investor_roi / stats.exchange_rate) }} USD</p>
                     <p class="sub-text" style="color: rgba(255,255,255,0.95); font-size: 1.1rem;">{{ '{:.1f}%'.format(stats.investor_roi_percent) }} of total ROI pool</p>
                 </div>
-                <div class="partner-card" style="background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%); color: white; box-shadow: 0 8px 16px rgba(255,152,0,0.3); border-radius: 16px;">
-                    <h3 style="color: white; font-size: 1.3rem;">🎯 Sales Share</h3>
-                    <p class="large-number" style="color: white; font-size: 2.2rem; font-weight: 700;">{{ '{:,.0f}'.format(stats.total_sales_share) }} AED</p>
-                    <p style="color:rgba(255,255,255,0.85);font-size:1rem;font-weight:600;margin-top:4px;">$ {{ '{:,.0f}'.format(stats.total_sales_share / stats.exchange_rate) }} USD</p>
-                    <p class="sub-text" style="color: rgba(255,255,255,0.95); font-size: 1.1rem;">{{ '{:.1f}%'.format(stats.sales_share_percent) }} of total ROI pool</p>
-                </div>
+
             </div>
         </div>
 
@@ -352,10 +347,7 @@
                     <span class="lbl">Investor ROI Share / month</span>
                     <span class="val">{{ "{:,.0f}".format(stats.total_investor_roi) }} AED</span>
                 </div>
-                <div class="summary-row">
-                    <span class="lbl">Sales Rep Share / month</span>
-                    <span class="val">{{ "{:,.0f}".format(stats.total_sales_share) }} AED</span>
-                </div>
+
                 <div class="summary-row">
                     <span class="lbl">Final In-Hand Profit</span>
                     <span class="val" style="color:var(--green)">{{ "{:,.0f}".format(stats.final_in_hand_profit) }} AED</span>

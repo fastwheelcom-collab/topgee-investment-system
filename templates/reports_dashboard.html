@@ -408,17 +408,11 @@
             <div style="font-size:.75rem;margin-top:4px;opacity:.75;">Sum of each investor's actual ROI%</div>
         </div>
 
-        <div style="background:linear-gradient(135deg,#0ea5e9,#0284c7);border-radius:14px;padding:20px;color:#fff;">
-            <div style="font-size:.75rem;font-weight:700;opacity:.85;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">🤝 Monthly Sales Share Due</div>
-            <div style="font-size:1.6rem;font-weight:800;">{{ "{:,.0f}".format(stats.total_sales_roi_mo) }} <span style="font-size:.9rem;">AED</span></div>
-            <div style="font-size:.85rem;margin-top:4px;opacity:.9;">$ {{ "{:,.0f}".format(stats.total_sales_roi_mo_usd) }} USD</div>
-        </div>
-
         <div style="background:linear-gradient(135deg,#16a34a,#15803d);border-radius:14px;padding:20px;color:#fff;">
             <div style="font-size:.75rem;font-weight:700;opacity:.85;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">✨ Partner In-Hand Profit</div>
             <div style="font-size:1.6rem;font-weight:800;">{{ "{:,.0f}".format(stats.partner_profit) }} <span style="font-size:.9rem;">AED</span></div>
             <div style="font-size:.85rem;margin-top:4px;opacity:.9;">$ {{ "{:,.0f}".format(stats.partner_profit_usd) }} USD</div>
-            <div style="font-size:.75rem;margin-top:4px;opacity:.75;">Revenue − Investor ROI − Sales Share</div>
+            <div style="font-size:.75rem;margin-top:4px;opacity:.75;">Revenue − Investor ROI</div>
         </div>
 
         <div style="background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:14px;padding:20px;color:#fff;">
@@ -441,7 +435,6 @@
         <div style="display:flex;flex-direction:column;gap:6px;font-size:.9rem;">
             <div style="display:flex;justify-content:space-between;"><span>Gross Revenue</span><span style="color:#f97316;font-weight:700;">{{ "{:,.0f}".format(stats.global_revenue) }} AED</span></div>
             <div style="display:flex;justify-content:space-between;"><span>− Investor ROI Due (monthly)</span><span style="color:#dc2626;font-weight:700;">− {{ "{:,.0f}".format(stats.total_investor_roi_mo) }} AED</span></div>
-            <div style="display:flex;justify-content:space-between;"><span>− Sales Rep Share (monthly)</span><span style="color:#dc2626;font-weight:700;">− {{ "{:,.0f}".format(stats.total_sales_roi_mo) }} AED</span></div>
             <div style="border-top:2px solid var(--border);margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-weight:800;font-size:1rem;"><span>= Partner In-Hand Profit</span><span style="color:#16a34a;">{{ "{:,.0f}".format(stats.partner_profit) }} AED &nbsp;|&nbsp; $ {{ "{:,.0f}".format(stats.partner_profit_usd) }} USD</span></div>
         </div>
     </div>
@@ -466,10 +459,10 @@
     <div class="section-title">📅 Revenue History by Month</div>
     <div class="table-container">
         <table>
-            <thead><tr><th>#</th><th>Month</th><th>Date Entered</th><th>Revenue (AED)</th><th>Revenue (USD)</th><th>Investor ROI Due</th><th>Sales Share Due</th><th>Partner Profit</th><th>Notes</th></tr></thead>
+            <thead><tr><th>#</th><th>Month</th><th>Date Entered</th><th>Revenue (AED)</th><th>Revenue (USD)</th><th>Investor ROI Due</th><th>Partner Profit</th><th>Notes</th></tr></thead>
             <tbody>
                 {% for h in revenue_history %}
-                {% set h_partner = h.revenue_amount - stats.total_investor_roi_mo - stats.total_sales_roi_mo %}
+                {% set h_partner = h.revenue_amount - stats.total_investor_roi_mo %}
                 <tr>
                     <td style="color:var(--text-secondary)">{{ loop.index }}</td>
                     <td><strong>{{ h.month_name }}</strong></td>
@@ -477,7 +470,6 @@
                     <td class="hi"><strong>{{ "{:,.0f}".format(h.revenue_amount) }}</strong></td>
                     <td style="color:#0284c7;font-weight:700;">$ {{ "{:,.0f}".format(h.revenue_amount / stats.exchange_rate) }}</td>
                     <td class="or">{{ "{:,.0f}".format(stats.total_investor_roi_mo) }}</td>
-                    <td style="color:#0ea5e9;font-weight:600;">{{ "{:,.0f}".format(stats.total_sales_roi_mo) }}</td>
                     <td class="hi">{{ "{:,.0f}".format(h_partner) }}</td>
                     <td style="color:var(--text-secondary); font-size:.82rem;">{{ h.notes or '—' }}</td>
                 </tr>

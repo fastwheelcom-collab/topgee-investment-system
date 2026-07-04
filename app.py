@@ -1316,8 +1316,8 @@ def reports_dashboard():
     total_sales_roi_mo    = sum(r['sales_monthly']  for r in all_rows)  # sum of sales rep shares
     total_roi_pool_mo     = total_investor_roi_mo + total_sales_roi_mo  # total monthly obligation
     gross_revenue         = global_rev.total_revenue
-    # Partner profit = Revenue - what we owe investors - what we owe sales
-    partner_profit        = gross_revenue - total_investor_roi_mo - total_sales_roi_mo
+    # Partner profit = Revenue - what we owe investors (sales share excluded)
+    partner_profit        = gross_revenue - total_investor_roi_mo
     er                    = exchange_rate if exchange_rate else 3.67
 
     stats = {
