@@ -19,7 +19,7 @@
                 <a href="{{ url_for('sales_reps') }}" class="nav-sales">Sales Team</a>
                 {% if is_admin %}<a href="{{ url_for('add_investor') }}" class="btn-green">+ Add Investor</a>{% endif %}
                 <a href="{{ url_for('backup') }}" class="nav-backup">Backup</a>
-                <a href="{{ url_for('users') }}" class="nav-users">Users</a>
+                {% if is_admin %}<a href="{{ url_for('users') }}" class="nav-users">Users</a>{% endif %}
                 <a href="{{ url_for('audit_log') }}" class="nav-audit">Audit Log</a>
                 <a href="{{ url_for('change_password') }}" class="nav-password">Password</a>
                 <span style="color:#9ca3af;font-size:.85rem;padding:6px 8px;">👤 {{ current_user }}</span><a href="{{ url_for('logout') }}" class="nav-logout">Logout</a>
