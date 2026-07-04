@@ -1074,8 +1074,10 @@ def advanced_search():
 @login_required
 def monthly_grid():
     """Monthly grid view for all investors — reads from InvestmentTransaction"""
+    import re as _re
+    _pfx2 = _re.compile(r'^(Mr\.?|Mrs\.?|Ms\.?|Dr\.?)\s+', _re.IGNORECASE)
     year = request.args.get('year', datetime.now().year, type=int)
-    investors = sorted(Investor.query.all(), key=_skey)
+    investors = sorted(Investor.query.all(), key=lambda i: _pfx2.sub('', i.name).strip().lower())
 
     # Pull all investor payouts for this year from InvestmentTransaction
     txns = InvestmentTransaction.query.filter(
@@ -1083,36 +1085,32 @@ def monthly_grid():
         InvestmentTransaction.payout_year == year
     ).all()
 
-    # Build lookup: investor_id -> month -> {amount, notes}
+    # Build lookup: (investor_id, month) -> total amount paid
     payout_map = {}
     for t in txns:
         if not t.payout_month:
             continue
         key = (t.investor_id, t.payout_month)
-        if key not in payout_map:
-            payout_map[key] = {'amount': 0, 'notes': ''}
-        payout_map[key]['amount'] += t.amount
+        payout_map[key] = payout_map.get(key, 0) + t.amount
 
     # Build grid_data compatible with template
     grid_data = {}
     for investor in investors:
+        months_data = {}
+        for month in range(1, 13):
+            amt = payout_map.get((investor.id, month))
+            if amt:
+                months_data[month] = type('Cell', (), {
+                    'revenue_generated': amt,
+                    'investor_roi_paid': amt,
+                    'notes': ''
+                })()
+            else:
+                months_data[month] = None
         grid_data[investor.id] = {
             'investor': investor,
-            'months': {}
+            'months': months_data
         }
-        for month in range(1, 13):
-            entry = payout_map.get((investor.id, month))
-            if entry:
-                # Create a simple object the template can use
-                class GridCell:
-                    pass
-                cell = GridCell()
-                cell.revenue_generated = entry['amount']
-                cell.investor_roi_paid = entry['amount']
-                cell.notes = entry.get('notes', '')
-                grid_data[investor.id]['months'][month] = cell
-            else:
-                grid_data[investor.id]['months'][month] = None
 
     return render_template('monthly_grid.html',
                          grid_data=grid_data,
