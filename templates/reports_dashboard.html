@@ -177,8 +177,9 @@
         <div class="table-container">
             <table>
                 <thead><tr>
-                    <th>Capital (AED)</th><th>ROI %</th><th>Monthly Due</th>
-                    <th>Months Active</th><th>Total Ever Due</th><th>Total Paid</th><th>Outstanding</th>
+                    <th>Capital (AED)</th><th>ROI %</th><th>Est. Monthly</th>
+                    <th>Months Active</th><th>Total Paid</th>
+                    <th>Pending Months</th><th>Outstanding (est.)</th>
                     <th>Contract Start</th><th>Contract End</th>
                 </tr></thead>
                 <tbody><tr>
@@ -186,9 +187,22 @@
                     <td class="hi">{{ r.inv.investor_roi_percent }}%</td>
                     <td class="or">{{ "{:,.0f}".format(r.monthly_roi) }}</td>
                     <td>{{ r.months_active }} mo</td>
-                    <td>{{ "{:,.0f}".format(r.total_ever_due) }}</td>
-                    <td class="hi">{{ "{:,.0f}".format(r.total_paid) }}</td>
-                    <td class="{% if r.outstanding > 0 %}red{% else %}hi{% endif %}">{{ "{:,.0f}".format(r.outstanding) }}</td>
+                    <td class="hi"><strong>{{ "{:,.0f}".format(r.total_paid) }}</strong></td>
+                    <td style="text-align:center;">
+                        {% if r.pending_months > 0 %}
+                            <span style="background:#fef3c7; color:#92400e; padding:3px 10px; border-radius:12px; font-weight:700;">{{ r.pending_months }} month{{ 's' if r.pending_months > 1 else '' }}</span>
+                        {% else %}
+                            <span style="color:var(--green);">✅ All paid</span>
+                        {% endif %}
+                    </td>
+                    <td class="{% if r.outstanding > 0 %}red{% else %}hi{% endif %}">
+                        {% if r.outstanding > 0 %}
+                            {{ "{:,.0f}".format(r.outstanding) }}
+                            <br><small style="font-weight:400; font-size:.75rem; opacity:.8;">~{{ r.pending_months }} mo unpaid</small>
+                        {% else %}
+                            ✅ 0
+                        {% endif %}
+                    </td>
                     <td style="font-size:.82rem;">{{ r.inv.contract_start.strftime('%d %b %Y') if r.inv.contract_start else '—' }}</td>
                     <td style="font-size:.82rem;">{{ r.inv.contract_end.strftime('%d %b %Y') if r.inv.contract_end else '—' }}</td>
                 </tr></tbody>

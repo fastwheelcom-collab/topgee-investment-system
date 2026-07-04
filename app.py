@@ -1210,8 +1210,30 @@ def reports_dashboard():
         if inv.contract_start:
             months_active = max(0,(now.year-inv.contract_start.year)*12+(now.month-inv.contract_start.month))
         total_paid     = sum(t.amount for t in inv_payouts)
+        # New outstanding logic: count months from contract start to last completed month
+        # that have NO payout recorded (any amount = cleared, regardless of fixed %)
+        paid_months = set()
+        for t in inv_payouts:
+            if t.payout_month and t.payout_year:
+                paid_months.add((t.payout_year, t.payout_month))
+        pending_months = 0
+        outstanding = 0.0
+        if inv.contract_start:
+            y, m = inv.contract_start.year, inv.contract_start.month
+            # only count months that have fully closed (not current month)
+            last_y, last_m = now.year, now.month - 1
+            if last_m == 0:
+                last_m = 12
+                last_y -= 1
+            while (y < last_y) or (y == last_y and m <= last_m):
+                if (y, m) not in paid_months:
+                    pending_months += 1
+                    outstanding += inv.monthly_investor_roi
+                m += 1
+                if m > 12:
+                    m = 1
+                    y += 1
         total_ever_due = inv.monthly_investor_roi * months_active
-        outstanding    = total_ever_due - total_paid
         # payout txns filtered by date
         payout_txns = []
         for t in inv_payouts:
@@ -1246,6 +1268,7 @@ def reports_dashboard():
             'sales_payout_txns_filtered': sales_payout_txns_filtered,
             'total_ever_due':  total_ever_due,
             'outstanding':     outstanding,
+            'pending_months':  pending_months,
             'months_active':   months_active,
             'monthly':         monthly,
             'payout_txns':     payout_txns,
@@ -1854,15 +1877,36 @@ def analytics_dashboard():
 
     for inv in investors:
         txns = InvestmentTransaction.query.filter_by(investor_id=inv.id).all()
-        paid = sum(t.amount for t in txns if t.transaction_type in ['Investor Payout', 'payout'])
+        inv_payout_txns = [t for t in txns if t.transaction_type in ['Investor Payout', 'payout']]
+        paid = sum(t.amount for t in inv_payout_txns)
         monthly_due = inv.monthly_investor_roi
         if inv.contract_start:
             months_elapsed = max(0, (today.year - inv.contract_start.year)*12 +
                                     (today.month - inv.contract_start.month))
         else:
             months_elapsed = 0
+        # New outstanding: count closed months with no payout recorded
+        paid_months_set = set()
+        for t in inv_payout_txns:
+            if t.payout_month and t.payout_year:
+                paid_months_set.add((t.payout_year, t.payout_month))
+        outstanding = 0.0
+        pending_count = 0
+        if inv.contract_start:
+            cy, cm = inv.contract_start.year, inv.contract_start.month
+            last_y, last_m = today.year, today.month - 1
+            if last_m == 0:
+                last_m = 12
+                last_y -= 1
+            while (cy < last_y) or (cy == last_y and cm <= last_m):
+                if (cy, cm) not in paid_months_set:
+                    pending_count += 1
+                    outstanding += monthly_due
+                cm += 1
+                if cm > 12:
+                    cm = 1
+                    cy += 1
         total_ever_due = monthly_due * months_elapsed
-        outstanding    = total_ever_due - paid
         total_paid_clients += paid
         total_monthly_due  += monthly_due
         total_investment   += inv.total_capital
@@ -1877,6 +1921,7 @@ def analytics_dashboard():
             'total_ever_due': total_ever_due,
             'paid': paid,
             'outstanding': outstanding,
+            'pending_months': pending_count,
             'rep': inv.sales_rep.name if inv.sales_rep else '—',
             'status': inv.status or 'Active',
             'contract_start': inv.contract_start,
