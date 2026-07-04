@@ -440,6 +440,20 @@ def logout():
     flash('Logged out successfully', 'success')
     return redirect(url_for('login'))
 
+@app.route('/profile')
+@login_required
+def profile():
+    username = session.get('username', '')
+    display_name = session.get('display_name', '')
+    is_admin = session.get('is_admin', False)
+    user = UserAccount.query.filter_by(username=username).first()
+    return render_template('profile.html',
+        username=username,
+        display_name=display_name,
+        is_admin=is_admin,
+        user=user
+    )
+
 @app.route('/change-password', methods=['GET', 'POST'])
 @login_required
 def change_password():
