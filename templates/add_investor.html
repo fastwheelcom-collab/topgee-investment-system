@@ -118,7 +118,11 @@
                         <input type="number" name="investor_roi_percent" step="0.1" value="2.5" required min="0" max="10">
                         <small>Investor's monthly ROI percentage</small>
                     </div>
-                    <!-- sales_roi_percent hidden, default 0 -->
+                    <div class="form-group">
+                        <label>TG % (Target)</label>
+                        <input type="number" name="tg_percent" step="0.1" value="5.0" min="0" max="100">
+                        <small>ROI Pool target % (default 5%)</small>
+                    </div>
                     <input type="hidden" name="sales_roi_percent" value="0">
                 </div>
 

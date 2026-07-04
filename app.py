@@ -127,9 +127,11 @@ class Investor(db.Model):
     investment_date = db.Column(db.Date, nullable=False)
     sales_rep_id = db.Column(db.Integer, db.ForeignKey('sales_rep.id'))
     
-    # ROI Split (total is always 5% of investment)
-    investor_roi_percent = db.Column(db.Float, default=2.5)  # 2-3%
-    sales_roi_percent = db.Column(db.Float, default=2.5)     # 2-3%
+    # ROI Split
+    investor_roi_percent = db.Column(db.Float, default=2.5)
+    sales_roi_percent    = db.Column(db.Float, default=2.5)
+    # TG % — target percentage used for ROI Pool calculation (default 5%)
+    tg_percent = db.Column(db.Float, default=5.0)
     
     # Contract Management
     contract_start = db.Column(db.Date)  # NEW: Contract start date
@@ -153,8 +155,8 @@ class Investor(db.Model):
     
     @property
     def total_roi_pool(self):
-        """5% of TOTAL investment (including deposits/withdrawals)"""
-        return self.total_capital * 0.05
+        """TG% of total capital (default 5%)"""
+        return self.total_capital * ((self.tg_percent or 5.0) / 100)
     
     @property
     def monthly_investor_roi(self):
@@ -363,18 +365,21 @@ def ensure_db_ready():
                 print(f"✅ Added {len(reps)} sample sales reps")
             
             # Add new columns if missing (safe migration)
-            for col, typ in [
-                ('revenue_usd',        'FLOAT'),
-                ('exchange_rate_used', 'FLOAT'),
-                ('capital_aed',        'FLOAT'),
-                ('capital_usd',        'FLOAT'),
-                ('capital_pct',        'FLOAT'),
-            ]:
+            # Safe column migrations
+            migrations = [
+                ('revenue_history', 'revenue_usd',        'FLOAT'),
+                ('revenue_history', 'exchange_rate_used', 'FLOAT'),
+                ('revenue_history', 'capital_aed',        'FLOAT'),
+                ('revenue_history', 'capital_usd',        'FLOAT'),
+                ('revenue_history', 'capital_pct',        'FLOAT'),
+                ('investor',        'tg_percent',         'FLOAT DEFAULT 5.0'),
+            ]
+            for table, col, typ in migrations:
                 try:
                     with db.engine.connect() as conn:
-                        conn.execute(db.text(f'ALTER TABLE revenue_history ADD COLUMN {col} {typ}'))
+                        conn.execute(db.text(f'ALTER TABLE {table} ADD COLUMN {col} {typ}'))
                         conn.commit()
-                        print(f'✅ Added {col} column')
+                        print(f'✅ Added {table}.{col}')
                 except Exception:
                     pass  # already exists
 
@@ -520,28 +525,33 @@ def dashboard():
     total_investment_usd = total_investment / exchange_rate
     
     # NEW DASHBOARD METRICS
-    investment_roi_5_percent = total_investment * 0.05  # 5% of Total Investment
+    # ROI Pool = sum of each investor's (capital × tg_percent)
+    investment_roi_5_percent = sum(i.total_capital * ((i.tg_percent or 5.0) / 100) for i in investors)
     
     # Get global revenue
     global_revenue = GlobalRevenue.get_instance()
     total_revenue_generated = global_revenue.total_revenue
     
-    # Gross Profit = Total Revenue - 5% ROI Pool
+    # Gross Profit = Total Revenue - ROI Pool
     gross_profit         = total_revenue_generated - investment_roi_5_percent
-    final_in_hand_profit = gross_profit  # alias for backward compat
+    final_in_hand_profit = gross_profit
 
-    # ROI Distribution Summary (based on ALL investors' ROI splits)
+    # ROI Distribution
     total_investor_roi = sum(i.monthly_investor_roi for i in investors)
-    total_sales_share  = sum(i.monthly_sales_roi for i in investors)
-    # Extra Profit = 5% ROI Pool - Actual ROI (unused portion of pool)
-    extra_profit = max(0, investment_roi_5_percent - total_investor_roi)
+    total_sales_share  = sum(i.monthly_sales_roi    for i in investors)
+    extra_profit       = max(0, investment_roi_5_percent - total_investor_roi)
 
-    # Calculate percentages for ROI Distribution
     total_roi_pool       = total_investor_roi + total_sales_share
     investor_roi_percent = (total_investor_roi / total_roi_pool * 100) if total_roi_pool > 0 else 0
     sales_share_percent  = (total_sales_share  / total_roi_pool * 100) if total_roi_pool > 0 else 0
 
-    # Partner Profit = Gross Profit / 3
+    # TG % stats
+    avg_tg_percent = (sum((i.tg_percent or 5.0) for i in investors) / len(investors)) if investors else 5.0
+    tg_breakdown   = [{'name': i.name, 'capital': i.total_capital,
+                        'tg_pct': i.tg_percent or 5.0,
+                        'pool_amount': i.total_capital * ((i.tg_percent or 5.0) / 100)}
+                      for i in investors]
+
     partner_share = gross_profit / 3
     
     # Current month totals (OLD - for reference)
@@ -563,7 +573,9 @@ def dashboard():
         'gross_profit':         gross_profit,
         'total_investor_roi': total_investor_roi,
         'total_sales_share':  total_sales_share,
-        'extra_profit':       extra_profit,
+        'extra_profit':         extra_profit,
+        'avg_tg_percent':       avg_tg_percent,
+        'tg_breakdown':         tg_breakdown,
         'investor_roi_percent': investor_roi_percent,
         'sales_share_percent':  sales_share_percent,
         'partner_shafay': partner_share,
@@ -745,7 +757,8 @@ def add_investor():
             investment_date=datetime.strptime(request.form['investment_date'], '%Y-%m-%d'),
             sales_rep_id=int(request.form['sales_rep_id']) if request.form.get('sales_rep_id') else None,
             investor_roi_percent=float(request.form.get('investor_roi_percent', 2.5)),
-            sales_roi_percent=float(request.form.get('sales_roi_percent', 2.5)),
+            sales_roi_percent=float(request.form.get('sales_roi_percent', 0)),
+            tg_percent=float(request.form.get('tg_percent', 5.0)),
             contract_start=contract_start,
             contract_end=contract_end,
             status=request.form.get('status', 'Active'),
@@ -788,6 +801,7 @@ def edit_investor(investor_id):
         investor.investment_date = datetime.strptime(request.form['investment_date'], '%Y-%m-%d')
         investor.sales_rep_id = int(request.form['sales_rep_id']) if request.form.get('sales_rep_id') else None
         investor.investor_roi_percent = float(request.form.get('investor_roi_percent', 2.5))
+        investor.tg_percent           = float(request.form.get('tg_percent', 5.0))
         investor.sales_roi_percent = float(request.form.get('sales_roi_percent', 2.5))
         investor.contract_start = contract_start
         investor.contract_end = contract_end
@@ -1872,7 +1886,7 @@ def analytics_dashboard():
 
     # ── summary stats (same as dashboard) ──
     total_investment_val      = total_investment
-    investment_roi_5_percent  = total_investment_val * 0.05
+    investment_roi_5_percent  = sum(inv.total_capital * ((inv.tg_percent or 5.0) / 100) for inv in investors)
     total_revenue_generated   = global_revenue.total_revenue
     gross_profit              = total_revenue_generated - investment_roi_5_percent
     final_in_hand_profit      = gross_profit
@@ -1896,6 +1910,11 @@ def analytics_dashboard():
         'total_investor_roi':       total_investor_roi,
         'total_sales_share':        total_sales_share,
         'extra_profit':             extra_profit,
+        'avg_tg_percent':           (sum((inv.tg_percent or 5.0) for inv in investors) / len(investors)) if investors else 5.0,
+        'tg_breakdown':             [{'name': inv.name, 'capital': inv.total_capital,
+                                      'tg_pct': inv.tg_percent or 5.0,
+                                      'pool_amount': inv.total_capital * ((inv.tg_percent or 5.0) / 100)}
+                                     for inv in investors],
         'investor_roi_percent':     investor_roi_percent,
         'sales_share_percent':      sales_share_percent,
         'partner_shafay':           partner_share,
@@ -2061,6 +2080,26 @@ def audit_log():
     return render_template('audit_log.html', logs=logs,
         all_users=all_users, all_types=all_types,
         filters=request.args)
+
+
+@app.route('/investor/<int:investor_id>/tg-percent/update', methods=['POST'])
+@admin_required
+def update_tg_percent(investor_id):
+    """Update TG % for an investor"""
+    investor = Investor.query.get_or_404(investor_id)
+    try:
+        new_tg = float(request.form.get('tg_percent', 5.0))
+        if new_tg < 0 or new_tg > 100:
+            return jsonify({'success': False, 'error': 'TG % must be between 0 and 100'}), 400
+        old_tg = investor.tg_percent or 5.0
+        investor.tg_percent = new_tg
+        db.session.commit()
+        audit('EDIT', 'Investor', investor.name, investor.id,
+              f'TG % changed: {old_tg}% → {new_tg}%')
+        return jsonify({'success': True, 'tg_percent': new_tg,
+                        'pool_amount': investor.total_capital * (new_tg / 100)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
 
 
 @app.route('/gold')

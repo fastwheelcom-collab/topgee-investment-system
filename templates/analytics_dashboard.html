@@ -244,11 +244,11 @@
             <div style="background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%);border-radius:18px;padding:24px 22px;box-shadow:0 8px 24px rgba(37,99,235,0.35);color:#fff;">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
                     <span style="font-size:1.6rem;">💼</span>
-                    <span style="font-size:.85rem;font-weight:700;opacity:.9;text-transform:uppercase;letter-spacing:.5px;">5% ROI Pool</span>
+                    <span style="font-size:.85rem;font-weight:700;opacity:.9;text-transform:uppercase;letter-spacing:.5px;">ROI Pool (TG %)</span>
                 </div>
                 <div style="font-size:2rem;font-weight:800;letter-spacing:-1px;line-height:1;">{{ '{:,.0f}'.format(stats.investment_roi_5_percent) }}</div>
                 <div style="font-size:.82rem;margin-top:8px;opacity:.85;font-weight:600;">AED &nbsp;|&nbsp; $ {{ '{:,.0f}'.format(stats.investment_roi_5_percent / stats.exchange_rate) }} USD</div>
-                <div style="font-size:.75rem;margin-top:6px;opacity:.75;">Fixed 5% of total investment</div>
+                <div style="font-size:.75rem;margin-top:6px;opacity:.75;">Avg TG %: {{ '{:.2f}%'.format(stats.avg_tg_percent) }}</div>
             </div>
 
             <!-- Card 3: Actual ROI - Orange -->

@@ -65,6 +65,7 @@
                             <th>Name</th>
                             <th>Category</th>
                             <th>Investment</th>
+                            <th>TG %</th>
                             <th>Sales Rep</th>
                             <th>Actual ROI</th>
                             <th>Status</th>
@@ -78,6 +79,12 @@
                             <td><a href="{{ url_for('investor_detail', investor_id=investor.id) }}" class="client-link">{{ investor.name }}</a></td>
                             <td>{{ investor.category }}</td>
                             <td>{{ '{:,.0f}'.format(investor.total_capital) }} AED</td>
+                            <td>
+                                <span id="tg-val-{{ investor.id }}" style="font-weight:700;color:#1d4ed8;">{{ investor.tg_percent or 5.0 }}%</span>
+                                {% if is_admin %}
+                                <button onclick="openTgEdit({{ investor.id }}, {{ investor.tg_percent or 5.0 }})" style="background:none;border:none;cursor:pointer;font-size:.8rem;color:#6b7280;margin-left:4px;" title="Edit TG %">✏️</button>
+                                {% endif %}
+                            </td>
                             <td>{{ investor.sales_rep.name if investor.sales_rep else '-' }}</td>
                             <td>{{ investor.investor_roi_percent }}%</td>
                             <td><span class="badge badge-{{ 'success' if investor.status == 'Active' else 'inactive' }}">{{ investor.status }}</span></td>
@@ -113,5 +120,55 @@
     <footer>
         <p>TopGee It | {{ stats.current_month }}</p>
     </footer>
+
+<!-- TG % Edit Modal -->
+<div id="tgModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;padding:28px 32px;width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <h3 style="margin:0 0 18px;font-size:1.1rem;">Edit TG %</h3>
+        <p style="font-size:.85rem;color:#6b7280;margin-bottom:16px;">Target percentage used for ROI Pool calculation.</p>
+        <input type="number" id="tgInput" step="0.1" min="0" max="100"
+            style="width:100%;padding:10px 14px;border:2px solid #e5e7eb;border-radius:8px;font-size:1rem;font-weight:700;box-sizing:border-box;margin-bottom:18px;">
+        <div style="display:flex;gap:10px;">
+            <button onclick="saveTg()" style="flex:1;padding:10px;background:#1d4ed8;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Save</button>
+            <button onclick="closeTgModal()" style="flex:1;padding:10px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Cancel</button>
+        </div>
+        <p id="tgError" style="color:#dc2626;font-size:.82rem;margin-top:10px;display:none;"></p>
+    </div>
+</div>
+
+<script>
+var _tgInvestorId = null;
+function openTgEdit(id, current) {
+    _tgInvestorId = id;
+    document.getElementById('tgInput').value = current;
+    document.getElementById('tgError').style.display = 'none';
+    document.getElementById('tgModal').style.display = 'flex';
+}
+function closeTgModal() {
+    document.getElementById('tgModal').style.display = 'none';
+}
+function saveTg() {
+    var val = parseFloat(document.getElementById('tgInput').value);
+    if (isNaN(val) || val < 0 || val > 100) {
+        document.getElementById('tgError').textContent = 'Enter a value between 0 and 100';
+        document.getElementById('tgError').style.display = 'block';
+        return;
+    }
+    var form = new FormData();
+    form.append('tg_percent', val);
+    fetch('/investor/' + _tgInvestorId + '/tg-percent/update', {method:'POST', body:form})
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+        if (data.success) {
+            document.getElementById('tg-val-' + _tgInvestorId).textContent = val + '%';
+            closeTgModal();
+        } else {
+            document.getElementById('tgError').textContent = data.error || 'Error saving';
+            document.getElementById('tgError').style.display = 'block';
+        }
+    });
+}
+</script>
+
 </body>
 </html>
