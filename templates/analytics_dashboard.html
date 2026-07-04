@@ -229,14 +229,15 @@
         <!-- ── STAT CARDS ── -->
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-bottom:28px;">
 
-            <!-- Card 1: Total Revenue - Orange -->
-            <div style="background:linear-gradient(135deg,#f97316 0%,#ea580c 100%);border-radius:18px;padding:24px 22px;box-shadow:0 8px 24px rgba(249,115,22,0.35);color:#fff;">
+            <!-- Card 1: Total Investment - Purple -->
+            <div style="background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%);border-radius:18px;padding:24px 22px;box-shadow:0 8px 24px rgba(124,58,237,0.35);color:#fff;">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-                    <span style="font-size:1.6rem;">💵</span>
-                    <span style="font-size:.85rem;font-weight:700;opacity:.9;text-transform:uppercase;letter-spacing:.5px;">Total Revenue Generated</span>
+                    <span style="font-size:1.6rem;">💰</span>
+                    <span style="font-size:.85rem;font-weight:700;opacity:.9;text-transform:uppercase;letter-spacing:.5px;">Total Investment</span>
                 </div>
-                <div style="font-size:2rem;font-weight:800;letter-spacing:-1px;line-height:1;">{{ '{:,.0f}'.format(stats.total_revenue_generated) }}</div>
-                <div style="font-size:.82rem;margin-top:8px;opacity:.85;font-weight:600;">AED gross &nbsp;|&nbsp; $ {{ '{:,.0f}'.format(total_revenue_usd) }} USD</div>
+                <div style="font-size:2rem;font-weight:800;letter-spacing:-1px;line-height:1;">{{ '{:,.0f}'.format(stats.total_investment) }}</div>
+                <div style="font-size:.82rem;margin-top:8px;opacity:.85;font-weight:600;">AED &nbsp;|&nbsp; $ {{ '{:,.0f}'.format(stats.total_investment_usd) }} USD</div>
+                <div style="font-size:.75rem;margin-top:6px;opacity:.75;">{{ stats.total_investors }} active investors</div>
             </div>
 
             <!-- Card 2: 5% ROI Pool - Blue -->
@@ -246,47 +247,32 @@
                     <span style="font-size:.85rem;font-weight:700;opacity:.9;text-transform:uppercase;letter-spacing:.5px;">5% ROI Pool</span>
                 </div>
                 <div style="font-size:2rem;font-weight:800;letter-spacing:-1px;line-height:1;">{{ '{:,.0f}'.format(stats.investment_roi_5_percent) }}</div>
-                <div style="font-size:.82rem;margin-top:8px;opacity:.85;font-weight:600;">AED to investors &nbsp;|&nbsp; $ {{ '{:,.0f}'.format(stats.investment_roi_5_percent / stats.exchange_rate) }} USD</div>
+                <div style="font-size:.82rem;margin-top:8px;opacity:.85;font-weight:600;">AED &nbsp;|&nbsp; $ {{ '{:,.0f}'.format(stats.investment_roi_5_percent / stats.exchange_rate) }} USD</div>
+                <div style="font-size:.75rem;margin-top:6px;opacity:.75;">Fixed 5% of total investment</div>
             </div>
 
-            <!-- Card 3: Partner In-Hand Profit - Dark Green -->
-            <div style="background:linear-gradient(135deg,#16a34a 0%,#15803d 100%);border-radius:18px;padding:24px 22px;box-shadow:0 8px 24px rgba(22,163,74,0.35);color:#fff;">
+            <!-- Card 3: Actual ROI - Orange -->
+            <div style="background:linear-gradient(135deg,#f97316 0%,#ea580c 100%);border-radius:18px;padding:24px 22px;box-shadow:0 8px 24px rgba(249,115,22,0.35);color:#fff;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                    <span style="font-size:1.6rem;">📊</span>
+                    <span style="font-size:.85rem;font-weight:700;opacity:.9;text-transform:uppercase;letter-spacing:.5px;">Actual ROI</span>
+                </div>
+                <div style="font-size:2rem;font-weight:800;letter-spacing:-1px;line-height:1;">{{ '{:,.0f}'.format(stats.total_investor_roi) }}</div>
+                <div style="font-size:.82rem;margin-top:8px;opacity:.85;font-weight:600;">AED &nbsp;|&nbsp; $ {{ '{:,.0f}'.format(stats.total_investor_roi / stats.exchange_rate) }} USD</div>
+                <div style="font-size:.75rem;margin-top:6px;opacity:.75;">Sum of each investor's actual ROI%</div>
+            </div>
+
+            <!-- Card 4: Extra Profit - Green -->
+            <div style="background:{% if stats.extra_profit > 0 %}linear-gradient(135deg,#16a34a 0%,#15803d 100%){% else %}linear-gradient(135deg,#64748b 0%,#475569 100%){% endif %};border-radius:18px;padding:24px 22px;box-shadow:0 8px 24px rgba(22,163,74,0.35);color:#fff;">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
                     <span style="font-size:1.6rem;">✨</span>
-                    <span style="font-size:.85rem;font-weight:700;opacity:.9;text-transform:uppercase;letter-spacing:.5px;">Partner In-Hand Profit</span>
+                    <span style="font-size:.85rem;font-weight:700;opacity:.9;text-transform:uppercase;letter-spacing:.5px;">Extra Profit</span>
                 </div>
-                <div style="font-size:2rem;font-weight:800;letter-spacing:-1px;line-height:1;">{{ '{:,.0f}'.format(stats.final_in_hand_profit) }}</div>
-                <div style="font-size:.82rem;margin-top:8px;opacity:.85;font-weight:600;">AED after ROI &nbsp;|&nbsp; $ {{ '{:,.0f}'.format(stats.final_in_hand_profit / stats.exchange_rate) }} USD</div>
-            </div>
-
-            <!-- Card 4: Total Paid to Investors - Light Green -->
-            <div style="background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);border-radius:18px;padding:24px 22px;box-shadow:0 8px 24px rgba(34,197,94,0.35);color:#fff;">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-                    <span style="font-size:1.6rem;">💸</span>
-                    <span style="font-size:.85rem;font-weight:700;opacity:.9;text-transform:uppercase;letter-spacing:.5px;">Total Paid to Investors</span>
+                <div style="font-size:2rem;font-weight:800;letter-spacing:-1px;line-height:1;">{{ '{:,.0f}'.format(stats.extra_profit) }}</div>
+                <div style="font-size:.82rem;margin-top:8px;opacity:.85;font-weight:600;">AED &nbsp;|&nbsp; $ {{ '{:,.0f}'.format(stats.extra_profit / stats.exchange_rate) }} USD</div>
+                <div style="font-size:.75rem;margin-top:6px;opacity:.75;">
+                    {% if stats.extra_profit > 0 %}Actual ROI − 5% Pool = {{ '{:,.0f}'.format(stats.extra_profit) }} AED extra{% else %}Actual ROI ≤ 5% Pool (no extra profit){% endif %}
                 </div>
-                <div style="font-size:2rem;font-weight:800;letter-spacing:-1px;line-height:1;">{{ '{:,.0f}'.format(total_paid_clients) }}</div>
-                <div style="font-size:.82rem;margin-top:8px;opacity:.85;font-weight:600;">AED paid so far &nbsp;|&nbsp; $ {{ '{:,.0f}'.format(total_paid_clients / stats.exchange_rate) }} USD</div>
-            </div>
-
-            <!-- Card 5: Total Investors - Blue -->
-            <div style="background:linear-gradient(135deg,#0ea5e9 0%,#0284c7 100%);border-radius:18px;padding:24px 22px;box-shadow:0 8px 24px rgba(14,165,233,0.35);color:#fff;">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-                    <span style="font-size:1.6rem;">👥</span>
-                    <span style="font-size:.85rem;font-weight:700;opacity:.9;text-transform:uppercase;letter-spacing:.5px;">Total Investors</span>
-                </div>
-                <div style="font-size:2rem;font-weight:800;letter-spacing:-1px;line-height:1;">{{ stats.total_investors }}</div>
-                <div style="font-size:.82rem;margin-top:8px;opacity:.85;font-weight:600;">Active clients</div>
-            </div>
-
-            <!-- Card 6: Total Investment - Purple -->
-            <div style="background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%);border-radius:18px;padding:24px 22px;box-shadow:0 8px 24px rgba(124,58,237,0.35);color:#fff;">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-                    <span style="font-size:1.6rem;">💰</span>
-                    <span style="font-size:.85rem;font-weight:700;opacity:.9;text-transform:uppercase;letter-spacing:.5px;">Total Investment</span>
-                </div>
-                <div style="font-size:2rem;font-weight:800;letter-spacing:-1px;line-height:1;">{{ '{:,.0f}'.format(stats.total_investment) }}</div>
-                <div style="font-size:.82rem;margin-top:8px;opacity:.85;font-weight:600;">AED &nbsp;|&nbsp; $ {{ '{:,.0f}'.format(stats.total_investment_usd) }} USD</div>
             </div>
 
         </div>

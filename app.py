@@ -531,7 +531,9 @@ def dashboard():
     
     # ROI Distribution Summary (based on ALL investors' ROI splits)
     total_investor_roi = sum(i.monthly_investor_roi for i in investors)
-    total_sales_share = sum(i.monthly_sales_roi for i in investors)
+    total_sales_share  = sum(i.monthly_sales_roi for i in investors)
+    # Extra Profit = Actual ROI - 5% ROI Pool (0 if actual <= pool)
+    extra_profit = max(0, total_investor_roi - investment_roi_5_percent)
     
     # Calculate percentages for ROI Distribution
     total_roi_pool = total_investor_roi + total_sales_share
@@ -558,9 +560,10 @@ def dashboard():
         'total_revenue_generated': total_revenue_generated,
         'final_in_hand_profit': final_in_hand_profit,
         'total_investor_roi': total_investor_roi,
-        'total_sales_share': total_sales_share,
+        'total_sales_share':  total_sales_share,
+        'extra_profit':       extra_profit,
         'investor_roi_percent': investor_roi_percent,
-        'sales_share_percent': sales_share_percent,
+        'sales_share_percent':  sales_share_percent,
         'partner_shafay': partner_share,
         'partner_shubham': partner_share,
         'partner_kay': partner_share,
