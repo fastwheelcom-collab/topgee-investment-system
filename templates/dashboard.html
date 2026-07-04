@@ -86,7 +86,12 @@
                                 {% endif %}
                             </td>
                             <td>{{ investor.sales_rep.name if investor.sales_rep else '-' }}</td>
-                            <td>{{ investor.investor_roi_percent }}%</td>
+                            <td>
+                                <span id="roi-val-{{ investor.id }}" style="font-weight:700;">{{ investor.investor_roi_percent }}%</span>
+                                {% if is_admin %}
+                                <button onclick="openRoiEdit({{ investor.id }}, {{ investor.investor_roi_percent }})" style="background:none;border:none;cursor:pointer;font-size:.8rem;color:#6b7280;margin-left:4px;" title="Edit Actual ROI">✏️</button>
+                                {% endif %}
+                            </td>
                             <td><span class="badge badge-{{ 'success' if investor.status == 'Active' else 'inactive' }}">{{ investor.status }}</span></td>
                             <td>
                                 <a href="{{ url_for('investor_detail', investor_id=investor.id) }}" class="btn-sm">View</a>
@@ -121,6 +126,21 @@
         <p>TopGee It | {{ stats.current_month }}</p>
     </footer>
 
+<!-- Actual ROI Edit Modal -->
+<div id="roiModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;padding:28px 32px;width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <h3 style="margin:0 0 8px;font-size:1.1rem;">Edit Actual ROI %</h3>
+        <p style="font-size:.85rem;color:#6b7280;margin-bottom:16px;">Monthly ROI percentage for this investor.</p>
+        <input type="number" id="roiInput" step="0.1" min="0" max="100"
+            style="width:100%;padding:10px 14px;border:2px solid #e5e7eb;border-radius:8px;font-size:1rem;font-weight:700;box-sizing:border-box;margin-bottom:18px;">
+        <div style="display:flex;gap:10px;">
+            <button onclick="saveRoi()" style="flex:1;padding:10px;background:#f97316;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Save</button>
+            <button onclick="closeRoiModal()" style="flex:1;padding:10px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Cancel</button>
+        </div>
+        <p id="roiError" style="color:#dc2626;font-size:.82rem;margin-top:10px;display:none;"></p>
+    </div>
+</div>
+
 <!-- TG % Edit Modal -->
 <div id="tgModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
     <div style="background:#fff;border-radius:16px;padding:28px 32px;width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
@@ -137,6 +157,38 @@
 </div>
 
 <script>
+var _roiInvestorId = null;
+function openRoiEdit(id, current) {
+    _roiInvestorId = id;
+    document.getElementById('roiInput').value = current;
+    document.getElementById('roiError').style.display = 'none';
+    document.getElementById('roiModal').style.display = 'flex';
+}
+function closeRoiModal() {
+    document.getElementById('roiModal').style.display = 'none';
+}
+function saveRoi() {
+    var val = parseFloat(document.getElementById('roiInput').value);
+    if (isNaN(val) || val < 0 || val > 100) {
+        document.getElementById('roiError').textContent = 'Enter a value between 0 and 100';
+        document.getElementById('roiError').style.display = 'block';
+        return;
+    }
+    var form = new FormData();
+    form.append('investor_roi_percent', val);
+    fetch('/investor/' + _roiInvestorId + '/roi-percent/update', {method:'POST', body:form})
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+        if (data.success) {
+            document.getElementById('roi-val-' + _roiInvestorId).textContent = val + '%';
+            closeRoiModal();
+        } else {
+            document.getElementById('roiError').textContent = data.error || 'Error saving';
+            document.getElementById('roiError').style.display = 'block';
+        }
+    });
+}
+
 var _tgInvestorId = null;
 function openTgEdit(id, current) {
     _tgInvestorId = id;

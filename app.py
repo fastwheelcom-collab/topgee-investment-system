@@ -2082,6 +2082,24 @@ def audit_log():
         filters=request.args)
 
 
+@app.route('/investor/<int:investor_id>/roi-percent/update', methods=['POST'])
+@admin_required
+def update_roi_percent(investor_id):
+    investor = Investor.query.get_or_404(investor_id)
+    try:
+        new_roi = float(request.form.get('investor_roi_percent', 2.5))
+        if new_roi < 0 or new_roi > 100:
+            return jsonify({'success': False, 'error': 'ROI % must be between 0 and 100'}), 400
+        old_roi = investor.investor_roi_percent
+        investor.investor_roi_percent = new_roi
+        db.session.commit()
+        audit('EDIT', 'Investor', investor.name, investor.id,
+              f'Actual ROI changed: {old_roi}% → {new_roi}%')
+        return jsonify({'success': True, 'investor_roi_percent': new_roi})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
 @app.route('/investor/<int:investor_id>/tg-percent/update', methods=['POST'])
 @admin_required
 def update_tg_percent(investor_id):
