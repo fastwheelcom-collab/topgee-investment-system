@@ -1221,8 +1221,9 @@ def reports_dashboard():
         pending_months = 0
         outstanding = 0.0
         monthly_ref = inv.monthly_investor_roi if inv.monthly_investor_roi > 0 else 1
+        TRACK_FROM = (2026, 6)  # Only track outstanding from June 2026 onwards
         if inv.contract_start:
-            y, m = inv.contract_start.year, inv.contract_start.month
+            y, m = max((inv.contract_start.year, inv.contract_start.month), TRACK_FROM)
             last_y, last_m = now.year, now.month - 1
             if last_m == 0:
                 last_m = 12
@@ -1902,8 +1903,9 @@ def analytics_dashboard():
         monthly_ref2 = monthly_due if monthly_due > 0 else 1
         outstanding = 0.0
         pending_count = 0
+        TRACK_FROM2 = (2026, 6)  # Only track outstanding from June 2026 onwards
         if inv.contract_start:
-            cy, cm = inv.contract_start.year, inv.contract_start.month
+            cy, cm = max((inv.contract_start.year, inv.contract_start.month), TRACK_FROM2)
             last_y, last_m = today.year, today.month - 1
             if last_m == 0:
                 last_m = 12
