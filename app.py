@@ -41,9 +41,19 @@ db = SQLAlchemy(app)
 # Inject is_admin into all templates automatically
 @app.context_processor
 def inject_globals():
+    username = session.get('username', '')
+    profile_pic = None
+    if username and username != 'admin':
+        try:
+            u = UserAccount.query.filter_by(username=username).first()
+            if u:
+                profile_pic = u.profile_pic
+        except Exception:
+            pass
     return dict(
         is_admin=session.get('is_admin', False),
         current_user=session.get('display_name', ''),
+        current_user_pic=profile_pic,
     )
 
 # Admin credentials (username: admin, password: admin123)
@@ -323,6 +333,7 @@ class UserAccount(db.Model):
     active       = db.Column(db.Boolean, default=True)
     created_at   = db.Column(db.DateTime, default=datetime.utcnow)
     last_login   = db.Column(db.DateTime, nullable=True)
+    profile_pic  = db.Column(db.String(256), nullable=True)
 
 class AuditLog(db.Model):
     """Track every add / edit / delete action"""
@@ -381,6 +392,7 @@ def ensure_db_ready():
                 ('revenue_history', 'capital_usd',        'FLOAT'),
                 ('revenue_history', 'capital_pct',        'FLOAT'),
                 ('investor',        'tg_percent',         'FLOAT DEFAULT 5.0'),
+                ('user_account',     'profile_pic',        'VARCHAR(256)'),
             ]
             for table, col, typ in migrations:
                 try:
@@ -453,6 +465,37 @@ def profile():
         is_admin=is_admin,
         user=user
     )
+
+@app.route('/profile/upload-photo', methods=['POST'])
+@login_required
+def upload_profile_photo():
+    import uuid
+    username = session.get('username', '')
+    user = UserAccount.query.filter_by(username=username).first()
+    if not user:
+        flash('User not found', 'error')
+        return redirect(url_for('profile'))
+    file = request.files.get('photo')
+    if not file or file.filename == '':
+        flash('No file selected', 'error')
+        return redirect(url_for('profile'))
+    ext = file.filename.rsplit('.', 1)[-1].lower()
+    if ext not in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
+        flash('Only JPG, PNG, GIF, WEBP allowed', 'error')
+        return redirect(url_for('profile'))
+    upload_dir = os.path.join(app.root_path, 'static', 'profile_pics')
+    os.makedirs(upload_dir, exist_ok=True)
+    filename = f'{username}_{uuid.uuid4().hex[:8]}.{ext}'
+    file.save(os.path.join(upload_dir, filename))
+    # Delete old pic
+    if user.profile_pic:
+        old_path = os.path.join(upload_dir, user.profile_pic)
+        if os.path.exists(old_path):
+            os.remove(old_path)
+    user.profile_pic = filename
+    db.session.commit()
+    flash('Profile photo updated!', 'success')
+    return redirect(url_for('profile'))
 
 @app.route('/change-password', methods=['GET', 'POST'])
 @login_required
