@@ -1212,15 +1212,15 @@ def reports_dashboard():
         total_paid     = sum(t.amount for t in inv_payouts)
         # New outstanding logic: count months from contract start to last completed month
         # that have NO payout recorded (any amount = cleared, regardless of fixed %)
-        # Untagged payouts (no payout_month/year) count as covering oldest pending months
+        # Untagged payouts: use total untagged amount to absorb months by value
         paid_months = set()
         for t in inv_payouts:
             if t.payout_month and t.payout_year:
                 paid_months.add((t.payout_year, t.payout_month))
-        # Count untagged payouts and auto-assign to earliest pending months
-        untagged_count = sum(1 for t in inv_payouts if not (t.payout_month and t.payout_year))
+        untagged_amount = sum(t.amount for t in inv_payouts if not (t.payout_month and t.payout_year))
         pending_months = 0
         outstanding = 0.0
+        monthly_ref = inv.monthly_investor_roi if inv.monthly_investor_roi > 0 else 1
         if inv.contract_start:
             y, m = inv.contract_start.year, inv.contract_start.month
             last_y, last_m = now.year, now.month - 1
@@ -1229,8 +1229,10 @@ def reports_dashboard():
                 last_y -= 1
             while (y < last_y) or (y == last_y and m <= last_m):
                 if (y, m) not in paid_months:
-                    if untagged_count > 0:
-                        untagged_count -= 1  # absorb untagged payout into this month
+                    if untagged_amount >= monthly_ref:
+                        untagged_amount -= monthly_ref  # absorb one month's worth
+                    elif untagged_amount > 0:
+                        untagged_amount = 0  # partial — still counts as paid
                     else:
                         pending_months += 1
                         outstanding += inv.monthly_investor_roi
@@ -1891,12 +1893,13 @@ def analytics_dashboard():
         else:
             months_elapsed = 0
         # New outstanding: count closed months with no payout recorded
-        # Untagged payouts absorb oldest pending months first
+        # Untagged payouts: use total amount to absorb months by value
         paid_months_set = set()
         for t in inv_payout_txns:
             if t.payout_month and t.payout_year:
                 paid_months_set.add((t.payout_year, t.payout_month))
-        untagged = sum(1 for t in inv_payout_txns if not (t.payout_month and t.payout_year))
+        untagged_amt = sum(t.amount for t in inv_payout_txns if not (t.payout_month and t.payout_year))
+        monthly_ref2 = monthly_due if monthly_due > 0 else 1
         outstanding = 0.0
         pending_count = 0
         if inv.contract_start:
@@ -1907,8 +1910,10 @@ def analytics_dashboard():
                 last_y -= 1
             while (cy < last_y) or (cy == last_y and cm <= last_m):
                 if (cy, cm) not in paid_months_set:
-                    if untagged > 0:
-                        untagged -= 1  # absorb untagged payout
+                    if untagged_amt >= monthly_ref2:
+                        untagged_amt -= monthly_ref2
+                    elif untagged_amt > 0:
+                        untagged_amt = 0
                     else:
                         pending_count += 1
                         outstanding += monthly_due
