@@ -27,6 +27,9 @@
     </nav>
 
     <div class="container">
+        <div style="margin-bottom: 1rem;">
+            <a href="{{ url_for('dashboard') }}" style="display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:#f3f4f6; color:#374151; border-radius:8px; text-decoration:none; font-weight:600; font-size:.9rem; border:1px solid #e5e7eb; transition:background .2s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">← Back to All Investors</a>
+        </div>
         <div class="client-header">
             <h1>{{ investor.name }}</h1>
             <span class="badge badge-{{ 'success' if investor.status == 'Active' else 'inactive' }}">{{ investor.status }}</span>
