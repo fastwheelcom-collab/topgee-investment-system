@@ -163,13 +163,16 @@
 
     {% for r in filtered_rows %}
     <div style="margin-bottom:32px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <h3 style="font-size:1rem;">
-                <a href="{{ url_for('investor_detail', investor_id=r.inv.id) }}" class="client-link">{{ r.inv.name }}</a>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+            <h3 style="font-size:1rem; margin:0;">
+                {{ r.inv.name }}
                 <span class="badge badge-{{ 'success' if r.inv.status=='Active' else 'inactive' }}" style="margin-left:8px;">{{ r.inv.status }}</span>
                 <span class="badge badge-{{ 'success' if r.inv.category=='Individual' else 'inactive' }}" style="margin-left:4px;">{{ r.inv.category }}</span>
             </h3>
-            <span style="font-size:.85rem; color:var(--text-secondary);">Rep: {{ r.rep_name }}</span>
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <span style="font-size:.85rem; color:var(--text-secondary);">Rep: {{ r.rep_name }}</span>
+                <a href="{{ url_for('investor_detail', investor_id=r.inv.id) }}" style="display:inline-flex; align-items:center; gap:4px; padding:5px 12px; background:#3b82f6; color:#fff; border-radius:6px; text-decoration:none; font-size:.82rem; font-weight:600;">👤 Profile &amp; Ledger</a>
+            </div>
         </div>
         <div class="table-container">
             <table>
