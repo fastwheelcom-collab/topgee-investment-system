@@ -1200,6 +1200,12 @@ def reports_dashboard():
             if date_from and str(t.transaction_date) < date_from: continue
             if date_to   and str(t.transaction_date) > date_to:   continue
             payout_txns.append(t)
+        # sales payouts filtered by date
+        sales_payout_txns_filtered = []
+        for t in sales_payouts:
+            if date_from and str(t.transaction_date) < date_from: continue
+            if date_to   and str(t.transaction_date) > date_to:   continue
+            sales_payout_txns_filtered.append(t)
         # month-wise breakdown
         monthly = {}
         for t in inv_payouts + sales_payouts:
@@ -1217,7 +1223,9 @@ def reports_dashboard():
             'monthly_roi':     inv.monthly_investor_roi,
             'sales_monthly':   inv.monthly_sales_roi,
             'total_paid':      total_paid,
-            'total_sales_paid':sum(t.amount for t in sales_payouts),
+            'total_sales_paid':         sum(t.amount for t in sales_payouts),
+            'total_sales_paid_filtered': sum(t.amount for t in sales_payout_txns_filtered),
+            'sales_payout_txns_filtered': sales_payout_txns_filtered,
             'total_ever_due':  total_ever_due,
             'outstanding':     outstanding,
             'months_active':   months_active,
@@ -1233,16 +1241,18 @@ def reports_dashboard():
     filtered_rows = [r for r in all_rows if str(r['inv'].id) == investor_id_filt] if investor_id_filt else all_rows
 
     # Sales rep rows
+    has_date_filter = bool(date_from and date_to)
     sales_rep_rows = []
     for rep in all_sales_reps:
         ri = [r for r in all_rows if r['rep_id'] == rep.id]
         sales_rep_rows.append({
-            'rep':               rep,
-            'investor_count':    len(ri),
-            'total_capital':     sum(r['capital'] for r in ri),
-            'total_sales_monthly': sum(r['sales_monthly'] for r in ri),
-            'total_sales_paid':  sum(r['total_sales_paid'] for r in ri),
-            'investors':         ri,
+            'rep':                      rep,
+            'investor_count':           len(ri),
+            'total_capital':            sum(r['capital'] for r in ri),
+            'total_sales_monthly':      sum(r['sales_monthly'] for r in ri),
+            'total_sales_paid':         sum(r['total_sales_paid'] for r in ri),
+            'total_sales_paid_filtered':sum(r['total_sales_paid_filtered'] for r in ri),
+            'investors':                ri,
         })
     if rep_id_filt:
         sales_rep_rows = [r for r in sales_rep_rows if str(r['rep'].id) == rep_id_filt]
@@ -1343,19 +1353,22 @@ def reports_dashboard():
     }
 
     return render_template('reports_dashboard.html',
-        report_type    = report_type,
-        all_rows       = all_rows,
-        filtered_rows  = filtered_rows,
-        sales_rep_rows = sales_rep_rows,
-        month_rows     = month_rows,
-        revenue_history= revenue_history,
-        all_investors  = all_investors,
-        all_sales_reps = all_sales_reps,
-        stats          = stats,
-        filters        = request.args,
-        exchange_rate  = exchange_rate,
-        year_filt      = yr,
-        MONTHS         = MONTHS,
+        report_type      = report_type,
+        all_rows         = all_rows,
+        filtered_rows    = filtered_rows,
+        sales_rep_rows   = sales_rep_rows,
+        month_rows       = month_rows,
+        revenue_history  = revenue_history,
+        all_investors    = all_investors,
+        all_sales_reps   = all_sales_reps,
+        stats            = stats,
+        filters          = request.args,
+        exchange_rate    = exchange_rate,
+        year_filt        = yr,
+        MONTHS           = MONTHS,
+        has_date_filter  = has_date_filter,
+        date_from        = date_from,
+        date_to          = date_to,
     )
 
 @app.route('/investor/<int:investor_id>/transaction/add', methods=['POST'])
