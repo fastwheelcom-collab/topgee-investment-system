@@ -2080,9 +2080,53 @@ with app.app_context():
 # ══════════════════════════════════════════════════
 # USERS MANAGEMENT (admin only)
 # ══════════════════════════════════════════════════
-@app.route('/users')
+@app.route('/users', methods=['GET', 'POST'])
 @admin_required
 def users():
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'create':
+            username     = request.form['username'].strip()
+            display_name = request.form['display_name'].strip()
+            password     = request.form['password']
+            role         = request.form.get('role', 'partner')
+            if UserAccount.query.filter_by(username=username).first():
+                flash(f'Username "{username}" already exists.', 'error')
+            else:
+                user = UserAccount(
+                    username=username,
+                    display_name=display_name,
+                    password_hash=hashlib.sha256(password.encode()).hexdigest(),
+                    role=role,
+                )
+                db.session.add(user)
+                db.session.commit()
+                audit('ADD', 'User', display_name, user.id, f'role={role}')
+                flash(f'User "{display_name}" created successfully!', 'success')
+        elif action == 'toggle':
+            user_id = int(request.form['user_id'])
+            user = UserAccount.query.get_or_404(user_id)
+            user.active = not user.active
+            db.session.commit()
+            status = 'enabled' if user.active else 'disabled'
+            audit('EDIT', 'User', user.display_name, user.id, f'Account {status}')
+            flash(f'{user.display_name} {status}.', 'success')
+        elif action == 'delete':
+            user_id = int(request.form['user_id'])
+            user = UserAccount.query.get_or_404(user_id)
+            audit('DELETE', 'User', user.display_name, user.id)
+            db.session.delete(user)
+            db.session.commit()
+            flash('User deleted.', 'success')
+        elif action == 'reset_password':
+            user_id = int(request.form['user_id'])
+            user = UserAccount.query.get_or_404(user_id)
+            new_pw = request.form['new_password']
+            user.password_hash = hashlib.sha256(new_pw.encode()).hexdigest()
+            db.session.commit()
+            audit('EDIT', 'User', user.display_name, user.id, 'Password reset')
+            flash(f'Password reset for {user.display_name}', 'success')
+        return redirect(url_for('users'))
     accounts = UserAccount.query.order_by(UserAccount.created_at.desc()).all()
     return render_template('users.html', accounts=accounts)
 
