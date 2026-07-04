@@ -41,7 +41,10 @@ db = SQLAlchemy(app)
 # Inject is_admin into all templates automatically
 @app.context_processor
 def inject_globals():
-    return dict(is_admin=session.get('is_admin', False))
+    return dict(
+        is_admin=session.get('is_admin', False),
+        current_user=session.get('display_name', ''),
+    )
 
 # Admin credentials (username: admin, password: admin123)
 ADMIN_USERNAME = 'admin'

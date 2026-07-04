@@ -32,7 +32,10 @@
 
                 <div class="form-group">
                     <label>Password</label>
-                    <input type="password" name="password" required placeholder="Enter password">
+                    <div style="position:relative;">
+                        <input type="password" name="password" id="passwordInput" required placeholder="Enter password" style="width:100%; padding-right:40px;">
+                        <span onclick="togglePw()" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:1.1rem; user-select:none;" id="eyeIcon">👁️</span>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-login">Login</button>
@@ -137,5 +140,18 @@
             border: 2px solid #666666;
         }
     </style>
+<script>
+function togglePw() {
+    const input = document.getElementById('passwordInput');
+    const icon = document.getElementById('eyeIcon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.textContent = '🙈';
+    } else {
+        input.type = 'password';
+        icon.textContent = '👁️';
+    }
+}
+</script>
 </body>
 </html>
