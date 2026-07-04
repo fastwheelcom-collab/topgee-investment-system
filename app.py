@@ -1212,23 +1212,28 @@ def reports_dashboard():
         total_paid     = sum(t.amount for t in inv_payouts)
         # New outstanding logic: count months from contract start to last completed month
         # that have NO payout recorded (any amount = cleared, regardless of fixed %)
+        # Untagged payouts (no payout_month/year) count as covering oldest pending months
         paid_months = set()
         for t in inv_payouts:
             if t.payout_month and t.payout_year:
                 paid_months.add((t.payout_year, t.payout_month))
+        # Count untagged payouts and auto-assign to earliest pending months
+        untagged_count = sum(1 for t in inv_payouts if not (t.payout_month and t.payout_year))
         pending_months = 0
         outstanding = 0.0
         if inv.contract_start:
             y, m = inv.contract_start.year, inv.contract_start.month
-            # only count months that have fully closed (not current month)
             last_y, last_m = now.year, now.month - 1
             if last_m == 0:
                 last_m = 12
                 last_y -= 1
             while (y < last_y) or (y == last_y and m <= last_m):
                 if (y, m) not in paid_months:
-                    pending_months += 1
-                    outstanding += inv.monthly_investor_roi
+                    if untagged_count > 0:
+                        untagged_count -= 1  # absorb untagged payout into this month
+                    else:
+                        pending_months += 1
+                        outstanding += inv.monthly_investor_roi
                 m += 1
                 if m > 12:
                     m = 1
@@ -1886,10 +1891,12 @@ def analytics_dashboard():
         else:
             months_elapsed = 0
         # New outstanding: count closed months with no payout recorded
+        # Untagged payouts absorb oldest pending months first
         paid_months_set = set()
         for t in inv_payout_txns:
             if t.payout_month and t.payout_year:
                 paid_months_set.add((t.payout_year, t.payout_month))
+        untagged = sum(1 for t in inv_payout_txns if not (t.payout_month and t.payout_year))
         outstanding = 0.0
         pending_count = 0
         if inv.contract_start:
@@ -1900,8 +1907,11 @@ def analytics_dashboard():
                 last_y -= 1
             while (cy < last_y) or (cy == last_y and cm <= last_m):
                 if (cy, cm) not in paid_months_set:
-                    pending_count += 1
-                    outstanding += monthly_due
+                    if untagged > 0:
+                        untagged -= 1  # absorb untagged payout
+                    else:
+                        pending_count += 1
+                        outstanding += monthly_due
                 cm += 1
                 if cm > 12:
                     cm = 1
