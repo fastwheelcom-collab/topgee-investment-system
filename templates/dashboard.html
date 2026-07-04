@@ -13,14 +13,14 @@
             <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
                         <div class="nav-links">
                 <a href="{{ url_for('dashboard') }}" class="nav-investors active">All Investors</a>
-                <a href="{{ url_for('analytics_dashboard') }}" class="nav-dashboard">📊 Dashboard</a>
+                <a href="{{ url_for('analytics_dashboard') }}" class="nav-dashboard">Dashboard</a>
                 <a href="{{ url_for('reports_dashboard') }}" class="nav-reports">Reports</a>
                 <a href="{{ url_for('monthly_grid') }}" class="nav-monthly">Monthly Grid</a>
                 <a href="{{ url_for('sales_reps') }}" class="nav-sales">Sales Team</a>
                 {% if is_admin %}<a href="{{ url_for('add_investor') }}" class="btn-green">+ Add Investor</a>{% endif %}
-                <a href="{{ url_for('backup') }}" class="nav-backup">💾 Backup</a>
-                <a href="{{ url_for('change_password') }}" class="nav-password">🔑 Password</a>
-                <a href="{{ url_for('logout') }}" class="btn-secondary">Logout</a>
+                <a href="{{ url_for('backup') }}" class="nav-backup">Backup</a>
+                <a href="{{ url_for('change_password') }}" class="nav-password">Password</a>
+                <a href="{{ url_for('logout') }}" class="nav-logout">Logout</a>
             </div></div>
     </nav>
 

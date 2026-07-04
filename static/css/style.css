@@ -60,57 +60,74 @@ body {
 
 .nav-links {
     display: flex;
-    gap: 0.4rem;
+    gap: 0.25rem;
     align-items: center;
     flex-wrap: nowrap;
 }
 
+/* Base nav link */
 .nav-links a {
-    color: var(--text-primary);
     text-decoration: none;
-    padding: 0.4rem 0.75rem;
-    border-radius: 6px;
-    transition: background 0.2s;
-    font-size: 0.88rem;
+    padding: 0.42rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
     white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+    border: 2px solid transparent;
 }
 
-.nav-links a:hover {
-    background: var(--bg-hover);
+/* Blue group: All Investors, Dashboard, Reports, Password */
+.nav-links a.nav-investors,
+.nav-links a.nav-dashboard,
+.nav-links a.nav-reports,
+.nav-links a.nav-password { color: #1d4ed8; }
+
+.nav-links a.nav-investors:hover,
+.nav-links a.nav-dashboard:hover,
+.nav-links a.nav-reports:hover,
+.nav-links a.nav-password:hover { background: rgba(29,78,216,0.09); }
+
+.nav-links a.nav-investors.active,
+.nav-links a.nav-dashboard.active,
+.nav-links a.nav-reports.active,
+.nav-links a.nav-password.active {
+    background: #1d4ed8;
+    color: white !important;
+    border-color: #1d4ed8;
 }
 
-.nav-links a.active {
-    background: var(--blue);
-    color: white;
-    /* Individual colour overrides below take precedence */
+/* Green group: Monthly Grid, Sales Team, Backup */
+.nav-links a.nav-monthly,
+.nav-links a.nav-sales,
+.nav-links a.nav-backup { color: #16a34a; }
+
+.nav-links a.nav-monthly:hover,
+.nav-links a.nav-sales:hover,
+.nav-links a.nav-backup:hover { background: rgba(22,163,74,0.09); }
+
+.nav-links a.nav-monthly.active,
+.nav-links a.nav-sales.active,
+.nav-links a.nav-backup.active {
+    background: #16a34a;
+    color: white !important;
+    border-color: #16a34a;
 }
 
-/* Nav link individual colours */
-.nav-links a.nav-investors { color: #1d4ed8; font-weight: 600; }
-.nav-links a.nav-dashboard  { color: #1d4ed8; font-weight: 600; }
-.nav-links a.nav-reports    { color: #1d4ed8; font-weight: 600; }
-.nav-links a.nav-monthly    { color: #16a34a; font-weight: 600; }
-.nav-links a.nav-sales      { color: #16a34a; font-weight: 600; }
-.nav-links a.nav-backup     { color: #16a34a; font-weight: 600; }
-.nav-links a.nav-password   { color: #1d4ed8; font-weight: 600; }
+/* Logout — plain grey link, not a button */
+.nav-links a.nav-logout {
+    color: #6b7280;
+    font-weight: 500;
+}
+.nav-links a.nav-logout:hover { background: rgba(0,0,0,0.06); color: #374151; }
 
-/* Active state overrides colour with solid background */
-.nav-links a.nav-investors.active { background: #1d4ed8; color: white !important; }
-.nav-links a.nav-dashboard.active  { background: #1d4ed8; color: white !important; }
-.nav-links a.nav-reports.active    { background: #1d4ed8; color: white !important; }
-.nav-links a.nav-monthly.active    { background: #16a34a; color: white !important; }
-.nav-links a.nav-sales.active      { background: #16a34a; color: white !important; }
-.nav-links a.nav-backup.active     { background: #16a34a; color: white !important; }
-.nav-links a.nav-password.active   { background: #1d4ed8; color: white !important; }
-
-/* Hover: light tinted background */
-.nav-links a.nav-investors:hover { background: rgba(29,78,216,0.10); }
-.nav-links a.nav-dashboard:hover  { background: rgba(29,78,216,0.10); }
-.nav-links a.nav-reports:hover    { background: rgba(29,78,216,0.10); }
-.nav-links a.nav-monthly:hover    { background: rgba(22,163,74,0.10); }
-.nav-links a.nav-sales:hover      { background: rgba(22,163,74,0.10); }
-.nav-links a.nav-backup:hover     { background: rgba(22,163,74,0.10); }
-.nav-links a.nav-password:hover   { background: rgba(29,78,216,0.10); }
+/* Divider between nav links and action buttons */
+.nav-divider {
+    width: 1px;
+    height: 22px;
+    background: var(--border);
+    margin: 0 6px;
+}
 
 /* Container */
 .container {
