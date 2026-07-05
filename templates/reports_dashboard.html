@@ -242,7 +242,7 @@
         {% endfor %}
     {% endfor %}
     <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);border-radius:12px;padding:16px 24px;margin-bottom:18px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
-        <div style="color:#94a3b8;font-size:.78rem;text-transform:uppercase;letter-spacing:.5px;">📊 YTD Summary (2026)</div>
+        <div style="color:#94a3b8;font-size:.78rem;text-transform:uppercase;letter-spacing:.5px;">📊 YTD Summary ({{ now.year }})</div>
         <div style="color:#fff;font-size:.9rem;font-weight:600;">{{ filtered_rows[0].inv.name }}</div>
         <div style="margin-left:auto;display:flex;gap:24px;align-items:center;flex-wrap:wrap;">
             <div style="text-align:right;">
@@ -252,6 +252,30 @@
             <div style="text-align:right;">
                 <div style="color:#94a3b8;font-size:.72rem;text-transform:uppercase;">YTD Paid (USD)</div>
                 <div style="color:#60a5fa;font-size:1.15rem;font-weight:800;">$ {{ "{:,.2f}".format(ns_ytd.total / exchange_rate) }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── YTD Summary — shown when All Investors selected ── #}
+    {% if not filters.investor_id %}
+    {% set ns_ytd_all = namespace(total=0) %}
+    {% for r in all_rows %}
+        {% for t in r.inv.investment_transactions if t.transaction_type == 'Investor Payout' and t.transaction_date.year == now.year %}
+            {% set ns_ytd_all.total = ns_ytd_all.total + t.amount %}
+        {% endfor %}
+    {% endfor %}
+    <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);border-radius:12px;padding:16px 24px;margin-bottom:18px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+        <div style="color:#94a3b8;font-size:.78rem;text-transform:uppercase;letter-spacing:.5px;">📊 YTD Summary ({{ now.year }})</div>
+        <div style="color:#fff;font-size:.9rem;font-weight:600;">All Investors</div>
+        <div style="margin-left:auto;display:flex;gap:24px;align-items:center;flex-wrap:wrap;">
+            <div style="text-align:right;">
+                <div style="color:#94a3b8;font-size:.72rem;text-transform:uppercase;">YTD Paid Out</div>
+                <div style="color:#34d399;font-size:1.15rem;font-weight:800;">{{ "{:,.2f}".format(ns_ytd_all.total) }} AED</div>
+            </div>
+            <div style="text-align:right;">
+                <div style="color:#94a3b8;font-size:.72rem;text-transform:uppercase;">YTD Paid (USD)</div>
+                <div style="color:#60a5fa;font-size:1.15rem;font-weight:800;">$ {{ "{:,.2f}".format(ns_ytd_all.total / exchange_rate) }}</div>
             </div>
         </div>
     </div>
