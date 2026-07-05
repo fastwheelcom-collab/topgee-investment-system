@@ -204,9 +204,7 @@
         <table id="reportTable">
             <thead><tr>
                 <th>Investor</th><th>Category</th><th>Capital (AED)</th>
-                <th>ROI %</th><th>Monthly Due (AED)</th><th>Months Active</th>
-                <th>Total Ever Due (AED)</th><th>Total Paid (AED)</th>
-                <th>Outstanding (AED)</th><th>Contract Start</th><th>Contract End</th><th>Sales Rep</th>
+                <th>ROI %</th><th>Monthly Due (AED)</th>
             </tr></thead>
             <tbody>
                 {% for r in filtered_rows %}
@@ -216,13 +214,6 @@
                     <td>{{ "{:,.0f}".format(r.capital) }}</td>
                     <td>{{ r.inv.investor_roi_percent }}%</td>
                     <td>{{ "{:,.0f}".format(r.monthly_roi) }}</td>
-                    <td>{{ r.months_active }}</td>
-                    <td>{{ "{:,.0f}".format(r.total_ever_due) }}</td>
-                    <td>{{ "{:,.0f}".format(r.total_paid) }}</td>
-                    <td>{{ "{:,.0f}".format(r.outstanding) }}</td>
-                    <td>{{ r.inv.contract_start.strftime('%d %b %Y') if r.inv.contract_start else '' }}</td>
-                    <td>{{ r.inv.contract_end.strftime('%d %b %Y') if r.inv.contract_end else '' }}</td>
-                    <td>{{ r.rep_name }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -232,11 +223,6 @@
                 <td><strong>{{ "{:,.0f}".format(filtered_rows|sum(attribute='capital')) }}</strong></td>
                 <td></td>
                 <td><strong>{{ "{:,.0f}".format(filtered_rows|sum(attribute='monthly_roi')) }}</strong></td>
-                <td></td>
-                <td><strong>{{ "{:,.0f}".format(filtered_rows|sum(attribute='total_ever_due')) }}</strong></td>
-                <td><strong>{{ "{:,.0f}".format(filtered_rows|sum(attribute='total_paid')) }}</strong></td>
-                <td><strong>{{ "{:,.0f}".format(filtered_rows|sum(attribute='outstanding')) }}</strong></td>
-                <td></td><td></td><td></td>
             </tr></tfoot>
         </table>
     </div>
