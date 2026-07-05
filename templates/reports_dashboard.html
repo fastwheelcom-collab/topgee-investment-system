@@ -353,10 +353,7 @@
                 <div style="font-size:.75rem;opacity:.85;text-transform:uppercase;letter-spacing:.5px;">Total Capital</div>
                 <div style="font-size:1.1rem;font-weight:800;margin-top:4px;">{{ "{:,.0f}".format(sr.total_capital) }} AED</div>
             </div>
-            <div style="background:linear-gradient(135deg,#f97316,#ea580c);border-radius:12px;padding:16px;color:#fff;">
-                <div style="font-size:.75rem;opacity:.85;text-transform:uppercase;letter-spacing:.5px;">Monthly Sales Due</div>
-                <div style="font-size:1.1rem;font-weight:800;margin-top:4px;">{{ "{:,.0f}".format(sr.total_sales_monthly) }} AED</div>
-            </div>
+
             {% if has_date_filter %}
             <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:12px;padding:16px;color:#fff;">
                 <div style="font-size:.75rem;opacity:.85;text-transform:uppercase;letter-spacing:.5px;">📅 Paid in Range</div>
@@ -373,7 +370,6 @@
             <table>
                 <thead><tr>
                     <th>Investor</th><th>Capital (AED)</th>
-                    <th>Monthly Due</th>
                     {% if has_date_filter %}<th style="background:#7c3aed;color:#fff;">📅 Paid in Range</th>{% endif %}
                     <th>Total Paid (All Time)</th>
                 </tr></thead>
@@ -382,14 +378,6 @@
                     <tr>
                         <td><a href="{{ url_for('investor_detail', investor_id=r.inv.id) }}" class="client-link">{{ r.inv.name }}</a></td>
                         <td><strong>{{ "{:,.0f}".format(r.capital) }}</strong></td>
-                        <td class="or">
-                            {% if r.sales_monthly == 0 %}
-                            <span style="color:#ef4444;font-weight:700;">0 ⚠️</span>
-                            <a href="{{ url_for('edit_investor', investor_id=r.inv.id) }}" style="font-size:.75rem;color:#f97316;margin-left:4px;">(fix)</a>
-                            {% else %}
-                            {{ "{:,.0f}".format(r.sales_monthly) }}
-                            {% endif %}
-                        </td>
                         {% if has_date_filter %}
                         <td style="color:#7c3aed;font-weight:700;">{{ "{:,.0f}".format(r.total_sales_paid_filtered) }}</td>
                         {% endif %}
@@ -401,7 +389,6 @@
                     <tr>
                         <td><strong>TOTAL</strong></td>
                         <td><strong>{{ "{:,.0f}".format(sr.total_capital) }}</strong></td>
-                        <td class="or"><strong>{{ "{:,.0f}".format(sr.total_sales_monthly) }}</strong></td>
                         {% if has_date_filter %}
                         <td style="color:#7c3aed;font-weight:800;"><strong>{{ "{:,.0f}".format(sr.total_sales_paid_filtered) }}</strong></td>
                         {% endif %}
@@ -420,7 +407,7 @@
     <div class="table-container">
         <table id="reportTable">
             <thead><tr>
-                <th>Sales Rep</th><th>Investors</th><th>Total Capital</th><th>Monthly Due</th>
+                <th>Sales Rep</th><th>Investors</th><th>Total Capital</th>
                 {% if has_date_filter %}<th style="background:#7c3aed;color:#fff;">📅 Paid in Range</th>{% endif %}
                 <th>Total Paid (All Time)</th>
             </tr></thead>
@@ -430,7 +417,6 @@
                     <td><strong>{{ sr.rep.name }}</strong></td>
                     <td>{{ sr.investor_count }}</td>
                     <td>{{ "{:,.0f}".format(sr.total_capital) }}</td>
-                    <td class="or">{{ "{:,.0f}".format(sr.total_sales_monthly) }}</td>
                     {% if has_date_filter %}
                     <td style="color:#7c3aed;font-weight:700;">{{ "{:,.0f}".format(sr.total_sales_paid_filtered) }}</td>
                     {% endif %}
@@ -443,7 +429,6 @@
                     <td><strong>ALL REPS TOTAL</strong></td>
                     <td>{{ sales_rep_rows|sum(attribute='investor_count') }}</td>
                     <td>{{ "{:,.0f}".format(sales_rep_rows|sum(attribute='total_capital')) }}</td>
-                    <td class="or"><strong>{{ "{:,.0f}".format(sales_rep_rows|sum(attribute='total_sales_monthly')) }}</strong></td>
                     {% if has_date_filter %}
                     <td style="color:#7c3aed;font-weight:800;"><strong>{{ "{:,.0f}".format(sales_rep_rows|sum(attribute='total_sales_paid_filtered')) }}</strong></td>
                     {% endif %}
