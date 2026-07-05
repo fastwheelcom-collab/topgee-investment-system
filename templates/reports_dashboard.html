@@ -228,6 +228,35 @@
     </div>
     {% endif %}
 
+    {# ── YTD Summary — shown only when a single investor is selected ── #}
+    {% if filters.investor_id and filtered_rows %}
+    {% set ytd_year = now.year if now is defined else 2026 %}
+    {% set ns_ytd = namespace(total=0) %}
+    {% for r in filtered_rows %}
+        {% for t in r.payout_txns %}
+            {# payout_txns already filtered by date if set; for YTD we need all txns #}
+        {% endfor %}
+        {# Use all investor payouts (not date-filtered) for YTD #}
+        {% for t in r.inv.investment_transactions if t.transaction_type == 'Investor Payout' and t.transaction_date.year == now.year %}
+            {% set ns_ytd.total = ns_ytd.total + t.amount %}
+        {% endfor %}
+    {% endfor %}
+    <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);border-radius:12px;padding:16px 24px;margin-bottom:18px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+        <div style="color:#94a3b8;font-size:.78rem;text-transform:uppercase;letter-spacing:.5px;">📊 YTD Summary (2026)</div>
+        <div style="color:#fff;font-size:.9rem;font-weight:600;">{{ filtered_rows[0].inv.name }}</div>
+        <div style="margin-left:auto;display:flex;gap:24px;align-items:center;flex-wrap:wrap;">
+            <div style="text-align:right;">
+                <div style="color:#94a3b8;font-size:.72rem;text-transform:uppercase;">YTD Paid Out</div>
+                <div style="color:#34d399;font-size:1.15rem;font-weight:800;">{{ "{:,.2f}".format(ns_ytd.total) }} AED</div>
+            </div>
+            <div style="text-align:right;">
+                <div style="color:#94a3b8;font-size:.72rem;text-transform:uppercase;">YTD Paid (USD)</div>
+                <div style="color:#60a5fa;font-size:1.15rem;font-weight:800;">$ {{ "{:,.2f}".format(ns_ytd.total / exchange_rate) }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="table-container">
         <table id="reportTable">
             <thead><tr>

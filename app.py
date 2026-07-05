@@ -1501,6 +1501,7 @@ def reports_dashboard():
         has_date_filter  = has_date_filter,
         date_from        = date_from,
         date_to          = date_to,
+        now              = now,
     )
 
 @app.route('/investor/<int:investor_id>/transaction/add', methods=['POST'])
