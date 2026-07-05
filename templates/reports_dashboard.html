@@ -199,17 +199,44 @@
     {% endfor %}
 
     {% if not filters.investor_id and filtered_rows %}
+    {# Hidden combined table used only for CSV export — contains all investors as rows #}
     <div class="table-container" style="margin-top:8px;">
         <table id="reportTable">
-            <thead><tr><th>TOTALS</th><th></th><th>Monthly Due</th><th></th><th>Total Ever Due</th><th>Total Paid</th><th>Outstanding</th><th colspan="2"></th></tr></thead>
+            <thead><tr>
+                <th>Investor</th><th>Category</th><th>Capital (AED)</th>
+                <th>ROI %</th><th>Monthly Due (AED)</th><th>Months Active</th>
+                <th>Total Ever Due (AED)</th><th>Total Paid (AED)</th>
+                <th>Outstanding (AED)</th><th>Contract Start</th><th>Contract End</th><th>Sales Rep</th>
+            </tr></thead>
+            <tbody>
+                {% for r in filtered_rows %}
+                <tr>
+                    <td>{{ r.inv.name }}</td>
+                    <td>{{ r.inv.category }}</td>
+                    <td>{{ "{:,.0f}".format(r.capital) }}</td>
+                    <td>{{ r.inv.investor_roi_percent }}%</td>
+                    <td>{{ "{:,.0f}".format(r.monthly_roi) }}</td>
+                    <td>{{ r.months_active }}</td>
+                    <td>{{ "{:,.0f}".format(r.total_ever_due) }}</td>
+                    <td>{{ "{:,.0f}".format(r.total_paid) }}</td>
+                    <td>{{ "{:,.0f}".format(r.outstanding) }}</td>
+                    <td>{{ r.inv.contract_start.strftime('%d %b %Y') if r.inv.contract_start else '' }}</td>
+                    <td>{{ r.inv.contract_end.strftime('%d %b %Y') if r.inv.contract_end else '' }}</td>
+                    <td>{{ r.rep_name }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
             <tfoot><tr>
-                <td>{{ filtered_rows|length }} investors</td><td></td>
-                <td class="or">{{ "{:,.0f}".format(filtered_rows|sum(attribute='monthly_roi')) }}</td>
+                <td><strong>TOTALS ({{ filtered_rows|length }} investors)</strong></td>
                 <td></td>
-                <td>{{ "{:,.0f}".format(filtered_rows|sum(attribute='total_ever_due')) }}</td>
-                <td class="hi">{{ "{:,.0f}".format(filtered_rows|sum(attribute='total_paid')) }}</td>
-                <td class="red">{{ "{:,.0f}".format(filtered_rows|sum(attribute='outstanding')) }}</td>
-                <td colspan="2"></td>
+                <td><strong>{{ "{:,.0f}".format(filtered_rows|sum(attribute='capital')) }}</strong></td>
+                <td></td>
+                <td><strong>{{ "{:,.0f}".format(filtered_rows|sum(attribute='monthly_roi')) }}</strong></td>
+                <td></td>
+                <td><strong>{{ "{:,.0f}".format(filtered_rows|sum(attribute='total_ever_due')) }}</strong></td>
+                <td><strong>{{ "{:,.0f}".format(filtered_rows|sum(attribute='total_paid')) }}</strong></td>
+                <td><strong>{{ "{:,.0f}".format(filtered_rows|sum(attribute='outstanding')) }}</strong></td>
+                <td></td><td></td><td></td>
             </tr></tfoot>
         </table>
     </div>
