@@ -630,7 +630,8 @@ function dlCSV() {
     const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'TopGeeIt_{{ report_type }}_{{ filters.date_from or year_filt }}.csv';
+    const today = new Date().toISOString().slice(0,10);
+    a.download = 'TopGeeIt_{{ report_type }}_' + today + '.csv';
     a.click();
 }
 
