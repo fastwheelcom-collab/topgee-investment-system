@@ -122,7 +122,11 @@
                         <input type="number" name="tg_percent" step="0.1" value="{{ investor.tg_percent or 5.0 }}" min="0" max="100">
                         <small>ROI Pool target % (default 5%)</small>
                     </div>
-                    <input type="hidden" name="sales_roi_percent" value="0">
+                    <div class="form-group">
+                        <label>Sales ROI %</label>
+                        <input type="number" name="sales_roi_percent" step="0.1" value="{{ investor.sales_roi_percent or 0 }}" min="0" max="10">
+                        <small>Sales rep's monthly commission % (0 if no rep)</small>
+                    </div>
                 </div>
 
                 <div class="form-group">

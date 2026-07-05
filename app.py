@@ -821,7 +821,7 @@ def add_investor():
             investment_date=datetime.strptime(request.form['investment_date'], '%Y-%m-%d'),
             sales_rep_id=int(request.form['sales_rep_id']) if request.form.get('sales_rep_id') else None,
             investor_roi_percent=float(request.form.get('investor_roi_percent', 2.5)),
-            sales_roi_percent=float(request.form.get('sales_roi_percent', 0)),
+            sales_roi_percent=float(request.form.get('sales_roi_percent', 0) or 0),
             tg_percent=float(request.form.get('tg_percent', 5.0)),
             contract_start=contract_start,
             contract_end=contract_end,
