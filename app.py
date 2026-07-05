@@ -729,12 +729,11 @@ def investor_detail(investor_id):
         expected_roi = investor.monthly_investor_roi
         
         # Determine paid status
+        # Any amount tagged to a month = Paid
+        # Sadi manually enters payout amounts which may differ from expected ROI
         paid_status = 'unpaid'
         if total_paid > 0:
-            if total_paid >= expected_roi * 0.95:  # Allow 5% variance
-                paid_status = 'paid'
-            else:
-                paid_status = 'partial'
+            paid_status = 'paid'
         
         ledger.append({
             'month': month_num,
