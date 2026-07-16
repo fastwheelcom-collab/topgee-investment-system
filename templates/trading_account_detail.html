@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ acc.broker_name }} — Trading History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .back-btn { display:inline-flex;align-items:center;gap:6px;color:#60a5fa;text-decoration:none;font-weight:600;font-size:.9rem;margin-bottom:20px; }
+        .detail-header { background:#1e293b;border-radius:14px;padding:24px;margin-bottom:24px;border:1px solid #334155; }
+        .detail-stats { display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:16px; }
+        .d-stat { background:#0f172a;border-radius:10px;padding:12px 14px; }
+        .d-stat-lbl { font-size:.68rem;color:#64748b;text-transform:uppercase;letter-spacing:.5px; }
+        .d-stat-val { font-size:1.05rem;font-weight:800;color:#e2e8f0;margin-top:3px; }
+        .d-stat-val.green { color:#34d399; }
+        .d-stat-val.red   { color:#f87171; }
+        .d-stat-val.blue  { color:#60a5fa; }
+        .d-stat-val.yellow{ color:#fbbf24; }
+        .section-title { font-size:.8rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin:24px 0 12px; }
+        table { width:100%;border-collapse:collapse;background:#1e293b;border-radius:12px;overflow:hidden; }
+        th { background:#0f172a;color:#94a3b8;font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;text-align:left; }
+        td { padding:10px 14px;font-size:.88rem;color:#e2e8f0;border-bottom:1px solid #1e293b; }
+        tr:last-child td { border-bottom:none; }
+        tr:hover td { background:#243044; }
+        .badge-dep  { background:#1e3a5f;color:#60a5fa;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700; }
+        .badge-with { background:#451a03;color:#fb923c;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700; }
+        .badge-profit { background:#064e3b;color:#34d399;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700; }
+        .badge-loss   { background:#450a0a;color:#f87171;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700; }
+        .empty-state { text-align:center;padding:40px;color:#475569; }
+        .flash-msg { padding:12px 16px;border-radius:10px;margin-bottom:16px;font-weight:600; }
+        .flash-success { background:#064e3b;color:#34d399;border:1px solid #065f46; }
+    </style>
+</head>
+<body>
+<nav class="navbar">
+    <div class="container">
+        <h1>🏦 TopGee It</h1>
+        <div class="nav-links">
+            <a href="{{ url_for('dashboard') }}">All Investors</a>
+            <a href="{{ url_for('trading_accounts') }}" style="color:#fbbf24;font-weight:700;">📊 Trading Accounts</a>
+            <a href="{{ url_for('logout') }}" style="color:#f87171;">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container" style="padding-top:24px;">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}
+    <div class="flash-msg flash-{{ cat }}">{{ msg }}</div>
+    {% endfor %}{% endif %}
+    {% endwith %}
+
+    <a href="{{ url_for('trading_accounts') }}" class="back-btn">← Back to Trading Accounts</a>
+
+    <!-- Header -->
+    <div class="detail-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+            <div>
+                <div style="font-size:1.4rem;font-weight:800;color:#f1f5f9;">{{ acc.broker_name }}</div>
+                <div style="font-size:.85rem;color:#64748b;margin-top:4px;">
+                    {{ acc.platform }} · {{ acc.symbol }} · {{ acc.currency }}
+                    {% if acc.account_number %} · Acc: {{ acc.account_number }}{% endif %}
+                </div>
+                {% if acc.notes %}<div style="font-size:.82rem;color:#94a3b8;margin-top:4px;">{{ acc.notes }}</div>{% endif %}
+            </div>
+            <span style="background:{% if acc.is_active %}#064e3b{% else %}#450a0a{% endif %};color:{% if acc.is_active %}#34d399{% else %}#f87171{% endif %};padding:6px 14px;border-radius:20px;font-weight:700;font-size:.82rem;">
+                {% if acc.is_active %}● ACTIVE{% else %}○ INACTIVE{% endif %}
+            </span>
+        </div>
+        <div class="detail-stats">
+            <div class="d-stat"><div class="d-stat-lbl">Total Invested</div><div class="d-stat-val blue">${{ '{:,.2f}'.format(acc.total_invested) }}</div></div>
+            <div class="d-stat"><div class="d-stat-lbl">Total Withdrawn</div><div class="d-stat-val yellow">${{ '{:,.2f}'.format(acc.total_withdrawn) }}</div></div>
+            <div class="d-stat"><div class="d-stat-lbl">Current Balance</div><div class="d-stat-val">${{ '{:,.2f}'.format(acc.current_balance) }}</div></div>
+            <div class="d-stat"><div class="d-stat-lbl">Net Profit</div><div class="d-stat-val {% if acc.net_profit >= 0 %}green{% else %}red{% endif %}">${{ '{:+,.2f}'.format(acc.net_profit) }}</div></div>
+            <div class="d-stat"><div class="d-stat-lbl">Today</div><div class="d-stat-val {% if acc.today_profit >= 0 %}green{% else %}red{% endif %}">${{ '{:+,.2f}'.format(acc.today_profit) }}</div></div>
+            <div class="d-stat"><div class="d-stat-lbl">This Week</div><div class="d-stat-val {% if acc.week_profit >= 0 %}green{% else %}red{% endif %}">${{ '{:+,.2f}'.format(acc.week_profit) }}</div></div>
+            <div class="d-stat"><div class="d-stat-lbl">This Month</div><div class="d-stat-val {% if acc.month_profit >= 0 %}green{% else %}red{% endif %}">${{ '{:+,.2f}'.format(acc.month_profit) }}</div></div>
+            <div class="d-stat"><div class="d-stat-lbl">All Time Profit</div><div class="d-stat-val {% if acc.total_profit >= 0 %}green{% else %}red{% endif %}">${{ '{:+,.2f}'.format(acc.total_profit) }}</div></div>
+        </div>
+    </div>
+
+    <!-- Daily Profits -->
+    <div class="section-title">📈 Daily Profit History</div>
+    {% if profits %}
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Profit / Loss</th>
+                <th>Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in profits %}
+            <tr>
+                <td>{{ p.profit_date.strftime('%d %b %Y') }}</td>
+                <td>
+                    <span class="{% if p.profit_amount >= 0 %}badge-profit{% else %}badge-loss{% endif %}">
+                        ${{ '{:+,.2f}'.format(p.profit_amount) }}
+                    </span>
+                </td>
+                <td style="color:#64748b;">{{ p.notes or '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">No profit records yet. Use "+ Profit" to add daily results.</div>
+    {% endif %}
+
+    <!-- Transactions -->
+    <div class="section-title">💳 Deposit / Withdrawal History</div>
+    {% if txns %}
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in txns %}
+            <tr>
+                <td>{{ t.txn_date.strftime('%d %b %Y') }}</td>
+                <td>
+                    <span class="{% if t.txn_type == 'deposit' %}badge-dep{% else %}badge-with{% endif %}">
+                        {{ t.txn_type.title() }}
+                    </span>
+                </td>
+                <td style="font-weight:700;color:{% if t.txn_type == 'deposit' %}#60a5fa{% else %}#fb923c{% endif %};">
+                    ${{ '{:,.2f}'.format(t.amount) }}
+                </td>
+                <td style="color:#64748b;">{{ t.notes or '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">No transactions yet.</div>
+    {% endif %}
+</div>
+</body>
+</html>

@@ -346,6 +346,88 @@ class AuditLog(db.Model):
     target_name = db.Column(db.String(200),nullable=True)    # human label e.g. investor name
     detail      = db.Column(db.Text,      nullable=True)     # extra detail / old value
 
+# ============= TRADING ACCOUNTS =============
+
+class TradingAccount(db.Model):
+    __tablename__ = 'trading_accounts'
+    id              = db.Column(db.Integer, primary_key=True)
+    broker_name     = db.Column(db.String(100), nullable=False)
+    account_number  = db.Column(db.String(60))
+    platform        = db.Column(db.String(40), default='MT5')  # MT5, MT4, cTrader
+    symbol          = db.Column(db.String(30), default='XAUUSD')  # trading symbol
+    currency        = db.Column(db.String(10), default='USD')
+    total_invested  = db.Column(db.Float, default=0.0)   # total deposits
+    total_withdrawn = db.Column(db.Float, default=0.0)   # total withdrawals
+    current_balance = db.Column(db.Float, default=0.0)   # current balance
+    notes           = db.Column(db.Text)
+    is_active       = db.Column(db.Boolean, default=True)
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    profits = db.relationship('AccountProfit', backref='account', lazy=True, cascade='all, delete-orphan')
+    transactions = db.relationship('AccountTransaction', backref='account', lazy=True, cascade='all, delete-orphan')
+
+    @property
+    def net_profit(self):
+        return self.current_balance - self.total_invested + self.total_withdrawn
+
+    @property
+    def today_profit(self):
+        from datetime import date
+        today = date.today()
+        p = AccountProfit.query.filter_by(account_id=self.id, profit_date=today).first()
+        return p.profit_amount if p else 0.0
+
+    @property
+    def week_profit(self):
+        from datetime import date, timedelta
+        week_ago = date.today() - timedelta(days=7)
+        total = db.session.query(db.func.sum(AccountProfit.profit_amount)).filter(
+            AccountProfit.account_id == self.id,
+            AccountProfit.profit_date >= week_ago
+        ).scalar()
+        return total or 0.0
+
+    @property
+    def month_profit(self):
+        from datetime import date
+        today = date.today()
+        total = db.session.query(db.func.sum(AccountProfit.profit_amount)).filter(
+            AccountProfit.account_id == self.id,
+            db.extract('year',  AccountProfit.profit_date) == today.year,
+            db.extract('month', AccountProfit.profit_date) == today.month
+        ).scalar()
+        return total or 0.0
+
+    @property
+    def total_profit(self):
+        total = db.session.query(db.func.sum(AccountProfit.profit_amount)).filter(
+            AccountProfit.account_id == self.id
+        ).scalar()
+        return total or 0.0
+
+
+class AccountProfit(db.Model):
+    __tablename__ = 'account_profits'
+    id             = db.Column(db.Integer, primary_key=True)
+    account_id     = db.Column(db.Integer, db.ForeignKey('trading_accounts.id'), nullable=False)
+    profit_date    = db.Column(db.Date, nullable=False)
+    profit_amount  = db.Column(db.Float, default=0.0)
+    notes          = db.Column(db.String(200))
+    created_at     = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class AccountTransaction(db.Model):
+    __tablename__ = 'account_transactions'
+    id             = db.Column(db.Integer, primary_key=True)
+    account_id     = db.Column(db.Integer, db.ForeignKey('trading_accounts.id'), nullable=False)
+    txn_date       = db.Column(db.Date, nullable=False)
+    txn_type       = db.Column(db.String(20), nullable=False)  # deposit / withdrawal
+    amount         = db.Column(db.Float, default=0.0)
+    notes          = db.Column(db.String(200))
+    created_at     = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 # ============= DATABASE INITIALIZATION =============
 
 def audit(action, target_type, target_name='', target_id=None, detail=''):
@@ -2426,6 +2508,170 @@ def backup_download():
     buf.seek(0)
     filename = f'TopGeeIt_Backup_{now.strftime("%Y-%m-%d_%H-%M")}.json'
     return send_file(buf, as_attachment=True, download_name=filename, mimetype='application/json')
+
+# ============= TRADING ACCOUNTS ROUTES =============
+
+@app.route('/trading-accounts')
+def trading_accounts():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    accounts = TradingAccount.query.order_by(TradingAccount.is_active.desc(), TradingAccount.broker_name).all()
+    # Totals
+    total_invested  = sum(a.total_invested  for a in accounts)
+    total_withdrawn = sum(a.total_withdrawn for a in accounts)
+    total_balance   = sum(a.current_balance for a in accounts)
+    total_profit    = sum(a.total_profit    for a in accounts)
+    today_profit    = sum(a.today_profit    for a in accounts)
+    week_profit     = sum(a.week_profit     for a in accounts)
+    month_profit    = sum(a.month_profit    for a in accounts)
+    from datetime import date
+    return render_template('trading_accounts.html',
+        accounts=accounts,
+        total_invested=total_invested,
+        total_withdrawn=total_withdrawn,
+        total_balance=total_balance,
+        total_profit=total_profit,
+        today_profit=today_profit,
+        week_profit=week_profit,
+        month_profit=month_profit,
+        today=date.today().isoformat(),
+        is_admin=session.get('is_admin', False),
+        current_user=session.get('username', ''),
+        current_user_pic=session.get('profile_pic'),
+    )
+
+
+@app.route('/trading-accounts/add', methods=['POST'])
+def trading_account_add():
+    if not session.get('logged_in') or not session.get('is_admin'):
+        return redirect(url_for('login'))
+    acc = TradingAccount(
+        broker_name    = request.form['broker_name'],
+        account_number = request.form.get('account_number', ''),
+        platform       = request.form.get('platform', 'MT5'),
+        symbol         = request.form.get('symbol', 'XAUUSD'),
+        currency       = request.form.get('currency', 'USD'),
+        total_invested = float(request.form.get('total_invested') or 0),
+        current_balance= float(request.form.get('current_balance') or 0),
+        notes          = request.form.get('notes', ''),
+        is_active      = True,
+    )
+    db.session.add(acc)
+    db.session.commit()
+    audit('ADD', 'TradingAccount', acc.broker_name, acc.id)
+    flash(f'Account "{acc.broker_name}" added!', 'success')
+    return redirect(url_for('trading_accounts'))
+
+
+@app.route('/trading-accounts/<int:acc_id>/edit', methods=['POST'])
+def trading_account_edit(acc_id):
+    if not session.get('logged_in') or not session.get('is_admin'):
+        return redirect(url_for('login'))
+    acc = TradingAccount.query.get_or_404(acc_id)
+    acc.broker_name    = request.form['broker_name']
+    acc.account_number = request.form.get('account_number', '')
+    acc.platform       = request.form.get('platform', 'MT5')
+    acc.symbol         = request.form.get('symbol', 'XAUUSD')
+    acc.currency       = request.form.get('currency', 'USD')
+    acc.current_balance= float(request.form.get('current_balance') or 0)
+    acc.notes          = request.form.get('notes', '')
+    acc.is_active      = request.form.get('is_active') == 'on'
+    db.session.commit()
+    audit('EDIT', 'TradingAccount', acc.broker_name, acc.id)
+    flash('Account updated!', 'success')
+    return redirect(url_for('trading_accounts'))
+
+
+@app.route('/trading-accounts/<int:acc_id>/delete', methods=['POST'])
+def trading_account_delete(acc_id):
+    if not session.get('logged_in') or not session.get('is_admin'):
+        return redirect(url_for('login'))
+    acc = TradingAccount.query.get_or_404(acc_id)
+    audit('DELETE', 'TradingAccount', acc.broker_name, acc.id)
+    db.session.delete(acc)
+    db.session.commit()
+    flash('Account deleted.', 'success')
+    return redirect(url_for('trading_accounts'))
+
+
+@app.route('/trading-accounts/<int:acc_id>/profit/add', methods=['POST'])
+def trading_account_profit_add(acc_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    from datetime import date
+    acc = TradingAccount.query.get_or_404(acc_id)
+    profit_date = request.form.get('profit_date') or date.today().isoformat()
+    amount = float(request.form.get('amount') or 0)
+    notes  = request.form.get('notes', '')
+    # Upsert: one entry per date per account
+    existing = AccountProfit.query.filter_by(
+        account_id=acc_id,
+        profit_date=date.fromisoformat(profit_date)
+    ).first()
+    if existing:
+        existing.profit_amount = amount
+        existing.notes = notes
+    else:
+        p = AccountProfit(
+            account_id=acc_id,
+            profit_date=date.fromisoformat(profit_date),
+            profit_amount=amount,
+            notes=notes,
+        )
+        db.session.add(p)
+    # Update current balance
+    acc.current_balance = float(request.form.get('current_balance') or acc.current_balance)
+    db.session.commit()
+    flash(f'Profit ${amount:,.2f} recorded for {profit_date}.', 'success')
+    return redirect(url_for('trading_accounts'))
+
+
+@app.route('/trading-accounts/<int:acc_id>/transaction/add', methods=['POST'])
+def trading_account_txn_add(acc_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    from datetime import date
+    acc = TradingAccount.query.get_or_404(acc_id)
+    txn_type = request.form.get('txn_type')   # deposit / withdrawal
+    amount   = float(request.form.get('amount') or 0)
+    txn_date = request.form.get('txn_date') or date.today().isoformat()
+    notes    = request.form.get('notes', '')
+    txn = AccountTransaction(
+        account_id=acc_id,
+        txn_date=date.fromisoformat(txn_date),
+        txn_type=txn_type,
+        amount=amount,
+        notes=notes,
+    )
+    db.session.add(txn)
+    if txn_type == 'deposit':
+        acc.total_invested  += amount
+        acc.current_balance += amount
+    elif txn_type == 'withdrawal':
+        acc.total_withdrawn += amount
+        acc.current_balance -= amount
+    db.session.commit()
+    audit('ADD', 'AccountTransaction', f'{acc.broker_name} {txn_type} ${amount}', acc_id)
+    flash(f'{txn_type.title()} of ${amount:,.2f} recorded.', 'success')
+    return redirect(url_for('trading_accounts'))
+
+
+@app.route('/trading-accounts/<int:acc_id>/detail')
+def trading_account_detail(acc_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    from datetime import date
+    acc      = TradingAccount.query.get_or_404(acc_id)
+    profits  = AccountProfit.query.filter_by(account_id=acc_id).order_by(AccountProfit.profit_date.desc()).all()
+    txns     = AccountTransaction.query.filter_by(account_id=acc_id).order_by(AccountTransaction.txn_date.desc()).all()
+    return render_template('trading_account_detail.html',
+        acc=acc, profits=profits, txns=txns,
+        today=date.today().isoformat(),
+        is_admin=session.get('is_admin', False),
+        current_user=session.get('username', ''),
+        current_user_pic=session.get('profile_pic'),
+    )
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
