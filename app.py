@@ -352,6 +352,7 @@ class TradingAccount(db.Model):
     __tablename__ = 'trading_accounts'
     id              = db.Column(db.Integer, primary_key=True)
     broker_name     = db.Column(db.String(100), nullable=False)
+    account_holder  = db.Column(db.String(100))               # account holder name
     account_number  = db.Column(db.String(60))
     platform        = db.Column(db.String(40), default='MT5')  # MT5, MT4, cTrader
     symbol          = db.Column(db.String(30), default='XAUUSD')  # trading symbol
@@ -475,6 +476,7 @@ def ensure_db_ready():
                 ('revenue_history', 'capital_pct',        'FLOAT'),
                 ('investor',        'tg_percent',         'FLOAT DEFAULT 5.0'),
                 ('user_account',     'profile_pic',        'VARCHAR(256)'),
+                ('trading_accounts', 'account_holder',     'VARCHAR(100)'),
             ]
             for table, col, typ in migrations:
                 try:
@@ -2547,6 +2549,7 @@ def trading_account_add():
         return redirect(url_for('login'))
     acc = TradingAccount(
         broker_name    = request.form['broker_name'],
+        account_holder = request.form.get('account_holder', ''),
         account_number = request.form.get('account_number', ''),
         platform       = request.form.get('platform', 'MT5'),
         symbol         = request.form.get('symbol', 'XAUUSD'),
@@ -2569,6 +2572,7 @@ def trading_account_edit(acc_id):
         return redirect(url_for('login'))
     acc = TradingAccount.query.get_or_404(acc_id)
     acc.broker_name    = request.form['broker_name']
+    acc.account_holder = request.form.get('account_holder', '')
     acc.account_number = request.form.get('account_number', '')
     acc.platform       = request.form.get('platform', 'MT5')
     acc.symbol         = request.form.get('symbol', 'XAUUSD')

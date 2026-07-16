@@ -170,6 +170,7 @@
             </div>
 
             <div class="ta-broker">{{ acc.broker_name }}</div>
+            {% if acc.account_holder %}<div style="font-size:.82rem;color:var(--text-secondary);margin-bottom:2px;">👤 {{ acc.account_holder }}</div>{% endif %}
             <div class="ta-sub">
                 {% if acc.account_number %}Acc: {{ acc.account_number }} · {% endif %}{{ acc.currency }}
                 {% if acc.notes %} · {{ acc.notes[:40] }}{% if acc.notes|length > 40 %}…{% endif %}{% endif %}
@@ -223,7 +224,7 @@
                 <button class="ta-btn withdraw" onclick="openTxnModal({{ acc.id }}, '{{ acc.broker_name }}', 'withdrawal')">↑ Withdraw</button>
                 <a href="{{ url_for('trading_account_detail', acc_id=acc.id) }}" class="ta-btn detail">📋 History</a>
                 {% if is_admin %}
-                <button class="ta-btn edit" onclick="openEditModal({{ acc.id }}, '{{ acc.broker_name }}', '{{ acc.account_number or '' }}', '{{ acc.platform }}', '{{ acc.symbol }}', '{{ acc.currency }}', {{ acc.current_balance }}, '{{ (acc.notes or '')|replace("'", "") }}', {{ 'true' if acc.is_active else 'false' }})">✏️</button>
+                <button class="ta-btn edit" onclick="openEditModal({{ acc.id }}, '{{ acc.broker_name }}', '{{ acc.account_holder or '' }}', '{{ acc.account_number or '' }}', '{{ acc.platform }}', '{{ acc.symbol }}', '{{ acc.currency }}', {{ acc.current_balance }}, '{{ (acc.notes or '')|replace("'", "") }}', {{ 'true' if acc.is_active else 'false' }})">✏️</button>
                 <form method="POST" action="{{ url_for('trading_account_delete', acc_id=acc.id) }}" style="display:inline" onsubmit="return confirm('Delete {{ acc.broker_name }}?')">
                     <button type="submit" class="ta-btn del">🗑</button>
                 </form>
@@ -249,6 +250,10 @@
             <div class="form-group">
                 <label>Broker Name *</label>
                 <input type="text" name="broker_name" required placeholder="e.g. Vantage, Exness, PUPrime">
+            </div>
+            <div class="form-group">
+                <label>Account Holder Name</label>
+                <input type="text" name="account_holder" placeholder="e.g. Sadi Ali">
             </div>
             <div class="form-group">
                 <label>Account Number</label>
@@ -305,6 +310,7 @@
         <h3>✏️ Edit Account</h3>
         <form method="POST" id="editAccountForm">
             <div class="form-group"><label>Broker Name *</label><input type="text" name="broker_name" id="edit_broker_name" required></div>
+            <div class="form-group"><label>Account Holder Name</label><input type="text" name="account_holder" id="edit_account_holder"></div>
             <div class="form-group"><label>Account Number</label><input type="text" name="account_number" id="edit_account_number"></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                 <div class="form-group"><label>Platform</label>
@@ -392,9 +398,10 @@ function openTxnModal(accId, name, type) {
     document.getElementById('txnSubmitBtn').textContent = type==='deposit'?'Record Deposit':'Record Withdrawal';
     openModal('txnModal');
 }
-function openEditModal(id, broker, accNum, platform, symbol, currency, balance, notes, isActive) {
+function openEditModal(id, broker, holder, accNum, platform, symbol, currency, balance, notes, isActive) {
     document.getElementById('editAccountForm').action = '/trading-accounts/' + id + '/edit';
     document.getElementById('edit_broker_name').value  = broker;
+    document.getElementById('edit_account_holder').value = holder;
     document.getElementById('edit_account_number').value = accNum;
     document.getElementById('edit_platform').value    = platform;
     document.getElementById('edit_symbol').value      = symbol;
