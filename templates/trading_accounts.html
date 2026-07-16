@@ -185,22 +185,22 @@
             <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:.78rem;">
                 <span style="color:var(--text-secondary);">Invested </span>
                 <strong style="color:#357ABD;">${{ '{:,.0f}'.format(h_invested) }}</strong>
-                <span style="color:var(--text-secondary);font-size:.68rem;"> AED {{ '{:,.0f}'.format(h_invested*3.67) }}</span>
+
             </div>
             <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:.78rem;">
                 <span style="color:var(--text-secondary);">Withdrawn </span>
                 <strong style="color:#F57C00;">${{ '{:,.0f}'.format(h_withdrawn) }}</strong>
-                <span style="color:var(--text-secondary);font-size:.68rem;"> AED {{ '{:,.0f}'.format(h_withdrawn*3.67) }}</span>
+
             </div>
             <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:.78rem;">
                 <span style="color:var(--text-secondary);">Net Profit </span>
                 <strong style="color:{% if h_profit >= 0 %}#388E3C{% else %}#c0392b{% endif %};">{{ '+' if h_profit >= 0 else '' }}${{ '{:,.0f}'.format(h_profit) }}</strong>
-                <span style="color:var(--text-secondary);font-size:.68rem;"> AED {{ '{:+,.0f}'.format(h_profit*3.67) }}</span>
+
             </div>
             <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:.78rem;">
                 <span style="color:var(--text-secondary);">Balance </span>
                 <strong style="color:var(--text-primary);">${{ '{:,.0f}'.format(h_balance) }}</strong>
-                <span style="color:var(--text-secondary);font-size:.68rem;"> AED {{ '{:,.0f}'.format(h_balance*3.67) }}</span>
+
             </div>
         </div>
     </div>
