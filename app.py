@@ -2704,6 +2704,7 @@ def trading_account_detail(acc_id):
         is_admin=session.get('is_admin', False),
         current_user=session.get('username', ''),
         current_user_pic=session.get('profile_pic'),
+        sales_reps=[],
     )
 
 

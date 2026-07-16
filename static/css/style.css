@@ -104,6 +104,8 @@ body {
 .nav-links a.nav-backup.active  { background: #14532d !important; }
 
 /* Purple — Users, Audit Log */
+.nav-links a.nav-forex  { background: #b45309; }
+.nav-links a.nav-forex.active { background: #92400e !important; }
 .nav-links a.nav-users { background: #7c3aed; }
 .nav-links a.nav-audit { background: #7c3aed; }
 .nav-links a.nav-users.active { background: #5b21b6 !important; }

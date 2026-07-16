@@ -22,10 +22,10 @@
         td { padding:10px 14px;font-size:.88rem;color:var(--text-primary);border-bottom:1px solid var(--bg-card); }
         tr:last-child td { border-bottom:none; }
         tr:hover td { background:var(--bg-hover); }
-        .badge-dep  { background:#1e3a5f;color:#357ABD;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700; }
-        .badge-with { background:#451a03;color:#fb923c;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700; }
-        .badge-profit { background:#064e3b;color:#388E3C;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700; }
-        .badge-loss   { background:#450a0a;color:#c0392b;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700; }
+        .badge-dep    { background:rgba(74,144,226,0.15);color:#357ABD;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700;border:1px solid rgba(74,144,226,0.3); }
+        .badge-with   { background:rgba(255,152,0,0.15);color:#F57C00;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700;border:1px solid rgba(255,152,0,0.3); }
+        .badge-profit { background:rgba(76,175,80,0.15);color:#388E3C;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700;border:1px solid rgba(76,175,80,0.3); }
+        .badge-loss   { background:rgba(192,57,43,0.12);color:#c0392b;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700;border:1px solid rgba(192,57,43,0.3); }
         .empty-state { text-align:center;padding:40px;color:var(--text-secondary); }
         .flash-msg { padding:12px 16px;border-radius:10px;margin-bottom:16px;font-weight:600; }
         .flash-success { background:#064e3b;color:#388E3C;border:1px solid #065f46; }
@@ -35,10 +35,28 @@
 <nav class="navbar">
     <div class="container">
         <h1>🏦 TopGee It</h1>
+        <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
         <div class="nav-links">
-            <a href="{{ url_for('dashboard') }}">All Investors</a>
-            <a href="{{ url_for('trading_accounts') }}" style="color:#F57C00;font-weight:700;">📊 Trading Accounts</a>
-            <a href="{{ url_for('logout') }}" style="color:#c0392b;">Logout</a>
+            <a href="{{ url_for('dashboard') }}" class="nav-investors">All Investors</a>
+            <a href="{{ url_for('analytics_dashboard') }}" class="nav-dashboard">Dashboard</a>
+            <a href="{{ url_for('reports_dashboard') }}" class="nav-reports">Reports</a>
+            <a href="{{ url_for('trading_accounts') }}" class="nav-forex active">📊 Forex</a>
+            <a href="{{ url_for('sales_reps') }}" class="nav-sales">Sales Team</a>
+            {% if is_admin %}<a href="{{ url_for('add_investor') }}" class="btn-green">+ Add Investor</a>{% endif %}
+            <a href="{{ url_for('backup') }}" class="nav-backup">Backup</a>
+            {% if is_admin %}<a href="{{ url_for('users') }}" class="nav-users">Users</a>{% endif %}
+            <a href="{{ url_for('audit_log') }}" class="nav-audit">Audit Log</a>
+            <div style="position:relative;display:inline-block;" id="profileMenu">
+                <button onclick="toggleProfile()" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:4px 12px;font-weight:700;font-size:.85rem;cursor:pointer;">
+                    {{ current_user }} ▾
+                </button>
+                <div id="profileDropdown" style="display:none;position:absolute;right:0;top:110%;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);min-width:160px;z-index:9999;overflow:hidden;border:1px solid #eee;">
+                    <a href="{{ url_for('profile') }}" style="display:block;padding:12px 16px;color:#374151;text-decoration:none;font-weight:600;border-bottom:1px solid #f3f4f6;">👤 My Profile</a>
+                    <a href="{{ url_for('change_password') }}" style="display:block;padding:12px 16px;color:#374151;text-decoration:none;font-weight:600;border-bottom:1px solid #f3f4f6;">🔑 Change Password</a>
+                    <a href="{{ url_for('logout') }}" style="display:block;padding:12px 16px;color:#dc2626;text-decoration:none;font-weight:700;">🚪 Logout</a>
+                </div>
+            </div>
+            <script>function toggleProfile(){var d=document.getElementById("profileDropdown");d.style.display=d.style.display=="none"?"block":"none";}document.addEventListener("click",function(e){if(!document.getElementById("profileMenu").contains(e.target)){document.getElementById("profileDropdown").style.display="none";}});</script>
         </div>
     </div>
 </nav>
