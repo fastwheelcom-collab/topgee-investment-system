@@ -2519,7 +2519,16 @@ def backup_download():
 def trading_accounts():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    accounts = TradingAccount.query.order_by(TradingAccount.is_active.desc(), TradingAccount.account_holder, TradingAccount.broker_name).all()
+    from sqlalchemy import case, func
+    accounts = TradingAccount.query.order_by(
+        TradingAccount.is_active.desc(),
+        case(
+            (func.coalesce(TradingAccount.account_holder, '') == '', 1),
+            else_=0
+        ),
+        TradingAccount.account_holder,
+        TradingAccount.broker_name
+    ).all()
     # Totals
     total_invested  = sum(a.total_invested  for a in accounts)
     total_withdrawn = sum(a.total_withdrawn for a in accounts)
