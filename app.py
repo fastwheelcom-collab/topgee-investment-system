@@ -2519,7 +2519,7 @@ def backup_download():
 def trading_accounts():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    accounts = TradingAccount.query.order_by(TradingAccount.is_active.desc(), TradingAccount.broker_name).all()
+    accounts = TradingAccount.query.order_by(TradingAccount.is_active.desc(), TradingAccount.account_holder, TradingAccount.broker_name).all()
     # Totals
     total_invested  = sum(a.total_invested  for a in accounts)
     total_withdrawn = sum(a.total_withdrawn for a in accounts)
