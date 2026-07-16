@@ -78,7 +78,7 @@
                 <div style="font-size:.85rem;color:var(--text-secondary);margin-top:4px;">
                     {{ acc.platform }} · {{ acc.symbol }} · {{ acc.currency }}
                     {% if acc.account_holder %} · 👤 {{ acc.account_holder }}{% endif %}
-                    {% if acc.account_number %} · Acc: {{ acc.account_number }}{% endif %}
+                    {% if acc.account_number %} · Acc: {{ acc.account_number }}{% endif %}{% if acc.deposit_via %} · Via: {{ acc.deposit_via }}{% endif %}
                 </div>
                 {% if acc.notes %}<div style="font-size:.82rem;color:var(--text-secondary);margin-top:4px;">{{ acc.notes }}</div>{% endif %}
             </div>
