@@ -2577,14 +2577,19 @@ def trading_accounts():
     week_profit     = sum(a.week_profit     for a in accounts)
     month_profit    = sum(a.month_profit    for a in accounts)
     from datetime import date
-    # Group by account holder for display
+    # Group by account holder, sorted by count desc
     from collections import OrderedDict
-    grouped = OrderedDict()
+    grouped_raw = {}
     for a in accounts:
         holder = a.account_holder or ''
-        if holder not in grouped:
-            grouped[holder] = []
-        grouped[holder].append(a)
+        if holder not in grouped_raw:
+            grouped_raw[holder] = []
+        grouped_raw[holder].append(a)
+    # Sort: named holders by count desc, unnamed always last
+    named   = {k: v for k, v in grouped_raw.items() if k}
+    unnamed = {k: v for k, v in grouped_raw.items() if not k}
+    sorted_named = OrderedDict(sorted(named.items(), key=lambda x: len(x[1]), reverse=True))
+    grouped = OrderedDict(**sorted_named, **unnamed)
     return render_template('trading_accounts.html',
         accounts=accounts,
         grouped=grouped,
