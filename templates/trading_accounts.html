@@ -167,12 +167,42 @@
     <!-- Account Cards — grouped by holder -->
     {% if accounts %}
     {% for holder, holder_accounts in grouped.items() %}
-    <div style="display:flex;align-items:center;gap:10px;margin:24px 0 10px;">
-        <div style="font-size:1rem;font-weight:800;color:var(--text-primary);">
-            {% if holder %}👤 {{ holder }}{% else %}— Unassigned —{% endif %}
+    {% set h_invested  = holder_accounts | sum(attribute='total_invested') %}
+    {% set h_withdrawn = holder_accounts | sum(attribute='total_withdrawn') %}
+    {% set h_balance   = holder_accounts | sum(attribute='current_balance') %}
+    {% set h_profit    = holder_accounts | sum(attribute='net_profit') %}
+    <div style="margin:28px 0 10px;">
+        <!-- Row 1: name + divider + count -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <div style="font-size:1rem;font-weight:800;color:var(--text-primary);white-space:nowrap;">
+                {% if holder %}👤 {{ holder }}{% else %}— Unassigned —{% endif %}
+            </div>
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+            <div style="font-size:.75rem;color:var(--text-secondary);white-space:nowrap;">{{ holder_accounts|length }} account{{ 's' if holder_accounts|length != 1 else '' }}</div>
         </div>
-        <div style="flex:1;height:1px;background:var(--border);"></div>
-        <div style="font-size:.78rem;color:var(--text-secondary);">{{ holder_accounts|length }} account{{ 's' if holder_accounts|length != 1 else '' }}</div>
+        <!-- Row 2: holder summary stats -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:.78rem;">
+                <span style="color:var(--text-secondary);">Invested </span>
+                <strong style="color:#357ABD;">${{ '{:,.0f}'.format(h_invested) }}</strong>
+                <span style="color:var(--text-secondary);font-size:.68rem;"> AED {{ '{:,.0f}'.format(h_invested*3.67) }}</span>
+            </div>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:.78rem;">
+                <span style="color:var(--text-secondary);">Withdrawn </span>
+                <strong style="color:#F57C00;">${{ '{:,.0f}'.format(h_withdrawn) }}</strong>
+                <span style="color:var(--text-secondary);font-size:.68rem;"> AED {{ '{:,.0f}'.format(h_withdrawn*3.67) }}</span>
+            </div>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:.78rem;">
+                <span style="color:var(--text-secondary);">Net Profit </span>
+                <strong style="color:{% if h_profit >= 0 %}#388E3C{% else %}#c0392b{% endif %};">{{ '+' if h_profit >= 0 else '' }}${{ '{:,.0f}'.format(h_profit) }}</strong>
+                <span style="color:var(--text-secondary);font-size:.68rem;"> AED {{ '{:+,.0f}'.format(h_profit*3.67) }}</span>
+            </div>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:.78rem;">
+                <span style="color:var(--text-secondary);">Balance </span>
+                <strong style="color:var(--text-primary);">${{ '{:,.0f}'.format(h_balance) }}</strong>
+                <span style="color:var(--text-secondary);font-size:.68rem;"> AED {{ '{:,.0f}'.format(h_balance*3.67) }}</span>
+            </div>
+        </div>
     </div>
     <div class="ta-grid">
         {% for acc in holder_accounts %}
