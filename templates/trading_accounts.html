@@ -153,14 +153,23 @@
             <div class="sum-lbl">All Time Profit</div>
             <div class="sum-val {{ 'green' if total_profit >= 0 else 'red' }}">
                 {{ '+' if total_profit >= 0 else '' }}${{ '{:,.2f}'.format(total_profit) }}
+                {% if total_invested > 0 %}<div style="font-size:.75rem;opacity:.8;">{{ '{:+.1f}'.format((total_profit/total_invested)*100) }}% ROI</div>{% endif %}
             </div>
         </div>
     </div>
 
-    <!-- Account Cards -->
+    <!-- Account Cards — grouped by holder -->
     {% if accounts %}
+    {% for holder, holder_accounts in grouped.items() %}
+    <div style="display:flex;align-items:center;gap:10px;margin:24px 0 10px;">
+        <div style="font-size:1rem;font-weight:800;color:var(--text-primary);">
+            {% if holder %}👤 {{ holder }}{% else %}— Unassigned —{% endif %}
+        </div>
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+        <div style="font-size:.78rem;color:var(--text-secondary);">{{ holder_accounts|length }} account{{ 's' if holder_accounts|length != 1 else '' }}</div>
+    </div>
     <div class="ta-grid">
-        {% for acc in accounts %}
+        {% for acc in holder_accounts %}
         <div class="ta-card {% if not acc.is_active %}inactive{% endif %}">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;">
                 <span class="ta-badge {% if acc.is_active %}active{% else %}offline{% endif %}">
@@ -168,15 +177,11 @@
                 </span>
                 <span style="font-size:.72rem;color:var(--text-secondary);">{{ acc.platform }} · {{ acc.symbol }}</span>
             </div>
-
             <div class="ta-broker">{{ acc.broker_name }}</div>
-            {% if acc.account_holder %}<div style="font-size:.82rem;color:var(--text-secondary);margin-bottom:2px;">👤 {{ acc.account_holder }}</div>{% endif %}
             <div class="ta-sub">
                 {% if acc.account_number %}Acc: {{ acc.account_number }} · {% endif %}{{ acc.currency }}
                 {% if acc.deposit_via %} · Via: <strong>{{ acc.deposit_via }}</strong>{% endif %}
-                {% if acc.notes %} · {{ acc.notes[:40] }}{% if acc.notes|length > 40 %}…{% endif %}{% endif %}
             </div>
-
             <div class="ta-stats">
                 <div class="ta-stat">
                     <div class="ta-stat-lbl">Total Invested</div>
@@ -191,13 +196,13 @@
                     <div class="ta-stat-val">${{ '{:,.2f}'.format(acc.current_balance) }}</div>
                 </div>
                 <div class="ta-stat">
-                    <div class="ta-stat-lbl">Net Profit</div>
+                    <div class="ta-stat-lbl">Net Profit / ROI</div>
                     <div class="ta-stat-val {{ 'green' if acc.net_profit >= 0 else 'red' }}">
                         {{ '+' if acc.net_profit >= 0 else '' }}${{ '{:,.2f}'.format(acc.net_profit) }}
+                        <span style="font-size:.7rem;opacity:.75;">({{ '{:+.1f}'.format(acc.roi_pct) }}%)</span>
                     </div>
                 </div>
             </div>
-
             <div class="ta-profit-row">
                 <div class="ta-pstat">
                     <div class="ta-pstat-lbl">Today</div>
@@ -218,14 +223,13 @@
                     </div>
                 </div>
             </div>
-
             <div class="ta-actions">
                 <button class="ta-btn profit"   onclick="openProfitModal({{ acc.id }}, '{{ acc.broker_name }}', {{ acc.current_balance }})">+ Profit</button>
                 <button class="ta-btn deposit"  onclick="openTxnModal({{ acc.id }}, '{{ acc.broker_name }}', 'deposit')">↓ Deposit</button>
                 <button class="ta-btn withdraw" onclick="openTxnModal({{ acc.id }}, '{{ acc.broker_name }}', 'withdrawal')">↑ Withdraw</button>
                 <a href="{{ url_for('trading_account_detail', acc_id=acc.id) }}" class="ta-btn detail">📋 History</a>
                 {% if is_admin %}
-                <button class="ta-btn edit" onclick="openEditModal({{ acc.id }}, '{{ acc.broker_name }}', '{{ acc.account_holder or '' }}', '{{ acc.account_number or '' }}', '{{ acc.deposit_via or 'Bank' }}', '{{ acc.platform }}', '{{ acc.symbol }}', '{{ acc.currency }}', {{ acc.current_balance }}, '{{ (acc.notes or '')|replace("'", "") }}', {{ 'true' if acc.is_active else 'false' }})">✏️</button>
+                <button class="ta-btn edit" onclick="openEditModal({{ acc.id }}, '{{ acc.broker_name }}', '{{ acc.account_holder or \'\' }}', '{{ acc.account_number or \'\' }}', '{{ acc.deposit_via or \'Bank\' }}', '{{ acc.platform }}', '{{ acc.symbol }}', '{{ acc.currency }}', {{ acc.current_balance }}, '{{ (acc.notes or \'\') }}', {{ \'true\' if acc.is_active else \'false\' }})">✏️</button>
                 <form method="POST" action="{{ url_for('trading_account_delete', acc_id=acc.id) }}" style="display:inline" onsubmit="return confirm('Delete {{ acc.broker_name }}?')">
                     <button type="submit" class="ta-btn del">🗑</button>
                 </form>
@@ -234,6 +238,7 @@
         </div>
         {% endfor %}
     </div>
+    {% endfor %}
     {% else %}
     <div class="empty-state">
         <div style="font-size:3rem;margin-bottom:12px;">📊</div>

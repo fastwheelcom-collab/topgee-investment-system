@@ -374,6 +374,12 @@ class TradingAccount(db.Model):
         return self.current_balance - self.total_invested + self.total_withdrawn
 
     @property
+    def roi_pct(self):
+        if self.total_invested and self.total_invested > 0:
+            return (self.net_profit / self.total_invested) * 100
+        return 0.0
+
+    @property
     def today_profit(self):
         from datetime import date
         today = date.today()
@@ -2533,13 +2539,22 @@ def trading_accounts():
     total_invested  = sum(a.total_invested  for a in accounts)
     total_withdrawn = sum(a.total_withdrawn for a in accounts)
     total_balance   = sum(a.current_balance for a in accounts)
-    total_profit    = sum(a.total_profit    for a in accounts)
+    total_profit    = sum(a.net_profit      for a in accounts)  # balance - invested + withdrawn
     today_profit    = sum(a.today_profit    for a in accounts)
     week_profit     = sum(a.week_profit     for a in accounts)
     month_profit    = sum(a.month_profit    for a in accounts)
     from datetime import date
+    # Group by account holder for display
+    from collections import OrderedDict
+    grouped = OrderedDict()
+    for a in accounts:
+        holder = a.account_holder or ''
+        if holder not in grouped:
+            grouped[holder] = []
+        grouped[holder].append(a)
     return render_template('trading_accounts.html',
         accounts=accounts,
+        grouped=grouped,
         total_invested=total_invested,
         total_withdrawn=total_withdrawn,
         total_balance=total_balance,
