@@ -181,26 +181,25 @@
             <div style="font-size:.75rem;color:var(--text-secondary);white-space:nowrap;">{{ holder_accounts|length }} account{{ 's' if holder_accounts|length != 1 else '' }}</div>
         </div>
         <!-- Row 2: holder summary stats -->
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:.78rem;">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:.78rem;">
                 <span style="color:var(--text-secondary);">Invested </span>
                 <strong style="color:#357ABD;">${{ '{:,.0f}'.format(h_invested) }}</strong>
-
             </div>
-            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:.78rem;">
+            <span style="color:var(--text-secondary);font-size:.85rem;padding:0 2px;">−</span>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:.78rem;">
                 <span style="color:var(--text-secondary);">Withdrawn </span>
                 <strong style="color:#F57C00;">${{ '{:,.0f}'.format(h_withdrawn) }}</strong>
-
             </div>
-            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:.78rem;">
-                <span style="color:var(--text-secondary);">Net Profit </span>
+            <span style="color:var(--text-secondary);font-size:.85rem;padding:0 2px;">=</span>
+            <div style="background:{% if h_profit >= 0 %}rgba(76,175,80,0.1){% else %}rgba(192,57,43,0.1){% endif %};border:1px solid {% if h_profit >= 0 %}rgba(76,175,80,0.35){% else %}rgba(192,57,43,0.35){% endif %};border-radius:8px;padding:5px 12px;font-size:.78rem;">
+                <span style="color:var(--text-secondary);">💰 Profit Ready </span>
                 <strong style="color:{% if h_profit >= 0 %}#388E3C{% else %}#c0392b{% endif %};">{{ '+' if h_profit >= 0 else '' }}${{ '{:,.0f}'.format(h_profit) }}</strong>
-
             </div>
-            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:.78rem;">
+            <span style="color:var(--text-secondary);font-size:.75rem;padding:0 4px;">·</span>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:.78rem;">
                 <span style="color:var(--text-secondary);">Balance </span>
                 <strong style="color:var(--text-primary);">${{ '{:,.0f}'.format(h_balance) }}</strong>
-
             </div>
         </div>
     </div>
