@@ -2229,6 +2229,36 @@ with app.app_context():
                 print("✅ GlobalRevenue initialized")
         except OperationalError as e:
             print(f"⚠️ GlobalRevenue check failed: {e}")
+
+        # ── Safe column migrations ──────────────────────────────────
+        startup_migrations = [
+            ('revenue_history', 'revenue_usd',        'FLOAT'),
+            ('revenue_history', 'exchange_rate_used', 'FLOAT'),
+            ('revenue_history', 'capital_aed',        'FLOAT'),
+            ('revenue_history', 'capital_usd',        'FLOAT'),
+            ('revenue_history', 'capital_pct',        'FLOAT'),
+            ('investor',        'tg_percent',         'FLOAT DEFAULT 5.0'),
+            ('user_account',    'profile_pic',        'VARCHAR(256)'),
+            ('trading_accounts','account_holder',     'VARCHAR(100)'),
+            ('trading_accounts','deposit_via',        'VARCHAR(30)'),
+            ('trading_accounts','account_number',     'VARCHAR(60)'),
+        ]
+        from sqlalchemy import inspect as sa_inspect
+        inspector = sa_inspect(db.engine)
+        existing_tables = inspector.get_table_names()
+        for tbl, col, typ in startup_migrations:
+            if tbl not in existing_tables:
+                continue
+            existing_cols = [c['name'] for c in inspector.get_columns(tbl)]
+            if col not in existing_cols:
+                try:
+                    with db.engine.connect() as conn:
+                        conn.execute(db.text(f'ALTER TABLE {tbl} ADD COLUMN {col} {typ}'))
+                        conn.commit()
+                        print(f'✅ Migrated {tbl}.{col}')
+                except Exception as me:
+                    print(f'⚠️ Migration {tbl}.{col}: {me}')
+
     except Exception as e:
         print(f"❌ Database initialization error: {e}")
         import traceback
@@ -2525,16 +2555,19 @@ def backup_download():
 def trading_accounts():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    from sqlalchemy import case, func
-    accounts = TradingAccount.query.order_by(
-        TradingAccount.is_active.desc(),
-        case(
-            (func.coalesce(TradingAccount.account_holder, '') == '', 1),
-            else_=0
-        ),
-        TradingAccount.account_holder,
-        TradingAccount.broker_name
-    ).all()
+    try:
+        from sqlalchemy import case, func
+        accounts = TradingAccount.query.order_by(
+            TradingAccount.is_active.desc(),
+            case(
+                (func.coalesce(TradingAccount.account_holder, '') == '', 1),
+                else_=0
+            ),
+            TradingAccount.account_holder,
+            TradingAccount.broker_name
+        ).all()
+    except Exception:
+        accounts = TradingAccount.query.order_by(TradingAccount.is_active.desc(), TradingAccount.broker_name).all()
     # Totals
     total_invested  = sum(a.total_invested  for a in accounts)
     total_withdrawn = sum(a.total_withdrawn for a in accounts)
