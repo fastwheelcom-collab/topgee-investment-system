@@ -236,7 +236,7 @@
                 <button class="ta-btn withdraw" onclick="openTxnModal({{ acc.id }}, '{{ acc.broker_name }}', 'withdrawal')">↑ Withdraw</button>
                 <a href="{{ url_for('trading_account_detail', acc_id=acc.id) }}" class="ta-btn detail">📋 History</a>
                 {% if is_admin %}
-                <button class="ta-btn edit" onclick="openEditModal({{ acc.id }}, '{{ acc.broker_name }}', '{{ acc.account_holder or \'\' }}', '{{ acc.account_number or \'\' }}', '{{ acc.deposit_via or \'Bank\' }}', '{{ acc.platform }}', '{{ acc.symbol }}', '{{ acc.currency }}', {{ acc.current_balance }}, '{{ (acc.notes or \'\') }}', {{ \'true\' if acc.is_active else \'false\' }})">✏️</button>
+                <button class="ta-btn edit" onclick="openEditModal({{ acc.id }}, '{{ acc.broker_name }}', '{{ acc.account_holder or "" }}', '{{ acc.account_number or "" }}', '{{ acc.deposit_via or "Bank" }}', '{{ acc.platform }}', '{{ acc.symbol }}', '{{ acc.currency }}', {{ acc.current_balance }}, '{{ acc.notes or "" }}', {{ 'true' if acc.is_active else 'false' }})">✏️</button>
                 <form method="POST" action="{{ url_for('trading_account_delete', acc_id=acc.id) }}" style="display:inline" onsubmit="return confirm('Delete {{ acc.broker_name }}?')">
                     <button type="submit" class="ta-btn del">🗑</button>
                 </form>
