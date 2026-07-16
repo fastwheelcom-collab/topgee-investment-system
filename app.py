@@ -2660,6 +2660,36 @@ def trading_account_txn_add(acc_id):
     return redirect(url_for('trading_accounts'))
 
 
+@app.route('/trading-accounts/<int:acc_id>/profit/<int:profit_id>/delete', methods=['POST'])
+def trading_account_profit_delete(acc_id, profit_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    p = AccountProfit.query.get_or_404(profit_id)
+    db.session.delete(p)
+    db.session.commit()
+    flash('Profit entry deleted.', 'success')
+    return redirect(url_for('trading_account_detail', acc_id=acc_id))
+
+
+@app.route('/trading-accounts/<int:acc_id>/transaction/<int:txn_id>/delete', methods=['POST'])
+def trading_account_txn_delete(acc_id, txn_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    acc = TradingAccount.query.get_or_404(acc_id)
+    txn = AccountTransaction.query.get_or_404(txn_id)
+    # Reverse the balance effect
+    if txn.txn_type == 'deposit':
+        acc.total_invested  -= txn.amount
+        acc.current_balance -= txn.amount
+    elif txn.txn_type == 'withdrawal':
+        acc.total_withdrawn -= txn.amount
+        acc.current_balance += txn.amount
+    db.session.delete(txn)
+    db.session.commit()
+    flash(f'{txn.txn_type.title()} of ${txn.amount:,.2f} deleted and balance reversed.', 'success')
+    return redirect(url_for('trading_account_detail', acc_id=acc_id))
+
+
 @app.route('/trading-accounts/<int:acc_id>/detail')
 def trading_account_detail(acc_id):
     if not session.get('logged_in'):
