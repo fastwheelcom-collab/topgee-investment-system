@@ -2877,6 +2877,22 @@ def trading_account_detail(acc_id):
     )
 
 
+@app.route('/debug-profits')
+def debug_profits():
+    if not session.get('logged_in') or not session.get('is_admin'):
+        return 'forbidden', 403
+    from datetime import date
+    today = date.today()
+    month_start = today.replace(day=1)
+    profits = AccountProfit.query.order_by(AccountProfit.profit_date.desc()).limit(20).all()
+    out = f'Today: {today}<br>Month start: {month_start}<br>Total rows: {len(profits)}<br><br>'
+    for p in profits:
+        pd = p.profit_date
+        in_month = str(month_start) <= str(pd) <= str(today)
+        out += f'ID:{p.id} AccID:{p.account_id} Date:{pd} ({type(pd).__name__}) Amt:{p.profit_amount} InMonth:{in_month}<br>'
+    return out
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     print("\n" + "="*60)
