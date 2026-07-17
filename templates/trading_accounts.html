@@ -212,43 +212,60 @@
                 {% if acc.account_number %}Acc: {{ acc.account_number }} · {% endif %}{{ acc.currency }}
                 {% if acc.deposit_via %} · Via: <strong>{{ acc.deposit_via }}</strong>{% endif %}
             </div>
-            <!-- Step 1: Capital | Current Balance | Live P&L -->
             {% set live_pnl = acc.current_balance - acc.total_invested %}
             {% set profit_available = live_pnl - acc.total_withdrawn %}
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-                <div class="ta-stat" style="flex:1;min-width:80px;">
+
+            <!-- Row 1: Capital → Current Balance = Live P&L -->
+            <table style="width:100%;border-collapse:separate;border-spacing:4px;margin-bottom:6px;">
+              <tr>
+                <td style="width:36%;">
+                  <div class="ta-stat">
                     <div class="ta-stat-lbl">Capital</div>
                     <div class="ta-stat-val blue">${{ '{:,.0f}'.format(acc.total_invested) }}</div>
-                </div>
-                <div style="font-size:1rem;color:var(--text-secondary);font-weight:700;">→</div>
-                <div class="ta-stat" style="flex:1;min-width:80px;">
+                  </div>
+                </td>
+                <td style="width:4%;text-align:center;font-size:1rem;color:var(--text-secondary);font-weight:700;">→</td>
+                <td style="width:36%;">
+                  <div class="ta-stat">
                     <div class="ta-stat-lbl">Current Balance</div>
                     <div class="ta-stat-val">${{ '{:,.0f}'.format(acc.current_balance) }}</div>
-                </div>
-                <div style="font-size:1rem;color:var(--text-secondary);font-weight:700;">=</div>
-                <div class="ta-stat" style="flex:1;min-width:80px;background:{% if live_pnl >= 0 %}rgba(76,175,80,0.1){% else %}rgba(192,57,43,0.1){% endif %};border-color:{% if live_pnl >= 0 %}rgba(76,175,80,0.4){% else %}rgba(192,57,43,0.4){% endif %};">
+                  </div>
+                </td>
+                <td style="width:4%;text-align:center;font-size:1rem;color:var(--text-secondary);font-weight:700;">=</td>
+                <td style="width:36%;">
+                  <div class="ta-stat" style="background:{% if live_pnl >= 0 %}rgba(76,175,80,0.1){% else %}rgba(192,57,43,0.1){% endif %};border-color:{% if live_pnl >= 0 %}rgba(76,175,80,0.4){% else %}rgba(192,57,43,0.4){% endif %};">
                     <div class="ta-stat-lbl">Live P&amp;L</div>
                     <div class="ta-stat-val {{ 'green' if live_pnl >= 0 else 'red' }}">{{ '+' if live_pnl >= 0 else '' }}${{ '{:,.0f}'.format(live_pnl) }}</div>
-                </div>
-            </div>
-            <!-- Step 2: Live P&L - Withdrawn = Current Profit Available -->
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
-                <div class="ta-stat" style="flex:1;min-width:80px;background:{% if live_pnl >= 0 %}rgba(76,175,80,0.07){% else %}rgba(192,57,43,0.07){% endif %};border-color:{% if live_pnl >= 0 %}rgba(76,175,80,0.3){% else %}rgba(192,57,43,0.3){% endif %};">
+                  </div>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Row 2: Live P&L − Withdrawn = Profit Available -->
+            <table style="width:100%;border-collapse:separate;border-spacing:4px;margin-bottom:12px;">
+              <tr>
+                <td style="width:36%;">
+                  <div class="ta-stat" style="background:{% if live_pnl >= 0 %}rgba(76,175,80,0.07){% else %}rgba(192,57,43,0.07){% endif %};border-color:{% if live_pnl >= 0 %}rgba(76,175,80,0.3){% else %}rgba(192,57,43,0.3){% endif %};">
                     <div class="ta-stat-lbl">Live P&amp;L</div>
                     <div class="ta-stat-val {{ 'green' if live_pnl >= 0 else 'red' }}">{{ '+' if live_pnl >= 0 else '' }}${{ '{:,.0f}'.format(live_pnl) }}</div>
-                </div>
-                <div style="font-size:1rem;color:var(--text-secondary);font-weight:700;">−</div>
-                <div class="ta-stat" style="flex:1;min-width:80px;position:relative;">
-                    <div class="ta-stat-lbl">Withdrawn</div>
+                  </div>
+                </td>
+                <td style="width:4%;text-align:center;font-size:1rem;color:var(--text-secondary);font-weight:700;">−</td>
+                <td style="width:36%;position:relative;">
+                  <div class="ta-stat">
+                    <div class="ta-stat-lbl">Withdrawn <button onclick="openTxnModal({{ acc.id }},'{{ acc.broker_name }}','withdrawal')" style="background:#FF9800;color:#fff;border:none;border-radius:3px;font-size:.6rem;padding:1px 4px;cursor:pointer;margin-left:3px;">+</button></div>
                     <div class="ta-stat-val orange">${{ '{:,.0f}'.format(acc.total_withdrawn) }}</div>
-                    <button onclick="openTxnModal({{ acc.id }}, '{{ acc.broker_name }}', 'withdrawal')" title="Add Withdrawal" style="position:absolute;top:6px;right:6px;background:#FF9800;color:#fff;border:none;border-radius:4px;font-size:.65rem;padding:2px 5px;cursor:pointer;">+W</button>
-                </div>
-                <div style="font-size:1rem;color:var(--text-secondary);font-weight:700;">=</div>
-                <div class="ta-stat" style="flex:1;min-width:80px;background:{% if profit_available >= 0 %}rgba(76,175,80,0.15){% else %}rgba(192,57,43,0.15){% endif %};border-color:{% if profit_available >= 0 %}rgba(76,175,80,0.5){% else %}rgba(192,57,43,0.5){% endif %};">
+                  </div>
+                </td>
+                <td style="width:4%;text-align:center;font-size:1rem;color:var(--text-secondary);font-weight:700;">=</td>
+                <td style="width:36%;">
+                  <div class="ta-stat" style="background:{% if profit_available >= 0 %}rgba(76,175,80,0.15){% else %}rgba(192,57,43,0.15){% endif %};border-color:{% if profit_available >= 0 %}rgba(76,175,80,0.5){% else %}rgba(192,57,43,0.5){% endif %};">
                     <div class="ta-stat-lbl" style="font-weight:700;">Profit Available</div>
-                    <div class="ta-stat-val {{ 'green' if profit_available >= 0 else 'red' }}" style="font-size:1.05rem;">{{ '+' if profit_available >= 0 else '' }}${{ '{:,.0f}'.format(profit_available) }}</div>
-                </div>
-            </div>
+                    <div class="ta-stat-val {{ 'green' if profit_available >= 0 else 'red' }}">{{ '+' if profit_available >= 0 else '' }}${{ '{:,.0f}'.format(profit_available) }}</div>
+                  </div>
+                </td>
+              </tr>
+            </table>
             <div class="ta-profit-row">
                 <div class="ta-pstat">
                     <div class="ta-pstat-lbl">Today</div>
