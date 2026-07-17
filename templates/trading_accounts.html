@@ -181,30 +181,34 @@
             <div style="font-size:.75rem;color:var(--text-secondary);white-space:nowrap;">{{ holder_accounts|length }} account{{ 's' if holder_accounts|length != 1 else '' }}</div>
         </div>
         <!-- Row 2: holder summary stats -->
-        {% set h_profit_pct    = ((h_profit / h_invested) * 100) if h_invested > 0 else 0 %}
-        {% set h_withdrawn_pct = ((h_withdrawn / h_invested) * 100) if h_invested > 0 else 0 %}
-        {% set h_net_pct       = ((h_profit / h_invested) * 100) if h_invested > 0 else 0 %}
+        {% set h_total_generated = h_balance - h_invested + h_withdrawn %}
+        {% set h_profit_ready    = h_total_generated - h_withdrawn %}
+        {% set h_roi_pct         = ((h_total_generated / h_invested) * 100) if h_invested > 0 else 0 %}
         <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
             <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:.78rem;">
-                <span style="color:var(--text-secondary);">Invested </span>
+                <span style="color:var(--text-secondary);">Capital </span>
                 <strong style="color:#357ABD;">${{ '{:,.0f}'.format(h_invested) }}</strong>
             </div>
-            <span style="color:var(--text-secondary);font-size:.85rem;padding:0 2px;">−</span>
-            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:.78rem;">
-                <span style="color:var(--text-secondary);">Withdrawn </span>
-                <strong style="color:#F57C00;">${{ '{:,.0f}'.format(h_withdrawn) }}</strong>
-                <span style="color:#F57C00;font-size:.7rem;"> {{ '{:.1f}'.format(h_withdrawn_pct) }}%</span>
-            </div>
-            <span style="color:var(--text-secondary);font-size:.85rem;padding:0 2px;">=</span>
-            <div style="background:{% if h_profit >= 0 %}rgba(76,175,80,0.1){% else %}rgba(192,57,43,0.1){% endif %};border:1px solid {% if h_profit >= 0 %}rgba(76,175,80,0.35){% else %}rgba(192,57,43,0.35){% endif %};border-radius:8px;padding:5px 12px;font-size:.78rem;">
-                <span style="color:var(--text-secondary);">💰 Profit Ready </span>
-                <strong style="color:{% if h_profit >= 0 %}#388E3C{% else %}#c0392b{% endif %};">{{ '+' if h_profit >= 0 else '' }}${{ '{:,.0f}'.format(h_profit) }}</strong>
-                <span style="color:{% if h_profit >= 0 %}#388E3C{% else %}#c0392b{% endif %};font-size:.7rem;"> {{ '{:+.1f}'.format(h_net_pct) }}%</span>
-            </div>
-            <span style="color:var(--text-secondary);font-size:.75rem;padding:0 4px;">·</span>
+            <span style="color:var(--text-secondary);font-size:.85rem;padding:0 2px;">→</span>
             <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:.78rem;">
                 <span style="color:var(--text-secondary);">Balance </span>
                 <strong style="color:var(--text-primary);">${{ '{:,.0f}'.format(h_balance) }}</strong>
+            </div>
+            <span style="color:var(--text-secondary);font-size:.85rem;padding:0 2px;">+W</span>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:.78rem;">
+                <span style="color:var(--text-secondary);">Withdrawn </span>
+                <strong style="color:#F57C00;">${{ '{:,.0f}'.format(h_withdrawn) }}</strong>
+            </div>
+            <span style="color:var(--text-secondary);font-size:.85rem;padding:0 2px;">=</span>
+            <div style="background:rgba(33,150,243,0.08);border:1px solid rgba(33,150,243,0.3);border-radius:8px;padding:5px 12px;font-size:.78rem;">
+                <span style="color:var(--text-secondary);">Generated </span>
+                <strong style="color:#1565C0;">{{ '+' if h_total_generated >= 0 else '' }}${{ '{:,.0f}'.format(h_total_generated) }}</strong>
+                <span style="color:#1565C0;font-size:.7rem;"> {{ '{:+.1f}'.format(h_roi_pct) }}%</span>
+            </div>
+            <span style="color:var(--text-secondary);font-size:.75rem;padding:0 4px;">·</span>
+            <div style="background:{% if h_profit_ready >= 0 %}rgba(76,175,80,0.1){% else %}rgba(192,57,43,0.1){% endif %};border:1px solid {% if h_profit_ready >= 0 %}rgba(76,175,80,0.35){% else %}rgba(192,57,43,0.35){% endif %};border-radius:8px;padding:5px 12px;font-size:.78rem;">
+                <span style="color:var(--text-secondary);">💰 Profit Ready </span>
+                <strong style="color:{% if h_profit_ready >= 0 %}#388E3C{% else %}#c0392b{% endif %};">{{ '+' if h_profit_ready >= 0 else '' }}${{ '{:,.0f}'.format(h_profit_ready) }}</strong>
             </div>
         </div>
     </div>
@@ -224,25 +228,33 @@
             </div>
             <div class="ta-stats">
                 <div class="ta-stat">
-                    <div class="ta-stat-lbl">Total Invested</div>
+                    <div class="ta-stat-lbl">Capital</div>
                     <div class="ta-stat-val blue">${{ '{:,.0f}'.format(acc.total_invested) }}<span class="aed-sub-card">AED {{ '{:,.0f}'.format(acc.total_invested * AED) }}</span></div>
-                </div>
-                <div class="ta-stat">
-                    <div class="ta-stat-lbl">Total Withdrawn</div>
-                    <div class="ta-stat-val orange">${{ '{:,.0f}'.format(acc.total_withdrawn) }}<span class="aed-sub-card">AED {{ '{:,.0f}'.format(acc.total_withdrawn * AED) }}</span></div>
                 </div>
                 <div class="ta-stat">
                     <div class="ta-stat-lbl">Current Balance</div>
                     <div class="ta-stat-val">${{ '{:,.2f}'.format(acc.current_balance) }}<span class="aed-sub-card">AED {{ '{:,.0f}'.format(acc.current_balance * AED) }}</span></div>
                 </div>
                 <div class="ta-stat">
-                    <div class="ta-stat-lbl">Net Profit / ROI</div>
-                    <div class="ta-stat-val {{ 'green' if acc.net_profit >= 0 else 'red' }}">
-                        {{ '+' if acc.net_profit >= 0 else '' }}${{ '{:,.2f}'.format(acc.net_profit) }}
+                    <div class="ta-stat-lbl">Total Withdrawn</div>
+                    <div class="ta-stat-val orange">${{ '{:,.0f}'.format(acc.total_withdrawn) }}<span class="aed-sub-card">AED {{ '{:,.0f}'.format(acc.total_withdrawn * AED) }}</span></div>
+                </div>
+                <div class="ta-stat">
+                    <div class="ta-stat-lbl">Total Generated / ROI</div>
+                    <div class="ta-stat-val {{ 'green' if acc.total_generated >= 0 else 'red' }}">
+                        {{ '+' if acc.total_generated >= 0 else '' }}${{ '{:,.2f}'.format(acc.total_generated) }}
                         <span style="font-size:.7rem;opacity:.75;">({{ '{:+.1f}'.format(acc.roi_pct) }}%)</span>
-                        <span class="aed-sub-card">AED {{ '{:+,.0f}'.format(acc.net_profit * AED) }}</span>
+                        <span class="aed-sub-card">AED {{ '{:+,.0f}'.format(acc.total_generated * AED) }}</span>
                     </div>
                 </div>
+            </div>
+            <!-- Profit Ready bar -->
+            <div style="background:{% if acc.profit_ready >= 0 %}rgba(76,175,80,0.1){% else %}rgba(192,57,43,0.1){% endif %};border:1px solid {% if acc.profit_ready >= 0 %}rgba(76,175,80,0.35){% else %}rgba(192,57,43,0.35){% endif %};border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;">💰 Profit Ready (in account)</span>
+                <span style="font-weight:800;color:{% if acc.profit_ready >= 0 %}#388E3C{% else %}#c0392b{% endif %};font-size:.95rem;">
+                    {{ '+' if acc.profit_ready >= 0 else '' }}${{ '{:,.2f}'.format(acc.profit_ready) }}
+                    <span style="font-size:.68rem;opacity:.7;">AED {{ '{:+,.0f}'.format(acc.profit_ready * AED) }}</span>
+                </span>
             </div>
             <div class="ta-profit-row">
                 <div class="ta-pstat">
@@ -265,7 +277,8 @@
                 </div>
             </div>
             <div class="ta-actions">
-                <button class="ta-btn profit"   onclick="openProfitModal({{ acc.id }}, '{{ acc.broker_name }}', {{ acc.current_balance }})">+ Profit</button>
+                <button class="ta-btn profit"   onclick="openProfitModal({{ acc.id }}, '{{ acc.broker_name }}', {{ acc.current_balance }})">+ Daily</button>
+                <button class="ta-btn" style="background:#9C27B0;color:#fff;" onclick="openWeeklyModal({{ acc.id }}, '{{ acc.broker_name }}', {{ acc.current_balance }})">📅 Weekly</button>
                 <button class="ta-btn deposit"  onclick="openTxnModal({{ acc.id }}, '{{ acc.broker_name }}', 'deposit')">↓ Deposit</button>
                 <button class="ta-btn withdraw" onclick="openTxnModal({{ acc.id }}, '{{ acc.broker_name }}', 'withdrawal')">↑ Withdraw</button>
                 <a href="{{ url_for('trading_account_detail', acc_id=acc.id) }}" class="ta-btn detail">📋 History</a>
@@ -404,6 +417,40 @@
     </div>
 </div>
 
+<!-- WEEKLY PROFIT MODAL -->
+<div class="modal-overlay" id="weeklyProfitModal">
+    <div class="modal-box">
+        <h3 id="weeklyProfitTitle">📅 Enter Weekly Profit</h3>
+        <form method="POST" id="weeklyProfitForm">
+            <div style="background:rgba(156,39,176,0.08);border:1px solid rgba(156,39,176,0.25);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:.8rem;color:var(--text-secondary);line-height:1.5;">
+                Enter the <strong>total weekly profit</strong> → it auto-splits equally across <strong>Mon–Fri</strong> (÷5 per day)
+            </div>
+            <div class="form-group">
+                <label>Week Starting (Monday)</label>
+                <input type="date" name="week_start" id="weekly_week_start" required>
+                <div style="font-size:.72rem;color:var(--text-secondary);margin-top:3px;">Select any Monday of the trading week</div>
+            </div>
+            <div class="form-group">
+                <label>Total Week Profit ($) <span style="color:var(--text-secondary);font-size:.75rem;">Negative = loss week</span></label>
+                <input type="number" name="total_amount" step="0.01" placeholder="e.g. 1250.00" required id="weekly_total_amount">
+            </div>
+            <div id="weekly_preview" style="display:none;background:rgba(76,175,80,0.08);border:1px solid rgba(76,175,80,0.25);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:.8rem;"></div>
+            <div class="form-group">
+                <label>Updated Balance ($)</label>
+                <input type="number" name="current_balance" id="weekly_balance" step="0.01">
+            </div>
+            <div class="form-group">
+                <label>Notes (optional)</label>
+                <input type="text" name="notes" placeholder="e.g. Good week, Gold trending">
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn-confirm" style="background:#9C27B0;">Save Weekly Profit</button>
+                <button type="button" class="btn-cancel" onclick="closeModal('weeklyProfitModal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- PROFIT MODAL -->
 <div class="modal-overlay" id="profitModal">
     <div class="modal-box">
@@ -460,6 +507,53 @@ function openTxnModal(accId, name, type) {
     document.getElementById('txnSubmitBtn').textContent = type==='deposit'?'Record Deposit':'Record Withdrawal';
     openModal('txnModal');
 }
+function openWeeklyModal(accId, name, bal) {
+    document.getElementById('weeklyProfitTitle').textContent = '\uD83D\uDCC5 Weekly Profit \u2014 ' + name;
+    document.getElementById('weeklyProfitForm').action = '/trading-accounts/' + accId + '/weekly-profit/add';
+    document.getElementById('weekly_balance').value = bal;
+    // Default to last Monday
+    var today = new Date();
+    var day = today.getDay();
+    var diff = day === 0 ? 6 : day - 1;
+    var monday = new Date(today);
+    monday.setDate(today.getDate() - diff);
+    // If today is Saturday, go to this week's Monday (already done above)
+    var iso = monday.toISOString().split('T')[0];
+    document.getElementById('weekly_week_start').value = iso;
+    document.getElementById('weekly_total_amount').value = '';
+    document.getElementById('weekly_preview').style.display = 'none';
+    openModal('weeklyProfitModal');
+}
+// Preview daily split
+document.addEventListener('DOMContentLoaded', function() {
+    var amtInput = document.getElementById('weekly_total_amount');
+    var dateInput = document.getElementById('weekly_week_start');
+    if (amtInput) {
+        function updatePreview() {
+            var amt = parseFloat(amtInput.value);
+            var dateVal = dateInput.value;
+            var preview = document.getElementById('weekly_preview');
+            if (!isNaN(amt) && amt !== 0 && dateVal) {
+                var daily = (amt / 5).toFixed(2);
+                var monday = new Date(dateVal + 'T00:00:00');
+                var days = ['Mon','Tue','Wed','Thu','Fri'];
+                var html = '<strong>Auto split:</strong><br>';
+                for (var i = 0; i < 5; i++) {
+                    var d = new Date(monday);
+                    d.setDate(monday.getDate() + i);
+                    var dayAmt = i < 4 ? daily : (amt - daily * 4).toFixed(2);
+                    html += days[i] + ' ' + d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) + ' &rarr; <strong>$' + parseFloat(dayAmt).toLocaleString(undefined,{minimumFractionDigits:2}) + '</strong><br>';
+                }
+                preview.innerHTML = html;
+                preview.style.display = 'block';
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+        amtInput.addEventListener('input', updatePreview);
+        dateInput.addEventListener('change', updatePreview);
+    }
+});
 function openEditModal(id, broker, holder, accNum, depositVia, platform, symbol, currency, balance, notes, isActive) {
     document.getElementById('editAccountForm').action = '/trading-accounts/' + id + '/edit';
     document.getElementById('edit_broker_name').value  = broker;

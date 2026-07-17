@@ -370,13 +370,24 @@ class TradingAccount(db.Model):
     transactions = db.relationship('AccountTransaction', backref='account', lazy=True, cascade='all, delete-orphan')
 
     @property
+    def total_generated(self):
+        """Total profit ever generated = (current balance - capital) + total withdrawn"""
+        return (self.current_balance - self.total_invested) + self.total_withdrawn
+
+    @property
+    def profit_ready(self):
+        """Profit still sitting in account = total generated - already withdrawn"""
+        return self.total_generated - self.total_withdrawn
+
+    @property
     def net_profit(self):
-        return self.current_balance - self.total_invested + self.total_withdrawn
+        """Alias for profit_ready (used in summaries)"""
+        return self.profit_ready
 
     @property
     def roi_pct(self):
         if self.total_invested and self.total_invested > 0:
-            return (self.net_profit / self.total_invested) * 100
+            return (self.total_generated / self.total_invested) * 100
         return 0.0
 
     @property
@@ -2723,6 +2734,50 @@ def trading_account_txn_add(acc_id):
     db.session.commit()
     audit('ADD', 'AccountTransaction', f'{acc.broker_name} {txn_type} ${amount}', acc_id)
     flash(f'{txn_type.title()} of ${amount:,.2f} recorded.', 'success')
+    return redirect(url_for('trading_accounts'))
+
+
+@app.route('/trading-accounts/<int:acc_id>/weekly-profit/add', methods=['POST'])
+def trading_account_weekly_profit_add(acc_id):
+    """Enter weekly total profit → auto-split equally across Mon-Fri of that week"""
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    from datetime import date, timedelta
+    acc = TradingAccount.query.get_or_404(acc_id)
+    week_start_str = request.form.get('week_start')   # Monday date as YYYY-MM-DD
+    total_amount   = float(request.form.get('total_amount') or 0)
+    new_balance    = request.form.get('current_balance')
+    notes          = request.form.get('notes', '')
+    if not week_start_str or total_amount == 0:
+        flash('Please enter week start date and total profit.', 'danger')
+        return redirect(url_for('trading_accounts'))
+    monday = date.fromisoformat(week_start_str)
+    # Ensure it's a Monday
+    monday = monday - timedelta(days=monday.weekday())
+    daily_amount = round(total_amount / 5, 2)
+    # Adjust last day for rounding difference
+    days_amounts = [daily_amount] * 4 + [round(total_amount - daily_amount * 4, 2)]
+    for i, day_amount in enumerate(days_amounts):
+        day = monday + timedelta(days=i)
+        existing = AccountProfit.query.filter_by(
+            account_id=acc_id,
+            profit_date=day
+        ).first()
+        if existing:
+            existing.profit_amount = day_amount
+            existing.notes = f'[Weekly] {notes}' if notes else '[Weekly split]'
+        else:
+            p = AccountProfit(
+                account_id=acc_id,
+                profit_date=day,
+                profit_amount=day_amount,
+                notes=f'[Weekly] {notes}' if notes else '[Weekly split]',
+            )
+            db.session.add(p)
+    if new_balance:
+        acc.current_balance = float(new_balance)
+    db.session.commit()
+    flash(f'Weekly profit ${total_amount:,.2f} split across Mon–Fri (${daily_amount:,.2f}/day) recorded!', 'success')
     return redirect(url_for('trading_accounts'))
 
 
