@@ -400,27 +400,41 @@ class TradingAccount(db.Model):
     @property
     def week_profit(self):
         from datetime import date, timedelta
+        import sqlalchemy as sa
         today = date.today()
-        # Current week Mon-Sun
         week_start = today - timedelta(days=today.weekday())
-        total = db.session.query(db.func.sum(AccountProfit.profit_amount)).filter(
-            AccountProfit.account_id == self.id,
-            AccountProfit.profit_date >= week_start,
-            AccountProfit.profit_date <= today
-        ).scalar()
+        try:
+            total = db.session.query(db.func.sum(AccountProfit.profit_amount)).filter(
+                AccountProfit.account_id == self.id,
+                sa.cast(AccountProfit.profit_date, sa.Date) >= week_start,
+                sa.cast(AccountProfit.profit_date, sa.Date) <= today
+            ).scalar()
+        except Exception:
+            total = db.session.query(db.func.sum(AccountProfit.profit_amount)).filter(
+                AccountProfit.account_id == self.id,
+                AccountProfit.profit_date >= str(week_start),
+                AccountProfit.profit_date <= str(today)
+            ).scalar()
         return total or 0.0
 
     @property
     def month_profit(self):
         from datetime import date
+        import sqlalchemy as sa
         today = date.today()
-        # First day of current month
         month_start = today.replace(day=1)
-        total = db.session.query(db.func.sum(AccountProfit.profit_amount)).filter(
-            AccountProfit.account_id == self.id,
-            AccountProfit.profit_date >= month_start,
-            AccountProfit.profit_date <= today
-        ).scalar()
+        try:
+            total = db.session.query(db.func.sum(AccountProfit.profit_amount)).filter(
+                AccountProfit.account_id == self.id,
+                sa.cast(AccountProfit.profit_date, sa.Date) >= month_start,
+                sa.cast(AccountProfit.profit_date, sa.Date) <= today
+            ).scalar()
+        except Exception:
+            total = db.session.query(db.func.sum(AccountProfit.profit_amount)).filter(
+                AccountProfit.account_id == self.id,
+                AccountProfit.profit_date >= str(month_start),
+                AccountProfit.profit_date <= str(today)
+            ).scalar()
         return total or 0.0
 
     @property
