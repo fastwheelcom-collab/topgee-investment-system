@@ -226,6 +226,9 @@
     <div class="acc-head">
         <div>
             <div class="acc-broker">{{ acc.broker_name }}</div>
+            {% if acc.account_holder %}
+            <div style="font-size:.72rem;font-weight:700;color:#4A90E2;margin-top:1px;">👤 {{ acc.account_holder }}</div>
+            {% endif %}
             <div class="acc-meta">
                 {% if acc.account_number %}{{ acc.account_number }} · {% endif %}{{ acc.platform }} · {{ acc.symbol }} · {{ acc.currency }}
             </div>

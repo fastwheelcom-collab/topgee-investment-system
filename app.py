@@ -400,10 +400,13 @@ class TradingAccount(db.Model):
     @property
     def week_profit(self):
         from datetime import date, timedelta
-        week_ago = date.today() - timedelta(days=7)
+        today = date.today()
+        # Current week Mon-Sun
+        week_start = today - timedelta(days=today.weekday())
         total = db.session.query(db.func.sum(AccountProfit.profit_amount)).filter(
             AccountProfit.account_id == self.id,
-            AccountProfit.profit_date >= week_ago
+            AccountProfit.profit_date >= week_start,
+            AccountProfit.profit_date <= today
         ).scalar()
         return total or 0.0
 
@@ -411,10 +414,12 @@ class TradingAccount(db.Model):
     def month_profit(self):
         from datetime import date
         today = date.today()
+        # First day of current month
+        month_start = today.replace(day=1)
         total = db.session.query(db.func.sum(AccountProfit.profit_amount)).filter(
             AccountProfit.account_id == self.id,
-            db.extract('year',  AccountProfit.profit_date) == today.year,
-            db.extract('month', AccountProfit.profit_date) == today.month
+            AccountProfit.profit_date >= month_start,
+            AccountProfit.profit_date <= today
         ).scalar()
         return total or 0.0
 
