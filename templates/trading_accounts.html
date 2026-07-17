@@ -162,7 +162,7 @@
     <div class="sum-box">
         <div class="sum-lbl">Live P&amp;L</div>
         <div class="sum-val {{ 'c-green' if total_live_pnl >= 0 else 'c-red' }}">{{ '+' if total_live_pnl >= 0 else '' }}${{ '{:,.0f}'.format(total_live_pnl) }}</div>
-        <div class="sum-sub">AED {{ '{:+,.0f}'.format(total_live_pnl * AED) }}</div>
+        <div class="sum-sub">{% if total_invested > 0 %}<strong>{{ '{:+.1f}'.format((total_live_pnl / total_invested) * 100) }}%</strong> · {% endif %}AED {{ '{:+,.0f}'.format(total_live_pnl * AED) }}</div>
     </div>
     <div class="sum-box">
         <div class="sum-lbl">Total Withdrawn</div>
@@ -256,6 +256,7 @@
             <div class="f-box {{ 'highlight-green' if live_pnl >= 0 else 'highlight-red' }}">
                 <div class="f-lbl">Live P&amp;L</div>
                 <div class="f-val {{ 'c-green' if live_pnl >= 0 else 'c-red' }}">{{ '+' if live_pnl >= 0 else '' }}${{ '{:,.0f}'.format(live_pnl) }}</div>
+                {% if acc.total_invested > 0 %}<div style="font-size:.68rem;font-weight:800;color:{{ '#27ae60' if live_pnl >= 0 else '#c0392b' }};margin-top:1px;">{{ '{:+.1f}'.format((live_pnl / acc.total_invested) * 100) }}%</div>{% endif %}
             </div>
         </div>
 
