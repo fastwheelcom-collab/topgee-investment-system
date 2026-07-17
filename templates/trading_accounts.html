@@ -181,35 +181,26 @@
             <div style="font-size:.75rem;color:var(--text-secondary);white-space:nowrap;">{{ holder_accounts|length }} account{{ 's' if holder_accounts|length != 1 else '' }}</div>
         </div>
         <!-- Row 2: holder summary stats -->
+        {% set h_live_pnl       = h_balance - h_invested %}
         {% set h_total_generated = h_balance - h_invested + h_withdrawn %}
-        {% set h_profit_ready    = h_total_generated - h_withdrawn %}
         {% set h_roi_pct         = ((h_total_generated / h_invested) * 100) if h_invested > 0 else 0 %}
-        <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
             <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:.78rem;">
                 <span style="color:var(--text-secondary);">Capital </span>
                 <strong style="color:#357ABD;">${{ '{:,.0f}'.format(h_invested) }}</strong>
             </div>
-            <span style="color:var(--text-secondary);font-size:.85rem;padding:0 2px;">→</span>
+            <span style="color:var(--text-secondary);font-size:.9rem;">→</span>
             <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:.78rem;">
                 <span style="color:var(--text-secondary);">Balance </span>
                 <strong style="color:var(--text-primary);">${{ '{:,.0f}'.format(h_balance) }}</strong>
             </div>
-            <span style="color:var(--text-secondary);font-size:.85rem;padding:0 2px;">+W</span>
-            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:.78rem;">
-                <span style="color:var(--text-secondary);">Withdrawn </span>
-                <strong style="color:#F57C00;">${{ '{:,.0f}'.format(h_withdrawn) }}</strong>
+            <span style="color:var(--text-secondary);font-size:.9rem;">=</span>
+            <div style="background:{% if h_live_pnl >= 0 %}rgba(76,175,80,0.1){% else %}rgba(192,57,43,0.1){% endif %};border:1px solid {% if h_live_pnl >= 0 %}rgba(76,175,80,0.35){% else %}rgba(192,57,43,0.35){% endif %};border-radius:8px;padding:5px 12px;font-size:.78rem;">
+                <strong style="color:{% if h_live_pnl >= 0 %}#388E3C{% else %}#c0392b{% endif %};">{{ '+' if h_live_pnl >= 0 else '' }}${{ '{:,.0f}'.format(h_live_pnl) }}</strong>
             </div>
-            <span style="color:var(--text-secondary);font-size:.85rem;padding:0 2px;">=</span>
-            <div style="background:rgba(33,150,243,0.08);border:1px solid rgba(33,150,243,0.3);border-radius:8px;padding:5px 12px;font-size:.78rem;">
-                <span style="color:var(--text-secondary);">Generated </span>
-                <strong style="color:#1565C0;">{{ '+' if h_total_generated >= 0 else '' }}${{ '{:,.0f}'.format(h_total_generated) }}</strong>
-                <span style="color:#1565C0;font-size:.7rem;"> {{ '{:+.1f}'.format(h_roi_pct) }}%</span>
-            </div>
-            <span style="color:var(--text-secondary);font-size:.75rem;padding:0 4px;">·</span>
-            <div style="background:{% if h_profit_ready >= 0 %}rgba(76,175,80,0.1){% else %}rgba(192,57,43,0.1){% endif %};border:1px solid {% if h_profit_ready >= 0 %}rgba(76,175,80,0.35){% else %}rgba(192,57,43,0.35){% endif %};border-radius:8px;padding:5px 12px;font-size:.78rem;">
-                <span style="color:var(--text-secondary);">💰 Profit Ready </span>
-                <strong style="color:{% if h_profit_ready >= 0 %}#388E3C{% else %}#c0392b{% endif %};">{{ '+' if h_profit_ready >= 0 else '' }}${{ '{:,.0f}'.format(h_profit_ready) }}</strong>
-            </div>
+            {% if h_withdrawn > 0 %}
+            <span style="color:var(--text-secondary);font-size:.75rem;padding:0 2px;">· Withdrawn <strong style="color:#F57C00;">${{ '{:,.0f}'.format(h_withdrawn) }}</strong> · Total Generated <strong style="color:#1565C0;">{{ '+' if h_total_generated >= 0 else '' }}${{ '{:,.0f}'.format(h_total_generated) }} ({{ '{:+.1f}'.format(h_roi_pct) }}%)</strong></span>
+            {% endif %}
         </div>
     </div>
     <div class="ta-grid">
@@ -226,36 +217,38 @@
                 {% if acc.account_number %}Acc: {{ acc.account_number }} · {% endif %}{{ acc.currency }}
                 {% if acc.deposit_via %} · Via: <strong>{{ acc.deposit_via }}</strong>{% endif %}
             </div>
-            <div class="ta-stats">
-                <div class="ta-stat">
+            <!-- Capital → Balance → Live P&L -->
+            {% set live_pnl = acc.current_balance - acc.total_invested %}
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+                <div class="ta-stat" style="flex:1;min-width:80px;">
                     <div class="ta-stat-lbl">Capital</div>
                     <div class="ta-stat-val blue">${{ '{:,.0f}'.format(acc.total_invested) }}<span class="aed-sub-card">AED {{ '{:,.0f}'.format(acc.total_invested * AED) }}</span></div>
                 </div>
-                <div class="ta-stat">
+                <div style="font-size:1.1rem;color:var(--text-secondary);font-weight:700;">→</div>
+                <div class="ta-stat" style="flex:1;min-width:80px;">
                     <div class="ta-stat-lbl">Current Balance</div>
-                    <div class="ta-stat-val">${{ '{:,.2f}'.format(acc.current_balance) }}<span class="aed-sub-card">AED {{ '{:,.0f}'.format(acc.current_balance * AED) }}</span></div>
+                    <div class="ta-stat-val">${{ '{:,.0f}'.format(acc.current_balance) }}<span class="aed-sub-card">AED {{ '{:,.0f}'.format(acc.current_balance * AED) }}</span></div>
                 </div>
-                <div class="ta-stat">
-                    <div class="ta-stat-lbl">Total Withdrawn</div>
+                <div style="font-size:.9rem;color:var(--text-secondary);font-weight:700;">=</div>
+                <div class="ta-stat" style="flex:1;min-width:80px;background:{% if live_pnl >= 0 %}rgba(76,175,80,0.1){% else %}rgba(192,57,43,0.1){% endif %};border-color:{% if live_pnl >= 0 %}rgba(76,175,80,0.4){% else %}rgba(192,57,43,0.4){% endif %};">
+                    <div class="ta-stat-lbl">Live P&amp;L</div>
+                    <div class="ta-stat-val {{ 'green' if live_pnl >= 0 else 'red' }}">{{ '+' if live_pnl >= 0 else '' }}${{ '{:,.0f}'.format(live_pnl) }}<span class="aed-sub-card">AED {{ '{:+,.0f}'.format(live_pnl * AED) }}</span></div>
+                </div>
+            </div>
+            <!-- Withdrawn + Total Generated -->
+            {% if acc.total_withdrawn > 0 %}
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+                <div class="ta-stat" style="flex:1;min-width:80px;">
+                    <div class="ta-stat-lbl">Withdrawn</div>
                     <div class="ta-stat-val orange">${{ '{:,.0f}'.format(acc.total_withdrawn) }}<span class="aed-sub-card">AED {{ '{:,.0f}'.format(acc.total_withdrawn * AED) }}</span></div>
                 </div>
-                <div class="ta-stat">
-                    <div class="ta-stat-lbl">Total Generated / ROI</div>
-                    <div class="ta-stat-val {{ 'green' if acc.total_generated >= 0 else 'red' }}">
-                        {{ '+' if acc.total_generated >= 0 else '' }}${{ '{:,.2f}'.format(acc.total_generated) }}
-                        <span style="font-size:.7rem;opacity:.75;">({{ '{:+.1f}'.format(acc.roi_pct) }}%)</span>
-                        <span class="aed-sub-card">AED {{ '{:+,.0f}'.format(acc.total_generated * AED) }}</span>
-                    </div>
+                <div style="font-size:.85rem;color:var(--text-secondary);padding:0 2px;">Total Generated</div>
+                <div class="ta-stat" style="flex:1;min-width:80px;background:rgba(33,150,243,0.07);border-color:rgba(33,150,243,0.3);">
+                    <div class="ta-stat-lbl">Generated / ROI</div>
+                    <div class="ta-stat-val {{ 'green' if acc.total_generated >= 0 else 'red' }}">{{ '+' if acc.total_generated >= 0 else '' }}${{ '{:,.0f}'.format(acc.total_generated) }} <span style="font-size:.7rem;opacity:.75;">({{ '{:+.1f}'.format(acc.roi_pct) }}%)</span></div>
                 </div>
             </div>
-            <!-- Profit Ready bar -->
-            <div style="background:{% if acc.profit_ready >= 0 %}rgba(76,175,80,0.1){% else %}rgba(192,57,43,0.1){% endif %};border:1px solid {% if acc.profit_ready >= 0 %}rgba(76,175,80,0.35){% else %}rgba(192,57,43,0.35){% endif %};border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;">💰 Profit Ready (in account)</span>
-                <span style="font-weight:800;color:{% if acc.profit_ready >= 0 %}#388E3C{% else %}#c0392b{% endif %};font-size:.95rem;">
-                    {{ '+' if acc.profit_ready >= 0 else '' }}${{ '{:,.2f}'.format(acc.profit_ready) }}
-                    <span style="font-size:.68rem;opacity:.7;">AED {{ '{:+,.0f}'.format(acc.profit_ready * AED) }}</span>
-                </span>
-            </div>
+            {% endif %}
             <div class="ta-profit-row">
                 <div class="ta-pstat">
                     <div class="ta-pstat-lbl">Today</div>
