@@ -2786,6 +2786,43 @@ def trading_account_profit_delete(acc_id, profit_id):
     return redirect(url_for('trading_account_detail', acc_id=acc_id))
 
 
+@app.route('/trading-accounts/<int:acc_id>/transaction/<int:txn_id>/edit', methods=['POST'])
+def trading_account_txn_edit(acc_id, txn_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    from datetime import date
+    acc = TradingAccount.query.get_or_404(acc_id)
+    txn = AccountTransaction.query.get_or_404(txn_id)
+    new_amount = float(request.form.get('amount') or txn.amount)
+    new_date   = request.form.get('txn_date') or txn.txn_date.isoformat()
+    new_notes  = request.form.get('notes', '')
+    # Reverse old, apply new
+    if txn.txn_type == 'deposit':
+        acc.total_invested  = acc.total_invested - txn.amount + new_amount
+    elif txn.txn_type == 'withdrawal':
+        acc.total_withdrawn = acc.total_withdrawn - txn.amount + new_amount
+    txn.amount   = new_amount
+    txn.txn_date = date.fromisoformat(new_date)
+    txn.notes    = new_notes
+    db.session.commit()
+    flash(f'{txn.txn_type.title()} updated to ${new_amount:,.2f}.', 'success')
+    return redirect(url_for('trading_account_detail', acc_id=acc_id))
+
+
+@app.route('/trading-accounts/<int:acc_id>/profit/<int:profit_id>/edit', methods=['POST'])
+def trading_account_profit_edit(acc_id, profit_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    from datetime import date
+    p = AccountProfit.query.get_or_404(profit_id)
+    p.profit_amount = float(request.form.get('amount') or p.profit_amount)
+    p.profit_date   = date.fromisoformat(request.form.get('profit_date') or p.profit_date.isoformat())
+    p.notes         = request.form.get('notes', '')
+    db.session.commit()
+    flash(f'Profit entry updated to ${p.profit_amount:,.2f}.', 'success')
+    return redirect(url_for('trading_account_detail', acc_id=acc_id))
+
+
 @app.route('/trading-accounts/<int:acc_id>/transaction/<int:txn_id>/delete', methods=['POST'])
 def trading_account_txn_delete(acc_id, txn_id):
     if not session.get('logged_in'):

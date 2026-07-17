@@ -121,9 +121,13 @@
                     </span>
                 </td>
                 <td style="color:var(--text-secondary);">{{ p.notes or '—' }}</td>
-                <td>
+                <td style="display:flex;gap:4px;">
+                    <button class="btn-sm" style="background:#4A90E2;color:#fff;border:none;border-radius:5px;padding:3px 8px;cursor:pointer;"
+                        onclick="openProfitEdit({{ p.id }},{{ p.profit_amount }},'{{ p.profit_date.isoformat() }}','{{ p.notes or '' }}')">
+                        ✏️
+                    </button>
                     <form method="POST" action="{{ url_for('trading_account_profit_delete', acc_id=acc.id, profit_id=p.id) }}"
-                          onsubmit="return confirm('Delete this profit entry?')">
+                          onsubmit="return confirm('Delete this profit entry?')" style="display:inline;">
                         <button type="submit" class="btn-danger btn-sm">🗑</button>
                     </form>
                 </td>
@@ -161,9 +165,13 @@
                     ${{ '{:,.2f}'.format(t.amount) }}
                 </td>
                 <td style="color:var(--text-secondary);">{{ t.notes or '—' }}</td>
-                <td>
+                <td style="display:flex;gap:4px;">
+                    <button class="btn-sm" style="background:#4A90E2;color:#fff;border:none;border-radius:5px;padding:3px 8px;cursor:pointer;"
+                        onclick="openTxnEdit({{ t.id }},'{{ t.txn_type }}',{{ t.amount }},'{{ t.txn_date.isoformat() }}','{{ t.notes or '' }}')">
+                        ✏️
+                    </button>
                     <form method="POST" action="{{ url_for('trading_account_txn_delete', acc_id=acc.id, txn_id=t.id) }}"
-                          onsubmit="return confirm('Delete this entry? Balance will be reversed automatically.')">
+                          onsubmit="return confirm('Delete this entry?')" style="display:inline;">
                         <button type="submit" class="btn-danger btn-sm">🗑</button>
                     </form>
                 </td>
@@ -175,5 +183,66 @@
     <div class="empty-state">No transactions yet.</div>
     {% endif %}
 </div>
+
+<!-- Edit Transaction Modal -->
+<div id="txnEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;">
+  <div style="background:var(--bg-card);border-radius:14px;padding:24px;width:100%;max-width:400px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.25);">
+    <h3 style="margin:0 0 16px;color:var(--text-primary);font-size:1rem;">✏️ Edit Transaction</h3>
+    <form method="POST" id="txnEditForm">
+      <div style="margin-bottom:10px;"><label style="font-size:.78rem;color:var(--text-secondary);font-weight:600;">Date</label>
+        <input type="date" name="txn_date" id="te_date" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:7px;background:var(--bg-dark);color:var(--text-primary);box-sizing:border-box;"></div>
+      <div style="margin-bottom:10px;"><label style="font-size:.78rem;color:var(--text-secondary);font-weight:600;">Amount ($)</label>
+        <input type="number" name="amount" id="te_amount" step="0.01" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:7px;background:var(--bg-dark);color:var(--text-primary);box-sizing:border-box;"></div>
+      <div style="margin-bottom:14px;"><label style="font-size:.78rem;color:var(--text-secondary);font-weight:600;">Notes</label>
+        <input type="text" name="notes" id="te_notes" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:7px;background:var(--bg-dark);color:var(--text-primary);box-sizing:border-box;"></div>
+      <div style="display:flex;gap:10px;">
+        <button type="submit" style="flex:1;padding:9px;background:#27ae60;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Save</button>
+        <button type="button" onclick="closeTxnEdit()" style="flex:1;padding:9px;background:var(--bg-hover);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;font-weight:700;cursor:pointer;">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Profit Modal -->
+<div id="profitEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;">
+  <div style="background:var(--bg-card);border-radius:14px;padding:24px;width:100%;max-width:400px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.25);">
+    <h3 style="margin:0 0 16px;color:var(--text-primary);font-size:1rem;">✏️ Edit Profit Entry</h3>
+    <form method="POST" id="profitEditForm">
+      <div style="margin-bottom:10px;"><label style="font-size:.78rem;color:var(--text-secondary);font-weight:600;">Date</label>
+        <input type="date" name="profit_date" id="pe_date" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:7px;background:var(--bg-dark);color:var(--text-primary);box-sizing:border-box;"></div>
+      <div style="margin-bottom:10px;"><label style="font-size:.78rem;color:var(--text-secondary);font-weight:600;">Profit Amount ($)</label>
+        <input type="number" name="amount" id="pe_amount" step="0.01" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:7px;background:var(--bg-dark);color:var(--text-primary);box-sizing:border-box;"></div>
+      <div style="margin-bottom:14px;"><label style="font-size:.78rem;color:var(--text-secondary);font-weight:600;">Notes</label>
+        <input type="text" name="notes" id="pe_notes" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:7px;background:var(--bg-dark);color:var(--text-primary);box-sizing:border-box;"></div>
+      <div style="display:flex;gap:10px;">
+        <button type="submit" style="flex:1;padding:9px;background:#27ae60;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Save</button>
+        <button type="button" onclick="closeProfitEdit()" style="flex:1;padding:9px;background:var(--bg-hover);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;font-weight:700;cursor:pointer;">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openTxnEdit(id, type, amount, date, notes) {
+    document.getElementById('txnEditForm').action = '/trading-accounts/{{ acc.id }}/transaction/' + id + '/edit';
+    document.getElementById('te_amount').value = amount;
+    document.getElementById('te_date').value   = date;
+    document.getElementById('te_notes').value  = notes;
+    var m = document.getElementById('txnEditModal');
+    m.style.display = 'flex';
+}
+function closeTxnEdit() { document.getElementById('txnEditModal').style.display = 'none'; }
+function openProfitEdit(id, amount, date, notes) {
+    document.getElementById('profitEditForm').action = '/trading-accounts/{{ acc.id }}/profit/' + id + '/edit';
+    document.getElementById('pe_amount').value = amount;
+    document.getElementById('pe_date').value   = date;
+    document.getElementById('pe_notes').value  = notes;
+    var m = document.getElementById('profitEditModal');
+    m.style.display = 'flex';
+}
+function closeProfitEdit() { document.getElementById('profitEditModal').style.display = 'none'; }
+document.getElementById('txnEditModal').addEventListener('click', function(e){ if(e.target===this) closeTxnEdit(); });
+document.getElementById('profitEditModal').addEventListener('click', function(e){ if(e.target===this) closeProfitEdit(); });
+</script>
 </body>
 </html>
