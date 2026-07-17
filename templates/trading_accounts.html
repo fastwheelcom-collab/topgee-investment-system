@@ -6,66 +6,94 @@
     <title>Forex Accounts - TopGee It</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        .ta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-top: 20px; }
-        .ta-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; transition: box-shadow 0.2s; }
-        .ta-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-        .ta-card.inactive { opacity: 0.65; }
-        .ta-badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:.72rem; font-weight:700; }
-        .ta-badge.active  { background:rgba(76,175,80,0.15); color:#388E3C; border:1px solid rgba(76,175,80,0.3); }
-        .ta-badge.offline { background:rgba(102,102,102,0.15); color:#666; border:1px solid #ccc; }
-        .ta-broker { font-size:1.1rem; font-weight:800; color:var(--text-primary); margin:8px 0 2px; }
-        .ta-sub { font-size:.78rem; color:var(--text-secondary); margin-bottom:14px; }
-        .ta-stats { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
-        .ta-stat { background:var(--bg-dark); border:1px solid var(--border); border-radius:8px; padding:9px 12px; }
-        .ta-stat-lbl { font-size:.65rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.5px; }
-        .ta-stat-val { font-size:.95rem; font-weight:700; color:var(--text-primary); margin-top:2px; }
-        .ta-stat-val.green  { color:#388E3C; }
-        .ta-stat-val.red    { color:#c0392b; }
-        .ta-stat-val.blue   { color:#357ABD; }
-        .ta-stat-val.orange { color:#F57C00; }
-        .ta-profit-row { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:12px; }
-        .ta-pstat { background:var(--bg-dark); border:1px solid var(--border); border-radius:8px; padding:7px 8px; text-align:center; }
-        .ta-pstat-lbl { font-size:.62rem; color:var(--text-secondary); text-transform:uppercase; }
-        .ta-pstat-val { font-size:.85rem; font-weight:700; color:var(--text-primary); margin-top:2px; }
-        .ta-pstat-val.green { color:#388E3C; }
-        .ta-pstat-val.red   { color:#c0392b; }
-        .ta-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
-        .ta-btn { padding:5px 11px; border-radius:6px; font-size:.75rem; font-weight:600; border:none; cursor:pointer; text-decoration:none; display:inline-block; }
-        .ta-btn.profit   { background:#4CAF50; color:#fff; }
-        .ta-btn.deposit  { background:#4A90E2; color:#fff; }
-        .ta-btn.withdraw { background:#FF9800; color:#fff; }
-        .ta-btn.detail   { background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border); }
-        .ta-btn.edit     { background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border); }
-        .ta-btn.del      { background:#000; color:#fff; }
-        .summary-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:24px; }
-        .sum-box { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:14px; text-align:center; }
-        .sum-lbl { font-size:.68rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.5px; }
-        .sum-val { font-size:1.2rem; font-weight:800; color:var(--text-primary); margin-top:4px; }
-        .sum-val.blue   { color:#357ABD; }
-        .sum-val.orange { color:#F57C00; }
-        .sum-val.green  { color:#388E3C; }
-        .sum-val.red    { color:#c0392b; }
-        .aed-sub { font-size:.68rem; color:var(--text-secondary); font-weight:500; margin-top:1px; }
-        .aed-sub-card { font-size:.68rem; opacity:.65; font-weight:400; display:block; }
+        /* ── Page ── */
         .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
         .page-header h2 { color:var(--text-primary); font-size:1.4rem; margin:0; }
+
+        /* ── Top Summary Strip ── */
+        .sum-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:28px; }
+        .sum-box { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
+        .sum-lbl { font-size:.65rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.6px; }
+        .sum-val { font-size:1.15rem; font-weight:800; color:var(--text-primary); margin-top:3px; }
+        .sum-sub { font-size:.65rem; color:var(--text-secondary); margin-top:2px; }
+        .c-blue   { color:#4A90E2; }
+        .c-green  { color:#27ae60; }
+        .c-red    { color:#c0392b; }
+        .c-orange { color:#e67e22; }
+        .c-purple { color:#8e44ad; }
+
+        /* ── Holder Section ── */
+        .holder-header { display:flex; align-items:center; gap:10px; margin:28px 0 6px; }
+        .holder-name { font-size:.95rem; font-weight:800; color:var(--text-primary); white-space:nowrap; }
+        .holder-line { flex:1; height:1px; background:var(--border); }
+        .holder-count { font-size:.72rem; color:var(--text-secondary); white-space:nowrap; }
+        .holder-summary { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+        .hs-pill { background:var(--bg-card); border:1px solid var(--border); border-radius:20px; padding:4px 12px; font-size:.75rem; }
+        .hs-op { font-size:.85rem; color:var(--text-secondary); font-weight:700; padding:0 2px; }
+
+        /* ── Account Grid ── */
+        .acc-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:16px; }
+
+        /* ── Account Card ── */
+        .acc-card { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; overflow:hidden; transition:box-shadow .2s; }
+        .acc-card:hover { box-shadow:0 4px 24px rgba(0,0,0,.12); }
+        .acc-card.inactive { opacity:.6; }
+
+        /* Card Header */
+        .acc-head { padding:14px 16px 10px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:flex-start; }
+        .acc-broker { font-size:1rem; font-weight:800; color:var(--text-primary); }
+        .acc-meta { font-size:.7rem; color:var(--text-secondary); margin-top:2px; }
+        .acc-badge { display:inline-block; padding:2px 9px; border-radius:20px; font-size:.68rem; font-weight:700; }
+        .acc-badge.active  { background:rgba(39,174,96,.12); color:#27ae60; border:1px solid rgba(39,174,96,.3); }
+        .acc-badge.offline { background:rgba(120,120,120,.1); color:#888; border:1px solid #ccc; }
+
+        /* Formula Rows */
+        .acc-body { padding:14px 16px; }
+        .formula-row { display:grid; grid-template-columns:1fr auto 1fr auto 1fr; align-items:center; gap:6px; margin-bottom:8px; }
+        .f-box { background:var(--bg-dark); border:1px solid var(--border); border-radius:8px; padding:8px 10px; min-width:0; }
+        .f-box.highlight-green { background:rgba(39,174,96,.1); border-color:rgba(39,174,96,.4); }
+        .f-box.highlight-red   { background:rgba(192,57,43,.1); border-color:rgba(192,57,43,.4); }
+        .f-box.highlight-profit-g { background:rgba(39,174,96,.18); border-color:rgba(39,174,96,.6); }
+        .f-box.highlight-profit-r { background:rgba(192,57,43,.18); border-color:rgba(192,57,43,.6); }
+        .f-lbl { font-size:.6rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .f-val { font-size:.9rem; font-weight:800; color:var(--text-primary); margin-top:2px; white-space:nowrap; }
+        .f-op  { font-size:1rem; color:var(--text-secondary); font-weight:700; text-align:center; }
+
+        /* Profit Stats Row */
+        .profit-row { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:10px 0; }
+        .p-box { background:var(--bg-dark); border:1px solid var(--border); border-radius:8px; padding:7px 8px; text-align:center; }
+        .p-lbl { font-size:.6rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.4px; }
+        .p-val { font-size:.82rem; font-weight:700; color:var(--text-primary); margin-top:2px; }
+
+        /* Actions */
+        .acc-actions { padding:10px 16px 14px; border-top:1px solid var(--border); display:flex; gap:6px; flex-wrap:wrap; }
+        .a-btn { padding:5px 10px; border-radius:6px; font-size:.72rem; font-weight:700; border:none; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:3px; }
+        .a-btn.daily    { background:#27ae60; color:#fff; }
+        .a-btn.weekly   { background:#8e44ad; color:#fff; }
+        .a-btn.deposit  { background:#4A90E2; color:#fff; }
+        .a-btn.withdraw { background:#e67e22; color:#fff; }
+        .a-btn.history  { background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border); }
+        .a-btn.edit     { background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border); }
+        .a-btn.del      { background:#1a1a1a; color:#fff; }
+
         /* Modal */
-        .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:999; align-items:center; justify-content:center; }
+        .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:999; align-items:center; justify-content:center; }
         .modal-overlay.open { display:flex; }
-        .modal-box { background:#fff; border-radius:14px; padding:26px; width:100%; max-width:420px; border:1px solid var(--border); box-shadow:0 20px 60px rgba(0,0,0,.2); }
-        .modal-box h3 { color:var(--text-primary); margin:0 0 18px; font-size:1.05rem; }
+        .modal-box { background:var(--bg-card); border-radius:14px; padding:24px; width:100%; max-width:420px; border:1px solid var(--border); box-shadow:0 20px 60px rgba(0,0,0,.25); max-height:90vh; overflow-y:auto; }
+        .modal-box h3 { color:var(--text-primary); margin:0 0 16px; font-size:1rem; }
         .form-group { margin-bottom:12px; }
-        .form-group label { display:block; font-size:.8rem; color:var(--text-secondary); margin-bottom:4px; font-weight:600; }
+        .form-group label { display:block; font-size:.78rem; color:var(--text-secondary); margin-bottom:4px; font-weight:600; }
         .form-group input, .form-group select, .form-group textarea {
-            width:100%; padding:8px 11px; background:#fff; border:1px solid var(--border);
+            width:100%; padding:8px 11px; background:var(--bg-dark); border:1px solid var(--border);
             border-radius:7px; color:var(--text-primary); font-size:.88rem; box-sizing:border-box;
         }
         .form-group input:focus, .form-group select:focus { outline:none; border-color:#4A90E2; }
-        .modal-actions { display:flex; gap:10px; margin-top:18px; }
+        .modal-actions { display:flex; gap:10px; margin-top:16px; }
         .modal-actions button { flex:1; padding:9px; border-radius:8px; font-weight:700; border:none; cursor:pointer; font-size:.88rem; }
-        .btn-confirm { background:#4CAF50; color:#fff; }
+        .btn-confirm { background:#27ae60; color:#fff; }
         .btn-cancel  { background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border); }
         .empty-state { text-align:center; padding:60px 20px; color:var(--text-secondary); }
+        .g2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     </style>
 </head>
 <body>
@@ -84,12 +112,10 @@
             {% if is_admin %}<a href="{{ url_for('users') }}" class="nav-users">Users</a>{% endif %}
             <a href="{{ url_for('audit_log') }}" class="nav-audit">Audit Log</a>
             <div style="position:relative;display:inline-block;" id="profileMenu">
-                <button onclick="toggleProfile()" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:4px 12px;font-weight:700;font-size:.85rem;cursor:pointer;">
-                    {{ current_user }} ▾
-                </button>
-                <div id="profileDropdown" style="display:none;position:absolute;right:0;top:110%;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);min-width:160px;z-index:9999;overflow:hidden;border:1px solid #eee;">
-                    <a href="{{ url_for('profile') }}" style="display:block;padding:12px 16px;color:#374151;text-decoration:none;font-weight:600;border-bottom:1px solid #f3f4f6;">👤 My Profile</a>
-                    <a href="{{ url_for('change_password') }}" style="display:block;padding:12px 16px;color:#374151;text-decoration:none;font-weight:600;border-bottom:1px solid #f3f4f6;">🔑 Change Password</a>
+                <button onclick="toggleProfile()" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:4px 12px;font-weight:700;font-size:.85rem;cursor:pointer;">{{ current_user }} ▾</button>
+                <div id="profileDropdown" style="display:none;position:absolute;right:0;top:110%;background:var(--bg-card);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);min-width:160px;z-index:9999;overflow:hidden;border:1px solid var(--border);">
+                    <a href="{{ url_for('profile') }}" style="display:block;padding:12px 16px;color:var(--text-primary);text-decoration:none;font-weight:600;border-bottom:1px solid var(--border);">👤 My Profile</a>
+                    <a href="{{ url_for('change_password') }}" style="display:block;padding:12px 16px;color:var(--text-primary);text-decoration:none;font-weight:600;border-bottom:1px solid var(--border);">🔑 Change Password</a>
                     <a href="{{ url_for('logout') }}" style="display:block;padding:12px 16px;color:#dc2626;text-decoration:none;font-weight:700;">🚪 Logout</a>
                 </div>
             </div>
@@ -99,414 +125,354 @@
 </nav>
 
 <div class="container" style="padding-top:24px;">
-    {% set AED = 3.67 %}
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}{% for cat, msg in messages %}
-    <div class="alert alert-{{ cat }}" style="padding:12px 16px;border-radius:8px;margin-bottom:12px;font-weight:600;
-        background:{% if cat=='success' %}rgba(76,175,80,0.15){% else %}rgba(239,68,68,0.15){% endif %};
-        color:{% if cat=='success' %}#388E3C{% else %}#c0392b{% endif %};
-        border:1px solid {% if cat=='success' %}rgba(76,175,80,0.3){% else %}rgba(239,68,68,0.3){% endif %};">
-        {{ msg }}
-    </div>
-    {% endfor %}{% endif %}
-    {% endwith %}
+{% set AED = 3.67 %}
+{% set total_live_pnl = total_balance - total_invested %}
+{% set total_profit_available = total_live_pnl - total_withdrawn %}
 
-    <div class="page-header">
-        <h2>📊 Forex Accounts</h2>
-        {% if is_admin %}
-        <button class="btn-primary" style="padding:10px 20px;" onclick="openModal('addAccountModal')">
-            ＋ Add Broker Account
-        </button>
-        {% endif %}
-    </div>
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}{% for cat, msg in messages %}
+<div style="padding:12px 16px;border-radius:8px;margin-bottom:12px;font-weight:600;
+    background:{% if cat=='success' %}rgba(39,174,96,.12){% else %}rgba(192,57,43,.12){% endif %};
+    color:{% if cat=='success' %}#27ae60{% else %}#c0392b{% endif %};
+    border:1px solid {% if cat=='success' %}rgba(39,174,96,.3){% else %}rgba(192,57,43,.3){% endif %};">
+    {{ msg }}
+</div>
+{% endfor %}{% endif %}
+{% endwith %}
 
-    <!-- Summary Strip -->
-    <div class="summary-strip">
-        <div class="sum-box">
-            <div class="sum-lbl">Total Invested</div>
-            <div class="sum-val blue">${{ '{:,.0f}'.format(total_invested) }}</div>
-            <div class="aed-sub">AED {{ '{:,.0f}'.format(total_invested * AED) }}</div>
-        </div>
-        <div class="sum-box">
-            <div class="sum-lbl">Total Withdrawn</div>
-            <div class="sum-val orange">${{ '{:,.0f}'.format(total_withdrawn) }}</div>
-            <div class="aed-sub">AED {{ '{:,.0f}'.format(total_withdrawn * AED) }}</div>
-        </div>
-        <div class="sum-box">
-            <div class="sum-lbl">Current Balance</div>
-            <div class="sum-val">${{ '{:,.0f}'.format(total_balance) }}</div>
-            <div class="aed-sub">AED {{ '{:,.0f}'.format(total_balance * AED) }}</div>
-        </div>
-        <div class="sum-box">
-            <div class="sum-lbl">Today Profit</div>
-            <div class="sum-val {{ 'green' if today_profit >= 0 else 'red' }}">
-                {{ '+' if today_profit >= 0 else '' }}${{ '{:,.2f}'.format(today_profit) }}
-            </div>
-        </div>
-        <div class="sum-box">
-            <div class="sum-lbl">This Week</div>
-            <div class="sum-val {{ 'green' if week_profit >= 0 else 'red' }}">
-                {{ '+' if week_profit >= 0 else '' }}${{ '{:,.2f}'.format(week_profit) }}
-            </div>
-        </div>
-        <div class="sum-box">
-            <div class="sum-lbl">This Month</div>
-            <div class="sum-val {{ 'green' if month_profit >= 0 else 'red' }}">
-                {{ '+' if month_profit >= 0 else '' }}${{ '{:,.2f}'.format(month_profit) }}
-            </div>
-        </div>
-        <div class="sum-box">
-            <div class="sum-lbl">All Time Profit</div>
-            <div class="sum-val {{ 'green' if total_profit >= 0 else 'red' }}">
-                {{ '+' if total_profit >= 0 else '' }}${{ '{:,.2f}'.format(total_profit) }}
-                {% if total_invested > 0 %}<div style="font-size:.75rem;opacity:.8;">{{ '{:+.1f}'.format((total_profit/total_invested)*100) }}% ROI</div>{% endif %}
-            </div>
-        </div>
-    </div>
+<div class="page-header">
+    <h2>📊 Forex Accounts</h2>
+    {% if is_admin %}
+    <button class="btn-primary" style="padding:9px 18px;" onclick="openModal('addAccountModal')">＋ Add Account</button>
+    {% endif %}
+</div>
 
-    <!-- Account Cards — grouped by holder -->
-    {% if accounts %}
-    {% for holder, holder_accounts in grouped.items() %}
-    {% set h_invested  = holder_accounts | sum(attribute='total_invested') %}
-    {% set h_withdrawn = holder_accounts | sum(attribute='total_withdrawn') %}
-    {% set h_balance   = holder_accounts | sum(attribute='current_balance') %}
-    {% set h_profit    = holder_accounts | sum(attribute='net_profit') %}
-    <div style="margin:28px 0 10px;">
-        <!-- Row 1: name + divider + count -->
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-            <div style="font-size:1rem;font-weight:800;color:var(--text-primary);white-space:nowrap;">
-                {% if holder %}👤 {{ holder }}{% else %}— Unassigned —{% endif %}
-            </div>
-            <div style="flex:1;height:1px;background:var(--border);"></div>
-            <div style="font-size:.75rem;color:var(--text-secondary);white-space:nowrap;">{{ holder_accounts|length }} account{{ 's' if holder_accounts|length != 1 else '' }}</div>
-        </div>
-        <!-- Row 2: holder summary stats -->
-        {% set h_live_pnl = h_balance - h_invested %}
-        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:.78rem;">
-                <span style="color:var(--text-secondary);">Capital </span>
-                <strong style="color:#357ABD;">${{ '{:,.0f}'.format(h_invested) }}</strong>
-            </div>
-            <span style="color:var(--text-secondary);font-size:.9rem;">→</span>
-            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:.78rem;">
-                <span style="color:var(--text-secondary);">Balance </span>
-                <strong style="color:var(--text-primary);">${{ '{:,.0f}'.format(h_balance) }}</strong>
-            </div>
-            <span style="color:var(--text-secondary);font-size:.9rem;">=</span>
-            <div style="background:{% if h_live_pnl >= 0 %}rgba(76,175,80,0.1){% else %}rgba(192,57,43,0.1){% endif %};border:1px solid {% if h_live_pnl >= 0 %}rgba(76,175,80,0.35){% else %}rgba(192,57,43,0.35){% endif %};border-radius:8px;padding:5px 12px;font-size:.78rem;">
-                <strong style="color:{% if h_live_pnl >= 0 %}#388E3C{% else %}#c0392b{% endif %};">{{ '+' if h_live_pnl >= 0 else '' }}${{ '{:,.0f}'.format(h_live_pnl) }}</strong>
-            </div>
-        </div>
+<!-- ── Summary Strip ── -->
+<div class="sum-strip">
+    <div class="sum-box">
+        <div class="sum-lbl">Total Capital</div>
+        <div class="sum-val c-blue">${{ '{:,.0f}'.format(total_invested) }}</div>
+        <div class="sum-sub">AED {{ '{:,.0f}'.format(total_invested * AED) }}</div>
     </div>
-    <div class="ta-grid">
-        {% for acc in holder_accounts %}
-        <div class="ta-card {% if not acc.is_active %}inactive{% endif %}">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                <span class="ta-badge {% if acc.is_active %}active{% else %}offline{% endif %}">
-                    {% if acc.is_active %}● Active{% else %}○ Inactive{% endif %}
-                </span>
-                <span style="font-size:.72rem;color:var(--text-secondary);">{{ acc.platform }} · {{ acc.symbol }}</span>
-            </div>
-            <div class="ta-broker">{{ acc.broker_name }}</div>
-            <div class="ta-sub">
-                {% if acc.account_number %}Acc: {{ acc.account_number }} · {% endif %}{{ acc.currency }}
-                {% if acc.deposit_via %} · Via: <strong>{{ acc.deposit_via }}</strong>{% endif %}
-            </div>
-            {% set live_pnl = acc.current_balance - acc.total_invested %}
-            {% set profit_available = live_pnl - acc.total_withdrawn %}
-
-            <!-- Row 1: Capital → Current Balance = Live P&L -->
-            <table style="width:100%;border-collapse:separate;border-spacing:4px;margin-bottom:6px;">
-              <tr>
-                <td style="width:36%;">
-                  <div class="ta-stat">
-                    <div class="ta-stat-lbl">Capital</div>
-                    <div class="ta-stat-val blue">${{ '{:,.0f}'.format(acc.total_invested) }}</div>
-                  </div>
-                </td>
-                <td style="width:4%;text-align:center;font-size:1rem;color:var(--text-secondary);font-weight:700;">→</td>
-                <td style="width:36%;">
-                  <div class="ta-stat">
-                    <div class="ta-stat-lbl">Current Balance</div>
-                    <div class="ta-stat-val">${{ '{:,.0f}'.format(acc.current_balance) }}</div>
-                  </div>
-                </td>
-                <td style="width:4%;text-align:center;font-size:1rem;color:var(--text-secondary);font-weight:700;">=</td>
-                <td style="width:36%;">
-                  <div class="ta-stat" style="background:{% if live_pnl >= 0 %}rgba(76,175,80,0.1){% else %}rgba(192,57,43,0.1){% endif %};border-color:{% if live_pnl >= 0 %}rgba(76,175,80,0.4){% else %}rgba(192,57,43,0.4){% endif %};">
-                    <div class="ta-stat-lbl">Live P&amp;L</div>
-                    <div class="ta-stat-val {{ 'green' if live_pnl >= 0 else 'red' }}">{{ '+' if live_pnl >= 0 else '' }}${{ '{:,.0f}'.format(live_pnl) }}</div>
-                  </div>
-                </td>
-              </tr>
-            </table>
-
-            <!-- Row 2: Live P&L − Withdrawn = Profit Available -->
-            <table style="width:100%;border-collapse:separate;border-spacing:4px;margin-bottom:12px;">
-              <tr>
-                <td style="width:36%;">
-                  <div class="ta-stat" style="background:{% if live_pnl >= 0 %}rgba(76,175,80,0.07){% else %}rgba(192,57,43,0.07){% endif %};border-color:{% if live_pnl >= 0 %}rgba(76,175,80,0.3){% else %}rgba(192,57,43,0.3){% endif %};">
-                    <div class="ta-stat-lbl">Live P&amp;L</div>
-                    <div class="ta-stat-val {{ 'green' if live_pnl >= 0 else 'red' }}">{{ '+' if live_pnl >= 0 else '' }}${{ '{:,.0f}'.format(live_pnl) }}</div>
-                  </div>
-                </td>
-                <td style="width:4%;text-align:center;font-size:1rem;color:var(--text-secondary);font-weight:700;">−</td>
-                <td style="width:36%;position:relative;">
-                  <div class="ta-stat">
-                    <div class="ta-stat-lbl">Withdrawn <button onclick="openTxnModal({{ acc.id }},'{{ acc.broker_name }}','withdrawal')" style="background:#FF9800;color:#fff;border:none;border-radius:3px;font-size:.6rem;padding:1px 4px;cursor:pointer;margin-left:3px;">+</button></div>
-                    <div class="ta-stat-val orange">${{ '{:,.0f}'.format(acc.total_withdrawn) }}</div>
-                  </div>
-                </td>
-                <td style="width:4%;text-align:center;font-size:1rem;color:var(--text-secondary);font-weight:700;">=</td>
-                <td style="width:36%;">
-                  <div class="ta-stat" style="background:{% if profit_available >= 0 %}rgba(76,175,80,0.15){% else %}rgba(192,57,43,0.15){% endif %};border-color:{% if profit_available >= 0 %}rgba(76,175,80,0.5){% else %}rgba(192,57,43,0.5){% endif %};">
-                    <div class="ta-stat-lbl" style="font-weight:700;">Profit Available</div>
-                    <div class="ta-stat-val {{ 'green' if profit_available >= 0 else 'red' }}">{{ '+' if profit_available >= 0 else '' }}${{ '{:,.0f}'.format(profit_available) }}</div>
-                  </div>
-                </td>
-              </tr>
-            </table>
-            <div class="ta-profit-row">
-                <div class="ta-pstat">
-                    <div class="ta-pstat-lbl">Today</div>
-                    <div class="ta-pstat-val {{ 'green' if acc.today_profit >= 0 else 'red' }}">
-                        {{ '+' if acc.today_profit >= 0 else '' }}${{ '{:,.2f}'.format(acc.today_profit) }}
-                    </div>
-                </div>
-                <div class="ta-pstat">
-                    <div class="ta-pstat-lbl">This Week</div>
-                    <div class="ta-pstat-val {{ 'green' if acc.week_profit >= 0 else 'red' }}">
-                        {{ '+' if acc.week_profit >= 0 else '' }}${{ '{:,.2f}'.format(acc.week_profit) }}
-                    </div>
-                </div>
-                <div class="ta-pstat">
-                    <div class="ta-pstat-lbl">This Month</div>
-                    <div class="ta-pstat-val {{ 'green' if acc.month_profit >= 0 else 'red' }}">
-                        {{ '+' if acc.month_profit >= 0 else '' }}${{ '{:,.2f}'.format(acc.month_profit) }}
-                    </div>
-                </div>
-            </div>
-            <div class="ta-actions">
-                <button class="ta-btn profit"   onclick="openProfitModal({{ acc.id }}, '{{ acc.broker_name }}', {{ acc.current_balance }})">+ Daily</button>
-                <button class="ta-btn" style="background:#9C27B0;color:#fff;" onclick="openWeeklyModal({{ acc.id }}, '{{ acc.broker_name }}', {{ acc.current_balance }})">📅 Weekly</button>
-                <button class="ta-btn deposit"  onclick="openTxnModal({{ acc.id }}, '{{ acc.broker_name }}', 'deposit')">↓ Deposit</button>
-                <button class="ta-btn withdraw" onclick="openTxnModal({{ acc.id }}, '{{ acc.broker_name }}', 'withdrawal')">↑ Withdraw</button>
-                <a href="{{ url_for('trading_account_detail', acc_id=acc.id) }}" class="ta-btn detail">📋 History</a>
-                {% if is_admin %}
-                <button class="ta-btn edit" onclick="openEditModal({{ acc.id }}, '{{ acc.broker_name }}', '{{ acc.account_holder or "" }}', '{{ acc.account_number or "" }}', '{{ acc.deposit_via or "Bank" }}', '{{ acc.platform }}', '{{ acc.symbol }}', '{{ acc.currency }}', {{ acc.current_balance }}, '{{ acc.notes or "" }}', {{ 'true' if acc.is_active else 'false' }})">✏️</button>
-                <form method="POST" action="{{ url_for('trading_account_delete', acc_id=acc.id) }}" style="display:inline" onsubmit="return confirm('Delete {{ acc.broker_name }}?')">
-                    <button type="submit" class="ta-btn del">🗑</button>
-                </form>
-                {% endif %}
-            </div>
-        </div>
-        {% endfor %}
+    <div class="sum-box">
+        <div class="sum-lbl">Total Balance</div>
+        <div class="sum-val">${{ '{:,.0f}'.format(total_balance) }}</div>
+        <div class="sum-sub">AED {{ '{:,.0f}'.format(total_balance * AED) }}</div>
     </div>
-    {% endfor %}
-    {% else %}
-    <div class="empty-state">
-        <div style="font-size:3rem;margin-bottom:12px;">📊</div>
-        <div style="font-size:1.05rem;font-weight:600;color:var(--text-secondary);">No broker accounts yet.</div>
-        {% if is_admin %}<div style="margin-top:8px;font-size:.9rem;">Click "Add Broker Account" to get started.</div>{% endif %}
+    <div class="sum-box">
+        <div class="sum-lbl">Live P&amp;L</div>
+        <div class="sum-val {{ 'c-green' if total_live_pnl >= 0 else 'c-red' }}">{{ '+' if total_live_pnl >= 0 else '' }}${{ '{:,.0f}'.format(total_live_pnl) }}</div>
+        <div class="sum-sub">AED {{ '{:+,.0f}'.format(total_live_pnl * AED) }}</div>
+    </div>
+    <div class="sum-box">
+        <div class="sum-lbl">Total Withdrawn</div>
+        <div class="sum-val c-orange">${{ '{:,.0f}'.format(total_withdrawn) }}</div>
+        <div class="sum-sub">AED {{ '{:,.0f}'.format(total_withdrawn * AED) }}</div>
+    </div>
+    <div class="sum-box" style="border-color:{% if total_profit_available >= 0 %}rgba(39,174,96,.4){% else %}rgba(192,57,43,.4){% endif %};">
+        <div class="sum-lbl">💰 Profit Available</div>
+        <div class="sum-val {{ 'c-green' if total_profit_available >= 0 else 'c-red' }}">{{ '+' if total_profit_available >= 0 else '' }}${{ '{:,.0f}'.format(total_profit_available) }}</div>
+        <div class="sum-sub">AED {{ '{:+,.0f}'.format(total_profit_available * AED) }}</div>
+    </div>
+    <div class="sum-box">
+        <div class="sum-lbl">This Week</div>
+        <div class="sum-val {{ 'c-green' if week_profit >= 0 else 'c-red' }}">{{ '+' if week_profit >= 0 else '' }}${{ '{:,.2f}'.format(week_profit) }}</div>
+    </div>
+    <div class="sum-box">
+        <div class="sum-lbl">This Month</div>
+        <div class="sum-val {{ 'c-green' if month_profit >= 0 else 'c-red' }}">{{ '+' if month_profit >= 0 else '' }}${{ '{:,.2f}'.format(month_profit) }}</div>
+    </div>
+</div>
+
+<!-- ── Account Cards grouped by holder ── -->
+{% if accounts %}
+{% for holder, holder_accounts in grouped.items() %}
+{% set h_capital  = holder_accounts | sum(attribute='total_invested') %}
+{% set h_balance  = holder_accounts | sum(attribute='current_balance') %}
+{% set h_withdrawn= holder_accounts | sum(attribute='total_withdrawn') %}
+{% set h_live_pnl = h_balance - h_capital %}
+{% set h_profit_available = h_live_pnl - h_withdrawn %}
+
+<div class="holder-header">
+    <div class="holder-name">{% if holder %}👤 {{ holder }}{% else %}— Unassigned —{% endif %}</div>
+    <div class="holder-line"></div>
+    <div class="holder-count">{{ holder_accounts|length }} account{{ 's' if holder_accounts|length != 1 else '' }}</div>
+</div>
+<div class="holder-summary">
+    <div class="hs-pill">Capital <strong class="c-blue">${{ '{:,.0f}'.format(h_capital) }}</strong></div>
+    <span class="hs-op">→</span>
+    <div class="hs-pill">Balance <strong>${{ '{:,.0f}'.format(h_balance) }}</strong></div>
+    <span class="hs-op">=</span>
+    <div class="hs-pill" style="border-color:{% if h_live_pnl >= 0 %}rgba(39,174,96,.4){% else %}rgba(192,57,43,.4){% endif %};">
+        Live P&L <strong class="{{ 'c-green' if h_live_pnl >= 0 else 'c-red' }}">{{ '+' if h_live_pnl >= 0 else '' }}${{ '{:,.0f}'.format(h_live_pnl) }}</strong>
+    </div>
+    {% if h_withdrawn > 0 %}
+    <span class="hs-op">−</span>
+    <div class="hs-pill">Withdrawn <strong class="c-orange">${{ '{:,.0f}'.format(h_withdrawn) }}</strong></div>
+    <span class="hs-op">=</span>
+    <div class="hs-pill" style="border-color:{% if h_profit_available >= 0 %}rgba(39,174,96,.5){% else %}rgba(192,57,43,.5){% endif %};">
+        💰 Available <strong class="{{ 'c-green' if h_profit_available >= 0 else 'c-red' }}">{{ '+' if h_profit_available >= 0 else '' }}${{ '{:,.0f}'.format(h_profit_available) }}</strong>
     </div>
     {% endif %}
 </div>
 
-<!-- ADD ACCOUNT MODAL -->
+<div class="acc-grid">
+{% for acc in holder_accounts %}
+{% set live_pnl = acc.current_balance - acc.total_invested %}
+{% set profit_available = live_pnl - acc.total_withdrawn %}
+<div class="acc-card {% if not acc.is_active %}inactive{% endif %}">
+
+    <!-- Header -->
+    <div class="acc-head">
+        <div>
+            <div class="acc-broker">{{ acc.broker_name }}</div>
+            <div class="acc-meta">
+                {% if acc.account_number %}{{ acc.account_number }} · {% endif %}{{ acc.platform }} · {{ acc.symbol }} · {{ acc.currency }}
+            </div>
+        </div>
+        <span class="acc-badge {% if acc.is_active %}active{% else %}offline{% endif %}">
+            {% if acc.is_active %}● Active{% else %}○ Off{% endif %}
+        </span>
+    </div>
+
+    <!-- Body -->
+    <div class="acc-body">
+
+        <!-- Row 1: Capital → Balance = Live P&L -->
+        <div class="formula-row" style="margin-bottom:6px;">
+            <div class="f-box">
+                <div class="f-lbl">Capital</div>
+                <div class="f-val c-blue">${{ '{:,.0f}'.format(acc.total_invested) }}</div>
+            </div>
+            <div class="f-op">→</div>
+            <div class="f-box">
+                <div class="f-lbl">Balance</div>
+                <div class="f-val">${{ '{:,.0f}'.format(acc.current_balance) }}</div>
+            </div>
+            <div class="f-op">=</div>
+            <div class="f-box {{ 'highlight-green' if live_pnl >= 0 else 'highlight-red' }}">
+                <div class="f-lbl">Live P&amp;L</div>
+                <div class="f-val {{ 'c-green' if live_pnl >= 0 else 'c-red' }}">{{ '+' if live_pnl >= 0 else '' }}${{ '{:,.0f}'.format(live_pnl) }}</div>
+            </div>
+        </div>
+
+        <!-- Row 2: Live P&L − Withdrawn = Profit Available -->
+        <div class="formula-row" style="margin-bottom:10px;">
+            <div class="f-box {{ 'highlight-green' if live_pnl >= 0 else 'highlight-red' }}" style="opacity:.7;">
+                <div class="f-lbl">Live P&amp;L</div>
+                <div class="f-val {{ 'c-green' if live_pnl >= 0 else 'c-red' }}">{{ '+' if live_pnl >= 0 else '' }}${{ '{:,.0f}'.format(live_pnl) }}</div>
+            </div>
+            <div class="f-op">−</div>
+            <div class="f-box" style="position:relative;">
+                <div class="f-lbl">Withdrawn
+                    <button onclick="openTxnModal({{ acc.id }},'{{ acc.broker_name }}','withdrawal')"
+                        title="Add Withdrawal"
+                        style="background:#e67e22;color:#fff;border:none;border-radius:3px;font-size:.58rem;padding:1px 4px;cursor:pointer;margin-left:3px;line-height:1;">+</button>
+                </div>
+                <div class="f-val c-orange">${{ '{:,.0f}'.format(acc.total_withdrawn) }}</div>
+            </div>
+            <div class="f-op">=</div>
+            <div class="f-box {{ 'highlight-profit-g' if profit_available >= 0 else 'highlight-profit-r' }}">
+                <div class="f-lbl" style="font-weight:700;">💰 Available</div>
+                <div class="f-val {{ 'c-green' if profit_available >= 0 else 'c-red' }}" style="font-size:.98rem;">{{ '+' if profit_available >= 0 else '' }}${{ '{:,.0f}'.format(profit_available) }}</div>
+            </div>
+        </div>
+
+        <!-- Profit Stats: Today / Week / Month -->
+        <div class="profit-row">
+            <div class="p-box">
+                <div class="p-lbl">Today</div>
+                <div class="p-val {{ 'c-green' if acc.today_profit >= 0 else 'c-red' }}">{{ '+' if acc.today_profit >= 0 else '' }}${{ '{:,.0f}'.format(acc.today_profit) }}</div>
+            </div>
+            <div class="p-box">
+                <div class="p-lbl">This Week</div>
+                <div class="p-val {{ 'c-green' if acc.week_profit >= 0 else 'c-red' }}">{{ '+' if acc.week_profit >= 0 else '' }}${{ '{:,.0f}'.format(acc.week_profit) }}</div>
+            </div>
+            <div class="p-box">
+                <div class="p-lbl">This Month</div>
+                <div class="p-val {{ 'c-green' if acc.month_profit >= 0 else 'c-red' }}">{{ '+' if acc.month_profit >= 0 else '' }}${{ '{:,.0f}'.format(acc.month_profit) }}</div>
+            </div>
+        </div>
+
+    </div><!-- /acc-body -->
+
+    <!-- Actions -->
+    <div class="acc-actions">
+        <button class="a-btn daily"   onclick="openProfitModal({{ acc.id }},'{{ acc.broker_name }}')">📈 Daily</button>
+        <button class="a-btn weekly"  onclick="openWeeklyModal({{ acc.id }},'{{ acc.broker_name }}')">📅 Weekly</button>
+        <button class="a-btn deposit" onclick="openTxnModal({{ acc.id }},'{{ acc.broker_name }}','deposit')">↓ Deposit</button>
+        <button class="a-btn withdraw" onclick="openTxnModal({{ acc.id }},'{{ acc.broker_name }}','withdrawal')">↑ Withdraw</button>
+        <a href="{{ url_for('trading_account_detail', acc_id=acc.id) }}" class="a-btn history">📋</a>
+        {% if is_admin %}
+        <button class="a-btn edit" onclick="openEditModal({{ acc.id }},'{{ acc.broker_name }}','{{ acc.account_holder or '' }}','{{ acc.account_number or '' }}','{{ acc.deposit_via or 'Bank' }}','{{ acc.platform }}','{{ acc.symbol }}','{{ acc.currency }}',{{ acc.current_balance }},'{{ acc.notes or '' }}',{{ 'true' if acc.is_active else 'false' }})">✏️</button>
+        <form method="POST" action="{{ url_for('trading_account_delete', acc_id=acc.id) }}" style="display:inline" onsubmit="return confirm('Delete {{ acc.broker_name }}?')">
+            <button type="submit" class="a-btn del">🗑</button>
+        </form>
+        {% endif %}
+    </div>
+
+</div><!-- /acc-card -->
+{% endfor %}
+</div><!-- /acc-grid -->
+{% endfor %}
+
+{% else %}
+<div class="empty-state">
+    <div style="font-size:3rem;margin-bottom:12px;">📊</div>
+    <div style="font-size:1rem;font-weight:600;">No broker accounts yet.</div>
+    {% if is_admin %}<div style="margin-top:8px;font-size:.88rem;">Click "Add Account" to get started.</div>{% endif %}
+</div>
+{% endif %}
+</div><!-- /container -->
+
+<!-- ══ MODALS ══ -->
+
+<!-- Add Account -->
 <div class="modal-overlay" id="addAccountModal">
-    <div class="modal-box">
-        <h3>➕ Add Broker Account</h3>
-        <form method="POST" action="{{ url_for('trading_account_add') }}">
-            <div class="form-group">
-                <label>Broker Name *</label>
-                <input type="text" name="broker_name" required placeholder="e.g. Vantage, Exness, PUPrime">
+<div class="modal-box">
+    <h3>➕ Add Broker Account</h3>
+    <form method="POST" action="{{ url_for('trading_account_add') }}">
+        <div class="form-group"><label>Broker Name *</label><input type="text" name="broker_name" required placeholder="e.g. Vantage, Exness"></div>
+        <div class="form-group"><label>Account Holder</label><input type="text" name="account_holder" placeholder="e.g. Sadi Ali"></div>
+        <div class="form-group"><label>Account Number</label><input type="text" name="account_number" placeholder="e.g. 260060912"></div>
+        <div class="form-group"><label>Deposit Via</label>
+            <select name="deposit_via">
+                <option value="Bank">🏦 Bank Transfer</option>
+                <option value="Crypto">₿ Crypto (USDT)</option>
+                <option value="Cash">💵 Cash</option>
+            </select>
+        </div>
+        <div class="g2">
+            <div class="form-group"><label>Platform</label>
+                <select name="platform"><option value="MT5">MT5</option><option value="MT4">MT4</option><option value="cTrader">cTrader</option><option value="Other">Other</option></select>
             </div>
-            <div class="form-group">
-                <label>Account Holder Name</label>
-                <input type="text" name="account_holder" placeholder="e.g. Sadi Ali">
+            <div class="form-group"><label>Symbol</label><input type="text" name="symbol" value="XAUUSD"></div>
+        </div>
+        <div class="g2">
+            <div class="form-group"><label>Currency</label>
+                <select name="currency"><option value="USD">USD</option><option value="AED">AED</option><option value="EUR">EUR</option></select>
             </div>
-            <div class="form-group">
-                <label>Account Number</label>
-                <input type="text" name="account_number" placeholder="e.g. 260060912">
-            </div>
-            <div class="form-group">
-                <label>Deposit Via</label>
-                <select name="deposit_via">
-                    <option value="Bank">🏦 Bank Transfer</option>
-                    <option value="Crypto">₿ Crypto (USDT)</option>
-                    <option value="Cash">💵 Cash</option>
-                </select>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                <div class="form-group">
-                    <label>Platform</label>
-                    <select name="platform">
-                        <option value="MT5">MT5</option>
-                        <option value="MT4">MT4</option>
-                        <option value="cTrader">cTrader</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Symbol</label>
-                    <input type="text" name="symbol" value="XAUUSD" placeholder="XAUUSD">
-                </div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                <div class="form-group">
-                    <label>Currency</label>
-                    <select name="currency">
-                        <option value="USD">USD</option>
-                        <option value="AED">AED</option>
-                        <option value="EUR">EUR</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Initial Deposit ($)</label>
-                    <input type="number" name="total_invested" step="0.01" placeholder="0.00">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Current Balance ($)</label>
-                <input type="number" name="current_balance" step="0.01" placeholder="0.00">
-            </div>
-            <div class="form-group">
-                <label>Notes (optional)</label>
-                <input type="text" name="notes" placeholder="e.g. Demo account">
-            </div>
-            <div class="modal-actions">
-                <button type="submit" class="btn-confirm">Add Account</button>
-                <button type="button" class="btn-cancel" onclick="closeModal('addAccountModal')">Cancel</button>
-            </div>
-        </form>
-    </div>
+            <div class="form-group"><label>Capital ($)</label><input type="number" name="total_invested" step="0.01" placeholder="0.00"></div>
+        </div>
+        <div class="form-group"><label>Current Balance ($)</label><input type="number" name="current_balance" step="0.01" placeholder="0.00"></div>
+        <div class="form-group"><label>Notes</label><input type="text" name="notes" placeholder="Optional"></div>
+        <div class="modal-actions">
+            <button type="submit" class="btn-confirm">Add Account</button>
+            <button type="button" class="btn-cancel" onclick="closeModal('addAccountModal')">Cancel</button>
+        </div>
+    </form>
+</div>
 </div>
 
-<!-- EDIT ACCOUNT MODAL -->
+<!-- Edit Account -->
 <div class="modal-overlay" id="editAccountModal">
-    <div class="modal-box">
-        <h3>✏️ Edit Account</h3>
-        <form method="POST" id="editAccountForm">
-            <div class="form-group"><label>Broker Name *</label><input type="text" name="broker_name" id="edit_broker_name" required></div>
-            <div class="form-group"><label>Account Holder Name</label><input type="text" name="account_holder" id="edit_account_holder"></div>
-            <div class="form-group"><label>Account Number</label><input type="text" name="account_number" id="edit_account_number"></div>
-            <div class="form-group"><label>Deposit Via</label>
-                <select name="deposit_via" id="edit_deposit_via">
-                    <option value="Bank">🏦 Bank Transfer</option>
-                    <option value="Crypto">₿ Crypto (USDT)</option>
-                    <option value="Cash">💵 Cash</option>
-                </select>
+<div class="modal-box">
+    <h3>✏️ Edit Account</h3>
+    <form method="POST" id="editAccountForm">
+        <div class="form-group"><label>Broker Name *</label><input type="text" name="broker_name" id="edit_broker_name" required></div>
+        <div class="form-group"><label>Account Holder</label><input type="text" name="account_holder" id="edit_account_holder"></div>
+        <div class="form-group"><label>Account Number</label><input type="text" name="account_number" id="edit_account_number"></div>
+        <div class="form-group"><label>Deposit Via</label>
+            <select name="deposit_via" id="edit_deposit_via">
+                <option value="Bank">🏦 Bank Transfer</option><option value="Crypto">₿ Crypto</option><option value="Cash">💵 Cash</option>
+            </select>
+        </div>
+        <div class="g2">
+            <div class="form-group"><label>Platform</label>
+                <select name="platform" id="edit_platform"><option value="MT5">MT5</option><option value="MT4">MT4</option><option value="cTrader">cTrader</option><option value="Other">Other</option></select>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                <div class="form-group"><label>Platform</label>
-                    <select name="platform" id="edit_platform">
-                        <option value="MT5">MT5</option><option value="MT4">MT4</option>
-                        <option value="cTrader">cTrader</option><option value="Other">Other</option>
-                    </select>
-                </div>
-                <div class="form-group"><label>Symbol</label><input type="text" name="symbol" id="edit_symbol"></div>
+            <div class="form-group"><label>Symbol</label><input type="text" name="symbol" id="edit_symbol"></div>
+        </div>
+        <div class="g2">
+            <div class="form-group"><label>Currency</label>
+                <select name="currency" id="edit_currency"><option value="USD">USD</option><option value="AED">AED</option><option value="EUR">EUR</option></select>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                <div class="form-group"><label>Currency</label>
-                    <select name="currency" id="edit_currency">
-                        <option value="USD">USD</option><option value="AED">AED</option><option value="EUR">EUR</option>
-                    </select>
-                </div>
-                <div class="form-group"><label>Current Balance ($)</label><input type="number" name="current_balance" id="edit_balance" step="0.01"></div>
-            </div>
-            <div class="form-group"><label>Notes</label><input type="text" name="notes" id="edit_notes"></div>
-            <div class="form-group" style="display:flex;align-items:center;gap:10px;">
-                <input type="checkbox" name="is_active" id="edit_is_active" style="width:auto;height:16px;">
-                <label for="edit_is_active" style="margin:0;">Active</label>
-            </div>
-            <div class="modal-actions">
-                <button type="submit" class="btn-confirm">Save Changes</button>
-                <button type="button" class="btn-cancel" onclick="closeModal('editAccountModal')">Cancel</button>
-            </div>
-        </form>
-    </div>
+            <div class="form-group"><label>Current Balance ($)</label><input type="number" name="current_balance" id="edit_balance" step="0.01"></div>
+        </div>
+        <div class="form-group"><label>Notes</label><input type="text" name="notes" id="edit_notes"></div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" name="is_active" id="edit_is_active" style="width:auto;">
+            <label for="edit_is_active" style="margin:0;">Active</label>
+        </div>
+        <div class="modal-actions">
+            <button type="submit" class="btn-confirm">Save</button>
+            <button type="button" class="btn-cancel" onclick="closeModal('editAccountModal')">Cancel</button>
+        </div>
+    </form>
+</div>
 </div>
 
-<!-- WEEKLY PROFIT MODAL -->
-<div class="modal-overlay" id="weeklyProfitModal">
-    <div class="modal-box">
-        <h3 id="weeklyProfitTitle">📅 Enter Weekly Profit</h3>
-        <form method="POST" id="weeklyProfitForm">
-            <div style="background:rgba(156,39,176,0.08);border:1px solid rgba(156,39,176,0.25);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:.8rem;color:var(--text-secondary);line-height:1.5;">
-                Enter the <strong>total weekly profit</strong> → it auto-splits equally across <strong>Mon–Fri</strong> (÷5 per day)
-            </div>
-            <div class="form-group">
-                <label>Week Starting (Monday)</label>
-                <input type="date" name="week_start" id="weekly_week_start" required>
-                <div style="font-size:.72rem;color:var(--text-secondary);margin-top:3px;">Select any Monday of the trading week</div>
-            </div>
-            <div class="form-group">
-                <label>Total Week Profit ($) <span style="color:var(--text-secondary);font-size:.75rem;">Negative = loss week</span></label>
-                <input type="number" name="total_amount" step="0.01" placeholder="e.g. 1250.00" required id="weekly_total_amount">
-            </div>
-            <div id="weekly_preview" style="display:none;background:rgba(76,175,80,0.08);border:1px solid rgba(76,175,80,0.25);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:.8rem;"></div>
-            <div class="form-group">
-                <label>Updated Balance ($)</label>
-                <input type="number" name="current_balance" id="weekly_balance" step="0.01">
-            </div>
-            <div class="form-group">
-                <label>Notes (optional)</label>
-                <input type="text" name="notes" placeholder="e.g. Good week, Gold trending">
-            </div>
-            <div class="modal-actions">
-                <button type="submit" class="btn-confirm" style="background:#9C27B0;">Save Weekly Profit</button>
-                <button type="button" class="btn-cancel" onclick="closeModal('weeklyProfitModal')">Cancel</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- PROFIT MODAL -->
+<!-- Daily Profit -->
 <div class="modal-overlay" id="profitModal">
-    <div class="modal-box">
-        <h3 id="profitModalTitle">📈 Record Daily Profit</h3>
-        <form method="POST" id="profitForm">
-            <div class="form-group"><label>Date</label><input type="date" name="profit_date" id="profit_date" value="{{ today }}"></div>
-            <div class="form-group">
-                <label>Profit Amount ($) <span style="color:var(--text-secondary);font-size:.75rem;">Negative = loss</span></label>
-                <input type="number" name="amount" step="0.01" placeholder="e.g. 125.50" required>
-            </div>
-            <div class="form-group"><label>Notes (optional)</label><input type="text" name="notes" placeholder="e.g. Good session"></div>
-            <div class="modal-actions">
-                <button type="submit" class="btn-confirm">Save Profit</button>
-                <button type="button" class="btn-cancel" onclick="closeModal('profitModal')">Cancel</button>
-            </div>
-        </form>
-    </div>
+<div class="modal-box">
+    <h3 id="profitModalTitle">📈 Record Daily Profit</h3>
+    <form method="POST" id="profitForm">
+        <div class="form-group"><label>Date</label><input type="date" name="profit_date" id="profit_date" value="{{ today }}"></div>
+        <div class="form-group">
+            <label>Profit Amount ($) <span style="color:var(--text-secondary);font-size:.72rem;">Negative = loss</span></label>
+            <input type="number" name="amount" step="0.01" placeholder="e.g. 125.50" required>
+        </div>
+        <div class="form-group"><label>Notes</label><input type="text" name="notes" placeholder="Optional"></div>
+        <div class="modal-actions">
+            <button type="submit" class="btn-confirm">Save</button>
+            <button type="button" class="btn-cancel" onclick="closeModal('profitModal')">Cancel</button>
+        </div>
+    </form>
+</div>
 </div>
 
-<!-- TRANSACTION MODAL -->
+<!-- Weekly Profit -->
+<div class="modal-overlay" id="weeklyProfitModal">
+<div class="modal-box">
+    <h3 id="weeklyProfitTitle">📅 Weekly Profit</h3>
+    <form method="POST" id="weeklyProfitForm">
+        <div style="background:rgba(142,68,173,.08);border:1px solid rgba(142,68,173,.25);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:.78rem;color:var(--text-secondary);">
+            Enter total week profit → auto-split equally <strong>Mon–Fri</strong>
+        </div>
+        <div class="form-group">
+            <label>Week Starting (Monday)</label>
+            <input type="date" name="week_start" id="weekly_week_start" required>
+        </div>
+        <div class="form-group">
+            <label>Total Week Profit ($)</label>
+            <input type="number" name="total_amount" step="0.01" placeholder="e.g. 1250.00" required id="weekly_total_amount">
+        </div>
+        <div id="weekly_preview" style="display:none;background:rgba(39,174,96,.08);border:1px solid rgba(39,174,96,.25);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:.78rem;"></div>
+        <div class="form-group"><label>Notes</label><input type="text" name="notes" placeholder="Optional"></div>
+        <div class="modal-actions">
+            <button type="submit" class="btn-confirm" style="background:#8e44ad;">Save Weekly</button>
+            <button type="button" class="btn-cancel" onclick="closeModal('weeklyProfitModal')">Cancel</button>
+        </div>
+    </form>
+</div>
+</div>
+
+<!-- Transaction (Deposit / Withdraw) -->
 <div class="modal-overlay" id="txnModal">
-    <div class="modal-box">
-        <h3 id="txnModalTitle">💳 Add Transaction</h3>
-        <form method="POST" id="txnForm">
-            <input type="hidden" name="txn_type" id="txn_type_hidden">
-            <div class="form-group"><label>Date</label><input type="date" name="txn_date" value="{{ today }}"></div>
-            <div class="form-group"><label>Amount ($)</label><input type="number" name="amount" step="0.01" placeholder="0.00" required></div>
-            <div class="form-group"><label>Notes (optional)</label><input type="text" name="notes" placeholder="e.g. Bank transfer"></div>
-            <div class="modal-actions">
-                <button type="submit" class="btn-confirm" id="txnSubmitBtn">Confirm</button>
-                <button type="button" class="btn-cancel" onclick="closeModal('txnModal')">Cancel</button>
-            </div>
-        </form>
-    </div>
+<div class="modal-box">
+    <h3 id="txnModalTitle">💳 Transaction</h3>
+    <form method="POST" id="txnForm">
+        <input type="hidden" name="txn_type" id="txn_type_hidden">
+        <div class="form-group"><label>Date</label><input type="date" name="txn_date" value="{{ today }}"></div>
+        <div class="form-group"><label>Amount ($)</label><input type="number" name="amount" step="0.01" placeholder="0.00" required></div>
+        <div class="form-group"><label>Notes</label><input type="text" name="notes" placeholder="Optional"></div>
+        <div class="modal-actions">
+            <button type="submit" class="btn-confirm" id="txnSubmitBtn">Confirm</button>
+            <button type="button" class="btn-cancel" onclick="closeModal('txnModal')">Cancel</button>
+        </div>
+    </form>
+</div>
 </div>
 
 <script>
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-document.querySelectorAll('.modal-overlay').forEach(function(el) {
-    el.addEventListener('click', function(e) { if(e.target===el) el.classList.remove('open'); });
+document.querySelectorAll('.modal-overlay').forEach(function(el){
+    el.addEventListener('click',function(e){ if(e.target===el) el.classList.remove('open'); });
 });
-function openProfitModal(accId, name, bal) {
-    document.getElementById('profitModalTitle').textContent = '📈 Record Profit — ' + name;
+function openProfitModal(accId, name) {
+    document.getElementById('profitModalTitle').textContent = '📈 Daily Profit — ' + name;
     document.getElementById('profitForm').action = '/trading-accounts/' + accId + '/profit/add';
-    document.getElementById('profit_balance').value = bal;
     openModal('profitModal');
 }
 function openTxnModal(accId, name, type) {
@@ -514,67 +480,45 @@ function openTxnModal(accId, name, type) {
     document.getElementById('txnForm').action = '/trading-accounts/' + accId + '/transaction/add';
     document.getElementById('txn_type_hidden').value = type;
     document.getElementById('txnSubmitBtn').textContent = type==='deposit'?'Record Deposit':'Record Withdrawal';
+    document.getElementById('txnSubmitBtn').style.background = type==='deposit'?'#4A90E2':'#e67e22';
     openModal('txnModal');
 }
-function openWeeklyModal(accId, name, bal) {
-    document.getElementById('weeklyProfitTitle').textContent = '\uD83D\uDCC5 Weekly Profit \u2014 ' + name;
+function openWeeklyModal(accId, name) {
+    document.getElementById('weeklyProfitTitle').textContent = '📅 Weekly Profit — ' + name;
     document.getElementById('weeklyProfitForm').action = '/trading-accounts/' + accId + '/weekly-profit/add';
-    document.getElementById('weekly_balance').value = bal;
-    // Default to last Monday
-    var today = new Date();
-    var day = today.getDay();
-    var diff = day === 0 ? 6 : day - 1;
-    var monday = new Date(today);
-    monday.setDate(today.getDate() - diff);
-    // If today is Saturday, go to this week's Monday (already done above)
-    var iso = monday.toISOString().split('T')[0];
-    document.getElementById('weekly_week_start').value = iso;
+    var today = new Date(), day = today.getDay(), diff = day===0?6:day-1;
+    var mon = new Date(today); mon.setDate(today.getDate()-diff);
+    document.getElementById('weekly_week_start').value = mon.toISOString().split('T')[0];
     document.getElementById('weekly_total_amount').value = '';
     document.getElementById('weekly_preview').style.display = 'none';
     openModal('weeklyProfitModal');
 }
-// Preview daily split
-document.addEventListener('DOMContentLoaded', function() {
-    var amtInput = document.getElementById('weekly_total_amount');
-    var dateInput = document.getElementById('weekly_week_start');
-    if (amtInput) {
-        function updatePreview() {
-            var amt = parseFloat(amtInput.value);
-            var dateVal = dateInput.value;
-            var preview = document.getElementById('weekly_preview');
-            if (!isNaN(amt) && amt !== 0 && dateVal) {
-                var daily = (amt / 5).toFixed(2);
-                var monday = new Date(dateVal + 'T00:00:00');
-                var days = ['Mon','Tue','Wed','Thu','Fri'];
-                var html = '<strong>Auto split:</strong><br>';
-                for (var i = 0; i < 5; i++) {
-                    var d = new Date(monday);
-                    d.setDate(monday.getDate() + i);
-                    var dayAmt = i < 4 ? daily : (amt - daily * 4).toFixed(2);
-                    html += days[i] + ' ' + d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) + ' &rarr; <strong>$' + parseFloat(dayAmt).toLocaleString(undefined,{minimumFractionDigits:2}) + '</strong><br>';
-                }
-                preview.innerHTML = html;
-                preview.style.display = 'block';
-            } else {
-                preview.style.display = 'none';
-            }
-        }
-        amtInput.addEventListener('input', updatePreview);
-        dateInput.addEventListener('change', updatePreview);
+document.addEventListener('DOMContentLoaded', function(){
+    var amtIn = document.getElementById('weekly_total_amount');
+    var dateIn = document.getElementById('weekly_week_start');
+    if(!amtIn) return;
+    function preview(){
+        var amt = parseFloat(amtIn.value), dateVal = dateIn.value, prev = document.getElementById('weekly_preview');
+        if(!isNaN(amt) && amt!==0 && dateVal){
+            var daily=(amt/5).toFixed(2), mon=new Date(dateVal+'T00:00:00'), days=['Mon','Tue','Wed','Thu','Fri'], html='<strong>Split:</strong> ';
+            for(var i=0;i<5;i++){var d=new Date(mon);d.setDate(mon.getDate()+i);var a=i<4?daily:(amt-daily*4).toFixed(2);html+=days[i]+' <strong>$'+parseFloat(a).toLocaleString(undefined,{minimumFractionDigits:2})+'</strong>  ';}
+            prev.innerHTML=html; prev.style.display='block';
+        } else { prev.style.display='none'; }
     }
+    amtIn.addEventListener('input',preview); dateIn.addEventListener('change',preview);
 });
-function openEditModal(id, broker, holder, accNum, depositVia, platform, symbol, currency, balance, notes, isActive) {
-    document.getElementById('editAccountForm').action = '/trading-accounts/' + id + '/edit';
-    document.getElementById('edit_broker_name').value  = broker;
-    document.getElementById('edit_account_holder').value = holder;
-    document.getElementById('edit_account_number').value = accNum;
-    document.getElementById('edit_deposit_via').value = depositVia;
-    document.getElementById('edit_platform').value    = platform;
-    document.getElementById('edit_symbol').value      = symbol;
-    document.getElementById('edit_currency').value    = currency;
-    document.getElementById('edit_balance').value     = balance;
-    document.getElementById('edit_notes').value       = notes;
-    document.getElementById('edit_is_active').checked = isActive;
+function openEditModal(id,broker,holder,accNum,depositVia,platform,symbol,currency,balance,notes,isActive){
+    document.getElementById('editAccountForm').action='/trading-accounts/'+id+'/edit';
+    document.getElementById('edit_broker_name').value=broker;
+    document.getElementById('edit_account_holder').value=holder;
+    document.getElementById('edit_account_number').value=accNum;
+    document.getElementById('edit_deposit_via').value=depositVia;
+    document.getElementById('edit_platform').value=platform;
+    document.getElementById('edit_symbol').value=symbol;
+    document.getElementById('edit_currency').value=currency;
+    document.getElementById('edit_balance').value=balance;
+    document.getElementById('edit_notes').value=notes;
+    document.getElementById('edit_is_active').checked=isActive;
     openModal('editAccountModal');
 }
 </script>
