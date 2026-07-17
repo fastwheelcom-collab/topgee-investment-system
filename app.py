@@ -2700,8 +2700,6 @@ def trading_account_profit_add(acc_id):
             notes=notes,
         )
         db.session.add(p)
-    # Update current balance
-    acc.current_balance = float(request.form.get('current_balance') or acc.current_balance)
     db.session.commit()
     flash(f'Profit ${amount:,.2f} recorded for {profit_date}.', 'success')
     return redirect(url_for('trading_accounts'))
@@ -2727,10 +2725,8 @@ def trading_account_txn_add(acc_id):
     db.session.add(txn)
     if txn_type == 'deposit':
         acc.total_invested  += amount
-        acc.current_balance += amount
     elif txn_type == 'withdrawal':
         acc.total_withdrawn += amount
-        acc.current_balance -= amount
     db.session.commit()
     audit('ADD', 'AccountTransaction', f'{acc.broker_name} {txn_type} ${amount}', acc_id)
     flash(f'{txn_type.title()} of ${amount:,.2f} recorded.', 'success')
@@ -2774,8 +2770,6 @@ def trading_account_weekly_profit_add(acc_id):
                 notes=f'[Weekly] {notes}' if notes else '[Weekly split]',
             )
             db.session.add(p)
-    if new_balance:
-        acc.current_balance = float(new_balance)
     db.session.commit()
     flash(f'Weekly profit ${total_amount:,.2f} split across Mon–Fri (${daily_amount:,.2f}/day) recorded!', 'success')
     return redirect(url_for('trading_accounts'))
@@ -2798,13 +2792,11 @@ def trading_account_txn_delete(acc_id, txn_id):
         return redirect(url_for('login'))
     acc = TradingAccount.query.get_or_404(acc_id)
     txn = AccountTransaction.query.get_or_404(txn_id)
-    # Reverse the balance effect
+    # Reverse totals only — current_balance is manual
     if txn.txn_type == 'deposit':
         acc.total_invested  -= txn.amount
-        acc.current_balance -= txn.amount
     elif txn.txn_type == 'withdrawal':
         acc.total_withdrawn -= txn.amount
-        acc.current_balance += txn.amount
     db.session.delete(txn)
     db.session.commit()
     flash(f'{txn.txn_type.title()} of ${txn.amount:,.2f} deleted and balance reversed.', 'success')
