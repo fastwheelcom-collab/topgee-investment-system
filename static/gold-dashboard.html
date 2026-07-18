@@ -1625,35 +1625,131 @@ function updateAlertBanner(price, prev, chg, pct, range){
   moodTrend.textContent = isBull ? 'BULL' : isWeak ? 'FLAT' : 'BEAR';
   moodTrend.className = 'mood-val ' + (isBull ? 'up' : isWeak ? 'neutral' : 'down');
 
-  // --- Dynamic Sentiment from RSI + price action ---
+  // --- MULTI-INDICATOR SENTIMENT ENGINE ---
+  // Reads 8 live indicators already calculated, gives weighted bullish score
   const sentNote = document.getElementById('sent-note');
-  const rsiVal = parseFloat(document.getElementById('ind-rsi')?.textContent) || 50;
-  // Calculate long% from RSI: RSI 70 = 75% long, RSI 30 = 25% long, RSI 50 = 50%
-  let longPct = Math.round(25 + (rsiVal / 100) * 50);
-  // Adjust by trend: strong bull adds up to +5, strong bear subtracts up to -5
-  if(isBull && isStrong) longPct = Math.min(85, longPct + 5);
-  else if(!isBull && isStrong) longPct = Math.max(15, longPct - 5);
+  calcAndUpdateSentiment(price, prev, isBull, isStrong, isWeak);
+}  // <-- close updateAssistant here (moved brace)
+
+function calcAndUpdateSentiment(price, prev, isBull, isStrong, isWeak){
+  // Grab live indicator text from DOM (matching actual element IDs)
+  const rsiEl    = document.getElementById('ind-rsi');
+  const rsiVal   = parseFloat(rsiEl?.textContent) || 50;
+  const rsiTag   = rsiEl?.textContent  || '';
+  const macdTag  = document.getElementById('ind-macd')?.textContent  || '';
+  const emaTag   = document.getElementById('ind-ema')?.textContent   || '';
+  const bbTag    = document.getElementById('ind-bb')?.textContent    || '';
+  const stkTag   = document.getElementById('ind-stoch')?.textContent || '';
+  const cciTag   = document.getElementById('ind-cci')?.textContent   || '';
+  const adxTag   = document.getElementById('ind-adx2')?.textContent  || '';
+  const tsTag    = document.getElementById('ind-adx')?.textContent   || '';
+  const ema200Tag= document.getElementById('ind-200')?.textContent   || '';
+  const vwapTag  = document.getElementById('ind-vwap')?.textContent  || '';
+
+  // Each indicator votes bullish or bearish with weights
+  let bullScore = 0;
+  let bearScore = 0;
+  const votes   = [];
+
+  // Helper: check if text leans bull/bear
+  const isBullText = t => /bull|above|uptrend|oversold|breakout|cross.*▲/i.test(t);
+  const isBearText = t => /bear|below|downtrend|overbought|sell.*zone|cross.*▼/i.test(t);
+
+  // 1. RSI (weight: 20pts) — text like 'Bullish 67' / 'Overbought 72' / 'Bearish 38'
+  const rsiNum = parseFloat(rsiTag.replace(/[^0-9.]/g,'')) || rsiVal;
+  if(rsiTag.includes('Overbought'))      { bearScore += 12; votes.push('RSI Overbought '+rsiNum.toFixed(0)); }
+  else if(rsiTag.includes('Oversold'))   { bullScore += 12; votes.push('RSI Oversold '+rsiNum.toFixed(0)); }
+  else if(rsiTag.includes('Bullish'))    { bullScore += 20; votes.push('RSI Bullish '+rsiNum.toFixed(0)); }
+  else if(rsiTag.includes('Bearish'))    { bearScore += 20; votes.push('RSI Bearish '+rsiNum.toFixed(0)); }
+
+  // 2. MACD (weight: 20pts) — 'Bullish Cross ▲' / 'Bearish Cross ▼'
+  if(macdTag.includes('Bullish'))        { bullScore += 20; votes.push('MACD ▲ Bullish'); }
+  else if(macdTag.includes('Bearish'))   { bearScore += 20; votes.push('MACD ▼ Bearish'); }
+
+  // 3. EMA 8/21 (weight: 15pts) — 'EMA8 > EMA21 ▲' or '< ▼'
+  if(emaTag.includes('>'))               { bullScore += 15; votes.push('EMA8>21'); }
+  else if(emaTag.includes('<'))          { bearScore += 15; votes.push('EMA8<21'); }
+
+  // 4. EMA 50/200 (weight: 15pts) — 'Bull — Above 50&200' / 'Above EMA200' / 'Below'
+  if(ema200Tag.includes('Bull') || ema200Tag.includes('Above'))  { bullScore += 15; votes.push('Above EMA200'); }
+  else if(ema200Tag.includes('Bear') || ema200Tag.includes('Below')) { bearScore += 15; votes.push('Below EMA200'); }
+
+  // 5. Bollinger Bands (weight: 10pts) — 'Below Lower Band' = oversold bull / 'Above Upper' = overbought bear
+  if(bbTag.includes('Below Lower'))      { bullScore += 10; votes.push('BB Oversold'); }
+  else if(bbTag.includes('Above Upper')) { bearScore += 10; votes.push('BB Overbought'); }
+  else if(bbTag.includes('Upper Zone'))  { bullScore += 6;  votes.push('BB Upper Zone'); }
+  else if(bbTag.includes('Lower Zone'))  { bearScore += 6;  votes.push('BB Lower Zone'); }
+
+  // 6. Stochastic (weight: 10pts) — 'Oversold' bull / 'Overbought' bear / 'Bull Cross' / 'Bear Cross'
+  if(stkTag.includes('Oversold'))        { bullScore += 10; votes.push('Stoch Oversold'); }
+  else if(stkTag.includes('Overbought')) { bearScore += 10; votes.push('Stoch Overbought'); }
+  else if(stkTag.includes('Bull'))       { bullScore += 6;  votes.push('Stoch Bull Cross'); }
+  else if(stkTag.includes('Bear'))       { bearScore += 6;  votes.push('Stoch Bear Cross'); }
+
+  // 7. CCI (weight: 10pts) — 'Bullish' / 'Overbought' / 'Bearish' / 'Oversold'
+  if(cciTag.includes('Bullish'))         { bullScore += 10; votes.push('CCI Bullish'); }
+  else if(cciTag.includes('Oversold'))   { bullScore += 8;  votes.push('CCI Oversold'); }
+  else if(cciTag.includes('Bearish'))    { bearScore += 10; votes.push('CCI Bearish'); }
+  else if(cciTag.includes('Overbought')) { bearScore += 8;  votes.push('CCI Overbought'); }
+
+  // 8. Trend Strength (weight: 8pts bonus for direction confidence)
+  if(tsTag.includes('Uptrend'))          { bullScore += 8;  votes.push('Uptrend'); }
+  else if(tsTag.includes('Downtrend'))   { bearScore += 8;  votes.push('Downtrend'); }
+
+  // 9. ADX Strength (weight: 5pts — only when strong)
+  if(adxTag.includes('Strong')){
+    if(isBull) { bullScore += 5; votes.push('ADX Strong'); }
+    else       { bearScore += 5; votes.push('ADX Strong Bear'); }
+  }
+
+  // 10. Price momentum vs recent buffer (weight: 10pts)
+  if(priceBuf.length >= 5){
+    const recent = priceBuf.slice(-5);
+    const momChg = recent[recent.length-1] - recent[0];
+    if(momChg > 3)        { bullScore += 10; votes.push('Surging +$'+momChg.toFixed(1)); }
+    else if(momChg < -3)  { bearScore += 10; votes.push('Dropping -$'+Math.abs(momChg).toFixed(1)); }
+  }
+
+  // 11. VWAP (weight: 5pts)
+  if(vwapTag.includes('Above'))          { bullScore += 5; votes.push('Above VWAP'); }
+  else if(vwapTag.includes('Below'))     { bearScore += 5; votes.push('Below VWAP'); }
+
+  // --- Calculate final %
+  const total = bullScore + bearScore;
+  let longPct;
+  if(total === 0){
+    longPct = 50; // genuinely no signal
+  } else {
+    // Map to 20%-80% range (never 0 or 100 — always some uncertainty in gold)
+    longPct = Math.round(20 + (bullScore / total) * 60);
+  }
   longPct = Math.max(15, Math.min(85, longPct));
   const shortPct = 100 - longPct;
-  // Update bars (only if StockTwits hasn't provided real data)
-  const srcEl = document.getElementById('sent-source');
-  const currentSrc = srcEl ? srcEl.textContent : '';
-  if(!currentSrc.includes('StockTwits')){
-    updateSentimentBars(longPct, shortPct, 'RSI-based (live)');
-  }
+
+  // Build source label
+  const topVotes = votes.slice(0,3).join(' · ');
+  const srcLabel = 'Live indicators ('+ (total > 0 ? votes.length : 0) +' signals: '+topVotes+')';
+  updateSentimentBars(longPct, shortPct, srcLabel);
+
   // Sentiment note
-  if(isBull && longPct > 60){
-    sentNote.textContent = '📊 '+longPct+'% retail LONG — bullish momentum real today. Follow trend but tighten stops near resistance.';
-  } else if(isWeak && longPct > 55){
-    sentNote.textContent = '⚠️ '+longPct+'% retail LONG but price flat — squeeze brewing. Stay flat until breakout.';
-  } else if(!isBull && longPct > 55){
-    sentNote.textContent = '🔔 '+longPct+'% retail LONG but price falling — classic trap. Sellers in control.';
-  } else if(shortPct > 55){
-    sentNote.textContent = '📉 '+shortPct+'% retail SHORT — contrarian signal. Watch for reversal bounce.';
+  const sentNote = document.getElementById('sent-note');
+  if(!sentNote) return;
+  const bias = longPct - 50; // positive = bullish, negative = bearish
+  const strength = Math.abs(bias);
+
+  if(strength < 8){
+    sentNote.textContent = '⚖️ No clear bias ('+longPct+'% Bull / '+shortPct+'% Bear) — indicators conflicting. Wait for confirmation before entering.';
+  } else if(longPct >= 65 && isBull){
+    sentNote.textContent = '🚀 Strong BULL signal ('+longPct+'%) — '+votes.slice(0,2).join(', ')+'. Momentum aligned. Favour BUY setups.';
+  } else if(longPct >= 58){
+    sentNote.textContent = '📈 Mild BULL bias ('+longPct+'%) — '+votes[0]+'. Lean long but wait for dip entry near support.';
+  } else if(shortPct >= 65 && !isBull){
+    sentNote.textContent = '📉 Strong BEAR signal ('+shortPct+'%) — '+votes.slice(0,2).join(', ')+'. Momentum down. Favour SELL setups.';
+  } else if(shortPct >= 58){
+    sentNote.textContent = '⬇️ Mild BEAR bias ('+shortPct+'%) — '+votes[0]+'. Lean short but wait for bounce rejection.';
   } else {
-    sentNote.textContent = '⚖️ Market evenly split '+longPct+'% Long / '+shortPct+'% Short — no clear retail bias.';
+    sentNote.textContent = '🔄 Mixed signals ('+longPct+'% Bull / '+shortPct+'% Bear) — no dominant direction. Stay patient, wait for clearer setup.';
   }
-}
 
 // ── UPDATE TRADE SETUPS ──
 function updateSetups(price, high, low){
@@ -2595,23 +2691,6 @@ async function preSeedBuffer(){
 setTimeout(preSeedBuffer, 1500); // run 1.5s after first price fetch
 
 // ── STOCKTWITS SENTIMENT (free, no key) ──
-async function fetchSentiment(){
-  try{
-    const r = await fetch('https://api.stocktwits.com/api/2/streams/symbol/GLD.json?limit=30', {cache:'no-store'});
-    const d = await r.json();
-    const msgs = d.messages || [];
-    const bull = msgs.filter(m => m?.entities?.sentiment?.basic === 'Bullish').length;
-    const bear = msgs.filter(m => m?.entities?.sentiment?.basic === 'Bearish').length;
-    const total = bull + bear;
-    if(total >= 3){
-      const longPct  = Math.round(bull / total * 100);
-      const shortPct = 100 - longPct;
-      updateSentimentBars(longPct, shortPct, 'StockTwits ('+total+' tagged)');
-    }
-    // else: not enough data, leave RSI-based value
-  } catch(e){ /* silent fail */ }
-}
-
 function updateSentimentBars(longPct, shortPct, source){
   const buyBar   = document.getElementById('sent-buy-bar');
   const sellBar  = document.getElementById('sent-sell-bar');
@@ -2625,8 +2704,7 @@ function updateSentimentBars(longPct, shortPct, source){
   if(srcEl)    srcEl.textContent    = 'Source: '+source;
 }
 
-fetchSentiment();
-setInterval(fetchSentiment, 60000); // refresh every 60s
+// Sentiment now calculated from live indicators inside updateAssistant() → calcAndUpdateSentiment()
 </script>
 </body>
 </html>
