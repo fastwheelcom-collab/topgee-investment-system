@@ -2878,7 +2878,110 @@ def trading_account_detail(acc_id):
 
 
 
-# ── Forex Calendar API ─────────────────────────────────────────────────────
+# ── Forex Monthly Report ─────────────────────────────────────────────
+@app.route('/trading-accounts/monthly-report')
+def forex_monthly_report():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    from datetime import date, datetime
+    import calendar as cal_mod
+
+    # Determine selected month
+    today = date.today()
+    month_param = request.args.get('month', f"{today.year}-{today.month:02d}")
+    try:
+        sel_year, sel_month = map(int, month_param.split('-'))
+    except Exception:
+        sel_year, sel_month = today.year, today.month
+
+    # Period
+    first_day = date(sel_year, sel_month, 1)
+    last_day  = date(sel_year, sel_month, cal_mod.monthrange(sel_year, sel_month)[1])
+    period_end_actual = min(last_day, today)  # don't show future
+
+    # Fetch all accounts
+    try:
+        from sqlalchemy import case, func
+        accounts_raw = TradingAccount.query.order_by(
+            TradingAccount.account_holder,
+            TradingAccount.broker_name
+        ).all()
+    except Exception:
+        accounts_raw = TradingAccount.query.order_by(TradingAccount.broker_name).all()
+
+    # Build account rows
+    accounts = []
+    for a in accounts_raw:
+        profit = a.current_balance - a.total_invested
+        roi = (profit / a.total_invested * 100) if a.total_invested > 0 else 0
+        accounts.append({
+            'broker_name':    a.broker_name,
+            'account_holder': a.account_holder or '',
+            'account_number': a.account_number or '',
+            'capital':        a.total_invested,
+            'balance':        a.current_balance,
+            'profit':         profit,
+            'roi':            roi,
+            'is_active':      a.is_active,
+        })
+
+    # Totals
+    total_capital  = sum(a['capital'] for a in accounts)
+    total_balance  = sum(a['balance'] for a in accounts)
+    total_profit   = sum(a['profit']  for a in accounts)
+    total_roi      = (total_profit / total_capital * 100) if total_capital > 0 else 0
+
+    # Per-holder summary
+    holder_map = {}
+    for a in accounts:
+        h = a['account_holder'] or ''
+        if h not in holder_map:
+            holder_map[h] = {'name': h, 'count': 0, 'capital': 0, 'balance': 0, 'profit': 0}
+        holder_map[h]['count']   += 1
+        holder_map[h]['capital'] += a['capital']
+        holder_map[h]['balance'] += a['balance']
+        holder_map[h]['profit']  += a['profit']
+    holders = []
+    for h in sorted(holder_map.keys()):
+        hd = holder_map[h]
+        hd['roi'] = (hd['profit'] / hd['capital'] * 100) if hd['capital'] > 0 else 0
+        holders.append(hd)
+
+    # Available months (from first transaction onwards, plus last 12 months)
+    MONTH_NAMES = ['January','February','March','April','May','June',
+                   'July','August','September','October','November','December']
+    available_months = []
+    for i in range(11, -1, -1):
+        m = today.month - i
+        y = today.year
+        while m <= 0: m += 12; y -= 1
+        available_months.append({
+            'value': f"{y}-{m:02d}",
+            'label': f"{MONTH_NAMES[m-1]} {y}"
+        })
+
+    month_label   = f"{MONTH_NAMES[sel_month-1]} {sel_year}"
+    generated_on  = datetime.now().strftime('%d %b %Y, %H:%M')
+    period_start  = first_day.strftime('%d %b %Y')
+    period_end_str = period_end_actual.strftime('%d %b %Y')
+
+    return render_template('forex_monthly_report.html',
+        accounts=accounts,
+        holders=holders,
+        totals={'capital': total_capital, 'balance': total_balance,
+                'profit': total_profit, 'roi': total_roi},
+        month_label=month_label,
+        generated_on=generated_on,
+        period_start=period_start,
+        period_end=period_end_str,
+        selected_month=month_param,
+        available_months=available_months,
+        is_admin=session.get('is_admin', False),
+        current_user=session.get('username', ''),
+    )
+
+
+# ── Forex Calendar API ─────────────────────────────────────────────
 @app.route('/trading-accounts/api/calendar')
 def trading_accounts_calendar_api():
     """Return daily profit entries for calendar view.

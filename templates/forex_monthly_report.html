@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forex Monthly Report — {{ month_label }}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI', Arial, sans-serif; background:#fff; color:#1a1a2e; font-size:13px; }
+
+  /* ── Toolbar (hidden when printing) ── */
+  .toolbar { background:#1e3a5f; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  .toolbar h1 { color:#fff; font-size:1rem; font-weight:800; }
+  .toolbar-right { display:flex; gap:10px; align-items:center; }
+  .toolbar select { background:#0f2440; border:1px solid #2d5a8e; color:#7eb8f7; border-radius:6px; padding:6px 10px; font-size:.82rem; cursor:pointer; }
+  .btn-pdf { background:#27ae60; color:#fff; border:none; border-radius:6px; padding:8px 18px; font-weight:700; font-size:.85rem; cursor:pointer; }
+  .btn-back { background:none; border:1px solid #2d5a8e; color:#7eb8f7; border-radius:6px; padding:8px 14px; font-size:.82rem; cursor:pointer; text-decoration:none; display:inline-block; }
+
+  /* ── Report Page ── */
+  .report { max-width:900px; margin:0 auto; padding:32px 24px 48px; }
+
+  /* Header */
+  .rep-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px; padding-bottom:18px; border-bottom:3px solid #1e3a5f; }
+  .rep-logo { font-size:1.5rem; font-weight:900; color:#1e3a5f; letter-spacing:-0.5px; }
+  .rep-logo span { color:#e67e22; }
+  .rep-meta { text-align:right; }
+  .rep-meta .rep-title { font-size:1.15rem; font-weight:800; color:#1e3a5f; }
+  .rep-meta .rep-sub   { font-size:.78rem; color:#666; margin-top:3px; }
+
+  /* Summary Strip */
+  .sum-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:28px; }
+  .sum-card { border:1px solid #e0e7ef; border-radius:10px; padding:14px 16px; }
+  .sum-card .s-lbl { font-size:.62rem; text-transform:uppercase; letter-spacing:.7px; color:#888; font-weight:700; }
+  .sum-card .s-val { font-size:1.25rem; font-weight:900; margin-top:4px; }
+  .sum-card .s-sub { font-size:.68rem; color:#888; margin-top:2px; }
+  .c-green { color:#1a7a3e; }
+  .c-blue  { color:#1e3a5f; }
+  .c-red   { color:#c0392b; }
+  .c-ora   { color:#e67e22; }
+  .sum-card.highlight { background:#f0faf4; border-color:#a7d7b8; }
+
+  /* Section titles */
+  .sec-title { font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:#1e3a5f; margin:24px 0 10px; border-left:3px solid #1e3a5f; padding-left:8px; }
+
+  /* Table */
+  table { width:100%; border-collapse:collapse; margin-bottom:20px; }
+  thead th { background:#1e3a5f; color:#fff; font-size:.68rem; text-transform:uppercase; letter-spacing:.5px; padding:9px 12px; text-align:left; }
+  tbody td { padding:9px 12px; border-bottom:1px solid #eef1f5; font-size:.82rem; vertical-align:middle; }
+  tbody tr:last-child td { border-bottom:none; }
+  tbody tr:nth-child(even) td { background:#f7f9fc; }
+  .badge-pos { background:#d1f5e0; color:#1a7a3e; padding:3px 9px; border-radius:20px; font-size:.72rem; font-weight:800; }
+  .badge-neg { background:#fde8e8; color:#c0392b; padding:3px 9px; border-radius:20px; font-size:.72rem; font-weight:800; }
+  .totals-row td { background:#1e3a5f; color:#fff; font-weight:800; font-size:.85rem; }
+
+  /* Holder section divider */
+  .holder-divider { background:#eef2f8; font-weight:800; font-size:.78rem; color:#1e3a5f; padding:7px 12px; }
+
+  /* Notes */
+  .report-note { margin-top:28px; padding:14px 16px; background:#fffbf0; border:1px solid #f0d080; border-radius:8px; font-size:.75rem; color:#7a5a00; line-height:1.6; }
+
+  /* Footer */
+  .rep-footer { margin-top:32px; padding-top:14px; border-top:1px solid #e0e7ef; display:flex; justify-content:space-between; font-size:.7rem; color:#aaa; }
+
+  @media print {
+    .toolbar { display:none !important; }
+    .report { padding:16px 12px; }
+    body { font-size:12px; }
+    @page { margin:12mm 10mm; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <h1>📊 TopGee It — Forex Monthly Report</h1>
+  <div class="toolbar-right">
+    <select id="monthSel" onchange="changeMonth(this.value)">
+      {% for m in available_months %}
+      <option value="{{ m.value }}" {% if m.value == selected_month %}selected{% endif %}>{{ m.label }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn-pdf" onclick="window.print()">🖨️ Print / Save PDF</button>
+    <a href="{{ url_for('trading_accounts') }}" class="btn-back">← Back</a>
+  </div>
+</div>
+
+<!-- Report Body -->
+<div class="report">
+
+  <!-- Header -->
+  <div class="rep-header">
+    <div>
+      <div class="rep-logo">TopGee <span>It</span></div>
+      <div style="font-size:.72rem;color:#888;margin-top:4px;">Internal Forex Performance Report</div>
+    </div>
+    <div class="rep-meta">
+      <div class="rep-title">📅 {{ month_label }}</div>
+      <div class="rep-sub">Generated: {{ generated_on }}</div>
+      <div class="rep-sub">Period: {{ period_start }} – {{ period_end }}</div>
+    </div>
+  </div>
+
+  <!-- Summary Strip -->
+  <div class="sum-grid">
+    <div class="sum-card">
+      <div class="s-lbl">Total Capital</div>
+      <div class="s-val c-blue">${{ '{:,.0f}'.format(totals.capital) }}</div>
+      <div class="s-sub">AED {{ '{:,.0f}'.format(totals.capital * 3.67) }}</div>
+    </div>
+    <div class="sum-card">
+      <div class="s-lbl">Total Balance</div>
+      <div class="s-val">${{ '{:,.0f}'.format(totals.balance) }}</div>
+      <div class="s-sub">AED {{ '{:,.0f}'.format(totals.balance * 3.67) }}</div>
+    </div>
+    <div class="sum-card highlight">
+      <div class="s-lbl">Month Profit</div>
+      <div class="s-val {{ 'c-green' if totals.profit >= 0 else 'c-red' }}">{{ '+' if totals.profit >= 0 else '' }}${{ '{:,.0f}'.format(totals.profit) }}</div>
+      <div class="s-sub">AED {{ '{:+,.0f}'.format(totals.profit * 3.67) }}</div>
+    </div>
+    <div class="sum-card highlight">
+      <div class="s-lbl">Overall ROI</div>
+      <div class="s-val {{ 'c-green' if totals.roi >= 0 else 'c-red' }}">{{ '{:+.2f}'.format(totals.roi) }}%</div>
+      <div class="s-sub">Profit ÷ Capital</div>
+    </div>
+  </div>
+
+  <!-- Account Breakdown -->
+  <div class="sec-title">Account Breakdown — {{ month_label }}</div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Broker</th>
+        <th>Account Holder</th>
+        <th>Acc. No.</th>
+        <th>Capital (USD)</th>
+        <th>Balance (USD)</th>
+        <th>Profit (USD)</th>
+        <th>Profit (AED)</th>
+        <th>ROI %</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set ns = namespace(prev_holder='__none__', row=0) %}
+      {% for acc in accounts %}
+      {% if acc.account_holder != ns.prev_holder %}
+      <tr><td colspan="10" class="holder-divider">👤 {{ acc.account_holder or 'Unassigned' }}</td></tr>
+      {% set ns.prev_holder = acc.account_holder %}
+      {% endif %}
+      {% set ns.row = ns.row + 1 %}
+      <tr>
+        <td style="color:#aaa;">{{ ns.row }}</td>
+        <td><strong>{{ acc.broker_name }}</strong></td>
+        <td>{{ acc.account_holder or '—' }}</td>
+        <td style="color:#888;font-size:.75rem;">{{ acc.account_number or '—' }}</td>
+        <td>${{ '{:,.0f}'.format(acc.capital) }}</td>
+        <td>${{ '{:,.0f}'.format(acc.balance) }}</td>
+        <td>
+          <span class="{{ 'badge-pos' if acc.profit >= 0 else 'badge-neg' }}">
+            {{ '+' if acc.profit >= 0 else '' }}${{ '{:,.0f}'.format(acc.profit) }}
+          </span>
+        </td>
+        <td style="font-weight:700;color:{{ '#1a7a3e' if acc.profit >= 0 else '#c0392b' }};">
+          {{ '+' if acc.profit >= 0 else '' }}AED {{ '{:,.0f}'.format(acc.profit * 3.67) }}
+        </td>
+        <td style="font-weight:800;color:{{ '#1a7a3e' if acc.roi >= 0 else '#c0392b' }};">
+          {{ '{:+.2f}'.format(acc.roi) }}%
+        </td>
+        <td>
+          {% if acc.is_active %}<span style="color:#1a7a3e;font-weight:700;">● Active</span>
+          {% else %}<span style="color:#aaa;">○ Off</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      <!-- Totals row -->
+      <tr class="totals-row">
+        <td colspan="4" style="text-align:right;">TOTAL</td>
+        <td>${{ '{:,.0f}'.format(totals.capital) }}</td>
+        <td>${{ '{:,.0f}'.format(totals.balance) }}</td>
+        <td>{{ '+' if totals.profit >= 0 else '' }}${{ '{:,.0f}'.format(totals.profit) }}</td>
+        <td>{{ '+' if totals.profit >= 0 else '' }}AED {{ '{:,.0f}'.format(totals.profit * 3.67) }}</td>
+        <td>{{ '{:+.2f}'.format(totals.roi) }}%</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Per-Holder Summary -->
+  {% if holders %}
+  <div class="sec-title">Summary by Account Holder</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Account Holder</th>
+        <th>Accounts</th>
+        <th>Capital (USD)</th>
+        <th>Balance (USD)</th>
+        <th>Profit (USD)</th>
+        <th>Profit (AED)</th>
+        <th>ROI %</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for h in holders %}
+      <tr>
+        <td><strong>{{ h.name or 'Unassigned' }}</strong></td>
+        <td style="color:#888;">{{ h.count }}</td>
+        <td>${{ '{:,.0f}'.format(h.capital) }}</td>
+        <td>${{ '{:,.0f}'.format(h.balance) }}</td>
+        <td>
+          <span class="{{ 'badge-pos' if h.profit >= 0 else 'badge-neg' }}">
+            {{ '+' if h.profit >= 0 else '' }}${{ '{:,.0f}'.format(h.profit) }}
+          </span>
+        </td>
+        <td style="font-weight:700;color:{{ '#1a7a3e' if h.profit >= 0 else '#c0392b' }};">
+          {{ '+' if h.profit >= 0 else '' }}AED {{ '{:,.0f}'.format(h.profit * 3.67) }}
+        </td>
+        <td style="font-weight:800;color:{{ '#1a7a3e' if h.roi >= 0 else '#c0392b' }};">
+          {{ '{:+.2f}'.format(h.roi) }}%
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- Note -->
+  <div class="report-note">
+    <strong>📌 How profit is calculated:</strong>
+    Profit = Current Balance − Capital Invested. Balance is updated every Saturday.
+    AED conversion rate: 1 USD = 3.67 AED.
+    This report covers all active and inactive accounts for the selected month.
+    <br><em>Confidential — for internal team use only.</em>
+  </div>
+
+  <!-- Footer -->
+  <div class="rep-footer">
+    <span>TopGee It — Internal Forex Report</span>
+    <span>{{ generated_on }}</span>
+  </div>
+
+</div>
+
+<script>
+function changeMonth(val) {
+  window.location.href = '/trading-accounts/monthly-report?month=' + val;
+}
+</script>
+</body>
+</html>

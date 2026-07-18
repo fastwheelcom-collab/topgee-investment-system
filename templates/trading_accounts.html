@@ -68,8 +68,6 @@
         /* Actions */
         .acc-actions { padding:10px 16px 14px; border-top:1px solid var(--border); display:flex; gap:6px; flex-wrap:wrap; }
         .a-btn { padding:5px 10px; border-radius:6px; font-size:.72rem; font-weight:700; border:none; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:3px; }
-        .a-btn.daily    { background:#27ae60; color:#fff; }
-        .a-btn.weekly   { background:#8e44ad; color:#fff; }
         .a-btn.deposit  { background:#4A90E2; color:#fff; }
         .a-btn.withdraw { background:#e67e22; color:#fff; }
         .a-btn.history  { background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border); }
@@ -174,7 +172,7 @@
 <div class="page-header">
     <h2>📊 Forex Accounts</h2>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button onclick="openCalendarReport()" style="padding:9px 18px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-weight:700;font-size:.85rem;cursor:pointer;">📅 Active Report</button>
+        <a href="{{ url_for('forex_monthly_report') }}" target="_blank" style="padding:9px 18px;background:#1e3a5f;border:1px solid #2d5a8e;border-radius:8px;color:#7eb8f7;font-weight:700;font-size:.85rem;cursor:pointer;text-decoration:none;">📄 Monthly Report</a>
         {% if is_admin %}
         <button class="btn-primary" style="padding:9px 18px;" onclick="openModal('addAccountModal')">＋ Add Account</button>
         {% endif %}
@@ -317,33 +315,21 @@
             </div>
         </div>
 
-        <!-- Profit Stats: Today / Week / Month -->
-        <div class="profit-row">
-            <div class="p-box">
-                <div class="p-lbl">Today</div>
-                <div class="p-val {{ 'c-green' if acc.today_profit >= 0 else 'c-red' }}">{{ '+' if acc.today_profit >= 0 else '' }}${{ '{:,.0f}'.format(acc.today_profit) }}</div>
-            </div>
-            <div class="p-box">
-                <div class="p-lbl">This Week</div>
-                <div class="p-val {{ 'c-green' if acc.week_profit >= 0 else 'c-red' }}">{{ '+' if acc.week_profit >= 0 else '' }}${{ '{:,.0f}'.format(acc.week_profit) }}</div>
-            </div>
-            <div class="p-box">
-                <div class="p-lbl">This Month</div>
-                <div class="p-val {{ 'c-green' if acc.month_profit >= 0 else 'c-red' }}">{{ '+' if acc.month_profit >= 0 else '' }}${{ '{:,.0f}'.format(acc.month_profit) }}</div>
-            </div>
+        <!-- AED row -->
+        <div style="margin-top:6px;padding:7px 10px;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:.65rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;">AED Equivalent</span>
+            <span style="font-size:.82rem;font-weight:800;color:{{ '#27ae60' if live_pnl >= 0 else '#c0392b' }};">{{ '+' if live_pnl >= 0 else '' }}AED {{ '{:,.0f}'.format(live_pnl * 3.67) }}</span>
         </div>
 
     </div><!-- /acc-body -->
 
     <!-- Actions -->
     <div class="acc-actions">
-        <button class="a-btn daily"   onclick="openProfitModal({{ acc.id }},'{{ acc.broker_name }}')">📈 Daily</button>
-        <button class="a-btn weekly"  onclick="openWeeklyModal({{ acc.id }},'{{ acc.broker_name }}')">📅 Weekly</button>
         <button class="a-btn deposit" onclick="openTxnModal({{ acc.id }},'{{ acc.broker_name }}','deposit')">↓ Deposit</button>
         <button class="a-btn withdraw" onclick="openTxnModal({{ acc.id }},'{{ acc.broker_name }}','withdrawal')">↑ Withdraw</button>
-        <a href="{{ url_for('trading_account_detail', acc_id=acc.id) }}" class="a-btn history">📋</a>
+        <a href="{{ url_for('trading_account_detail', acc_id=acc.id) }}" class="a-btn history">📋 History</a>
         {% if is_admin %}
-        <button class="a-btn edit" onclick="openEditModal({{ acc.id }},'{{ acc.broker_name }}','{{ acc.account_holder or '' }}','{{ acc.account_number or '' }}','{{ acc.deposit_via or 'Bank' }}','{{ acc.platform }}','{{ acc.symbol }}','{{ acc.currency }}',{{ acc.current_balance }},'{{ acc.notes or '' }}',{{ 'true' if acc.is_active else 'false' }})">✏️</button>
+        <button class="a-btn edit" onclick="openEditModal({{ acc.id }},'{{ acc.broker_name }}','{{ acc.account_holder or '' }}','{{ acc.account_number or '' }}','{{ acc.deposit_via or 'Bank' }}','{{ acc.platform }}','{{ acc.symbol }}','{{ acc.currency }}',{{ acc.current_balance }},'{{ acc.notes or '' }}',{{ 'true' if acc.is_active else 'false' }})">✏️ Edit</button>
         <form method="POST" action="{{ url_for('trading_account_delete', acc_id=acc.id) }}" style="display:inline" onsubmit="return confirm('Delete {{ acc.broker_name }}?')">
             <button type="submit" class="a-btn del">🗑</button>
         </form>
@@ -441,51 +427,6 @@
 </div>
 </div>
 
-<!-- Daily Profit -->
-<div class="modal-overlay" id="profitModal">
-<div class="modal-box">
-    <h3 id="profitModalTitle">📈 Record Daily Profit</h3>
-    <form method="POST" id="profitForm">
-        <div class="form-group"><label>Date</label><input type="date" name="profit_date" id="profit_date" value="{{ today }}"></div>
-        <div class="form-group">
-            <label>Profit Amount ($) <span style="color:var(--text-secondary);font-size:.72rem;">Negative = loss</span></label>
-            <input type="number" name="amount" step="0.01" placeholder="e.g. 125.50" required>
-        </div>
-        <div class="form-group"><label>Notes</label><input type="text" name="notes" placeholder="Optional"></div>
-        <div class="modal-actions">
-            <button type="submit" class="btn-confirm">Save</button>
-            <button type="button" class="btn-cancel" onclick="closeModal('profitModal')">Cancel</button>
-        </div>
-    </form>
-</div>
-</div>
-
-<!-- Weekly Profit -->
-<div class="modal-overlay" id="weeklyProfitModal">
-<div class="modal-box">
-    <h3 id="weeklyProfitTitle">📅 Weekly Profit</h3>
-    <form method="POST" id="weeklyProfitForm">
-        <div style="background:rgba(142,68,173,.08);border:1px solid rgba(142,68,173,.25);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:.78rem;color:var(--text-secondary);">
-            Enter total week profit → auto-split equally <strong>Mon–Fri</strong>
-        </div>
-        <div class="form-group">
-            <label>Week Starting (Monday)</label>
-            <input type="date" name="week_start" id="weekly_week_start" required>
-        </div>
-        <div class="form-group">
-            <label>Total Week Profit ($)</label>
-            <input type="number" name="total_amount" step="0.01" placeholder="e.g. 1250.00" required id="weekly_total_amount">
-        </div>
-        <div id="weekly_preview" style="display:none;background:rgba(39,174,96,.08);border:1px solid rgba(39,174,96,.25);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:.78rem;"></div>
-        <div class="form-group"><label>Notes</label><input type="text" name="notes" placeholder="Optional"></div>
-        <div class="modal-actions">
-            <button type="submit" class="btn-confirm" style="background:#8e44ad;">Save Weekly</button>
-            <button type="button" class="btn-cancel" onclick="closeModal('weeklyProfitModal')">Cancel</button>
-        </div>
-    </form>
-</div>
-</div>
-
 <!-- Transaction (Deposit / Withdraw) -->
 <div class="modal-overlay" id="txnModal">
 <div class="modal-box">
@@ -547,11 +488,6 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 document.querySelectorAll('.modal-overlay').forEach(function(el){
     el.addEventListener('click',function(e){ if(e.target===el) el.classList.remove('open'); });
 });
-function openProfitModal(accId, name) {
-    document.getElementById('profitModalTitle').textContent = '📈 Daily Profit — ' + name;
-    document.getElementById('profitForm').action = '/trading-accounts/' + accId + '/profit/add';
-    openModal('profitModal');
-}
 function openTxnModal(accId, name, type) {
     document.getElementById('txnModalTitle').textContent = (type==='deposit'?'↓ Deposit':'↑ Withdrawal') + ' — ' + name;
     document.getElementById('txnForm').action = '/trading-accounts/' + accId + '/transaction/add';
@@ -560,30 +496,6 @@ function openTxnModal(accId, name, type) {
     document.getElementById('txnSubmitBtn').style.background = type==='deposit'?'#4A90E2':'#e67e22';
     openModal('txnModal');
 }
-function openWeeklyModal(accId, name) {
-    document.getElementById('weeklyProfitTitle').textContent = '📅 Weekly Profit — ' + name;
-    document.getElementById('weeklyProfitForm').action = '/trading-accounts/' + accId + '/weekly-profit/add';
-    var today = new Date(), day = today.getDay(), diff = day===0?6:day-1;
-    var mon = new Date(today); mon.setDate(today.getDate()-diff);
-    document.getElementById('weekly_week_start').value = mon.toISOString().split('T')[0];
-    document.getElementById('weekly_total_amount').value = '';
-    document.getElementById('weekly_preview').style.display = 'none';
-    openModal('weeklyProfitModal');
-}
-document.addEventListener('DOMContentLoaded', function(){
-    var amtIn = document.getElementById('weekly_total_amount');
-    var dateIn = document.getElementById('weekly_week_start');
-    if(!amtIn) return;
-    function preview(){
-        var amt = parseFloat(amtIn.value), dateVal = dateIn.value, prev = document.getElementById('weekly_preview');
-        if(!isNaN(amt) && amt!==0 && dateVal){
-            var daily=(amt/5).toFixed(2), mon=new Date(dateVal+'T00:00:00'), days=['Mon','Tue','Wed','Thu','Fri'], html='<strong>Split:</strong> ';
-            for(var i=0;i<5;i++){var d=new Date(mon);d.setDate(mon.getDate()+i);var a=i<4?daily:(amt-daily*4).toFixed(2);html+=days[i]+' <strong>$'+parseFloat(a).toLocaleString(undefined,{minimumFractionDigits:2})+'</strong>  ';}
-            prev.innerHTML=html; prev.style.display='block';
-        } else { prev.style.display='none'; }
-    }
-    amtIn.addEventListener('input',preview); dateIn.addEventListener('change',preview);
-});
 function openEditModal(id,broker,holder,accNum,depositVia,platform,symbol,currency,balance,notes,isActive){
     document.getElementById('editAccountForm').action='/trading-accounts/'+id+'/edit';
     document.getElementById('edit_broker_name').value=broker;
