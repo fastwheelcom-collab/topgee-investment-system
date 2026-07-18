@@ -2960,9 +2960,32 @@ def forex_monthly_report():
             'label': f"{MONTH_NAMES[m-1]} {y}"
         })
 
-    month_label   = f"{MONTH_NAMES[sel_month-1]} {sel_year}"
-    generated_on  = datetime.now().strftime('%d %b %Y, %H:%M')
-    period_start  = first_day.strftime('%d %b %Y')
+    # Trading days calculation (Mon-Fri = Gold market)
+    from datetime import timedelta
+    def count_trading_days(start, end):
+        count = 0
+        d = start
+        while d <= end:
+            if d.weekday() < 5:  # Mon=0..Fri=4
+                count += 1
+            d += timedelta(days=1)
+        return count
+
+    total_trading   = count_trading_days(first_day, last_day)
+    gone_trading    = count_trading_days(first_day, min(today, last_day))
+    pending_trading = max(0, total_trading - gone_trading)
+    pct             = round(gone_trading / total_trading * 100, 1) if total_trading > 0 else 0
+
+    trading_days = {
+        'total':   total_trading,
+        'gone':    gone_trading,
+        'pending': pending_trading,
+        'pct':     pct,
+    }
+
+    month_label    = f"{MONTH_NAMES[sel_month-1]} {sel_year}"
+    generated_on   = datetime.now().strftime('%d %b %Y, %H:%M')
+    period_start   = first_day.strftime('%d %b %Y')
     period_end_str = period_end_actual.strftime('%d %b %Y')
 
     return render_template('forex_monthly_report.html',
@@ -2970,6 +2993,7 @@ def forex_monthly_report():
         holders=holders,
         totals={'capital': total_capital, 'balance': total_balance,
                 'profit': total_profit, 'roi': total_roi},
+        trading_days=trading_days,
         month_label=month_label,
         generated_on=generated_on,
         period_start=period_start,
