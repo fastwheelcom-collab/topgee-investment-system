@@ -94,6 +94,37 @@
         .btn-cancel  { background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border); }
         .empty-state { text-align:center; padding:60px 20px; color:var(--text-secondary); }
         .g2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+        /* ── Calendar Report ── */
+        .cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
+        .cal-nav { display:flex; align-items:center; gap:8px; }
+        .cal-nav button { background:var(--bg-dark); border:1px solid var(--border); color:var(--text-primary); border-radius:6px; padding:4px 10px; cursor:pointer; font-size:.85rem; }
+        .cal-nav button:hover { background:var(--bg-hover); }
+        .cal-month-label { font-size:1rem; font-weight:800; color:var(--text-primary); min-width:140px; text-align:center; }
+        .cal-filters { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+        .cal-filters select { background:var(--bg-dark); border:1px solid var(--border); color:var(--text-primary); border-radius:6px; padding:5px 10px; font-size:.78rem; }
+        .cal-summary { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+        .cal-sum-pill { background:var(--bg-dark); border:1px solid var(--border); border-radius:8px; padding:8px 14px; font-size:.78rem; }
+        .cal-sum-pill .cs-lbl { color:var(--text-secondary); font-size:.65rem; text-transform:uppercase; letter-spacing:.5px; }
+        .cal-sum-pill .cs-val { font-weight:800; font-size:.95rem; margin-top:2px; }
+        .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+        .cal-dow { text-align:center; font-size:.65rem; font-weight:700; color:var(--text-secondary); padding:4px 0; text-transform:uppercase; }
+        .cal-day { background:var(--bg-dark); border:1px solid var(--border); border-radius:7px; min-height:68px; padding:5px 6px; cursor:pointer; transition:border-color .15s; position:relative; }
+        .cal-day:hover { border-color:#4A90E2; }
+        .cal-day.empty { background:transparent; border-color:transparent; cursor:default; pointer-events:none; }
+        .cal-day.today-cell { border-color:#4A90E2; }
+        .cal-day.has-profit { border-color:rgba(39,174,96,.5); background:rgba(39,174,96,.06); }
+        .cal-day.has-loss   { border-color:rgba(192,57,43,.5); background:rgba(192,57,43,.06); }
+        .cal-day.weekend-cell { opacity:.55; }
+        .cal-dn  { font-size:.7rem; font-weight:700; color:var(--text-secondary); }
+        .cal-amt { font-size:.8rem; font-weight:800; margin-top:3px; }
+        .cal-bks { font-size:.58rem; color:var(--text-secondary); margin-top:2px; line-height:1.3; }
+        .cal-detail { display:none; margin-top:10px; background:var(--bg-dark); border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
+        .cal-detail.open { display:block; }
+        .cd-date { font-size:.78rem; font-weight:800; color:var(--text-primary); margin-bottom:8px; }
+        .cd-row  { display:flex; justify-content:space-between; align-items:center; font-size:.78rem; padding:4px 0; border-bottom:1px solid var(--border); }
+        .cd-row:last-child { border-bottom:none; }
+        .cal-loading { text-align:center; padding:40px; color:var(--text-secondary); font-size:.88rem; }
     </style>
 </head>
 <body>
@@ -142,9 +173,12 @@
 
 <div class="page-header">
     <h2>📊 Forex Accounts</h2>
-    {% if is_admin %}
-    <button class="btn-primary" style="padding:9px 18px;" onclick="openModal('addAccountModal')">＋ Add Account</button>
-    {% endif %}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button onclick="openCalendarReport()" style="padding:9px 18px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-weight:700;font-size:.85rem;cursor:pointer;">📅 Active Report</button>
+        {% if is_admin %}
+        <button class="btn-primary" style="padding:9px 18px;" onclick="openModal('addAccountModal')">＋ Add Account</button>
+        {% endif %}
+    </div>
 </div>
 
 <!-- ── Summary Strip ── -->
@@ -205,6 +239,7 @@
     <span class="hs-op">=</span>
     <div class="hs-pill" style="border-color:{% if h_live_pnl >= 0 %}rgba(39,174,96,.4){% else %}rgba(192,57,43,.4){% endif %};">
         Live P&L <strong class="{{ 'c-green' if h_live_pnl >= 0 else 'c-red' }}">{{ '+' if h_live_pnl >= 0 else '' }}${{ '{:,.0f}'.format(h_live_pnl) }}</strong>
+        {% if h_capital > 0 %}<span style="font-size:.7rem;font-weight:800;color:{{ '#27ae60' if h_live_pnl >= 0 else '#c0392b' }};margin-left:4px;">({{ '{:+.1f}'.format((h_live_pnl / h_capital) * 100) }}%)</span>{% endif %}
     </div>
     {% if h_withdrawn > 0 %}
     <span class="hs-op">−</span>
@@ -468,6 +503,44 @@
 </div>
 </div>
 
+<!-- ── Calendar Report Modal ── -->
+<div class="modal-overlay" id="calendarReportModal" style="align-items:flex-start;padding-top:40px;">
+<div class="modal-box" style="max-width:780px;width:95%;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h3 style="margin:0;">📅 Active Report — Daily Profit Calendar</h3>
+        <button onclick="closeModal('calendarReportModal')" style="background:none;border:none;color:var(--text-secondary);font-size:1.3rem;cursor:pointer;">×</button>
+    </div>
+
+    <!-- Filters -->
+    <div class="cal-filters" style="margin-bottom:12px;">
+        <select id="calHolderFilter" onchange="calApplyFilter()">
+            <option value="">All Holders</option>
+        </select>
+        <select id="calAccFilter" onchange="calApplyFilter()">
+            <option value="">All Accounts</option>
+        </select>
+    </div>
+
+    <!-- Nav -->
+    <div class="cal-header">
+        <div class="cal-nav">
+            <button onclick="calChangeMonth(-1)">‹</button>
+            <div class="cal-month-label" id="calMonthLabel">—</div>
+            <button onclick="calChangeMonth(1)">›</button>
+        </div>
+        <div id="calSummary" class="cal-summary"></div>
+    </div>
+
+    <!-- Grid -->
+    <div class="cal-grid" id="calGrid">
+        <div class="cal-loading">Loading…</div>
+    </div>
+
+    <!-- Day Detail -->
+    <div class="cal-detail" id="calDayDetail"></div>
+</div>
+</div>
+
 <script>
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -524,6 +597,150 @@ function openEditModal(id,broker,holder,accNum,depositVia,platform,symbol,curren
     document.getElementById('edit_notes').value=notes;
     document.getElementById('edit_is_active').checked=isActive;
     openModal('editAccountModal');
+}
+</script>
+<script>
+/* ── Calendar Report JS ── */
+var _calYear, _calMonth, _calData = null, _calSelectedDay = null;
+var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+var DOWS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+function openCalendarReport() {
+    var now = new Date();
+    _calYear = now.getFullYear();
+    _calMonth = now.getMonth() + 1;
+    _calSelectedDay = null;
+    document.getElementById('calDayDetail').className = 'cal-detail';
+    document.getElementById('calDayDetail').innerHTML = '';
+    openModal('calendarReportModal');
+    calLoad();
+}
+
+function calChangeMonth(dir) {
+    _calMonth += dir;
+    if (_calMonth > 12) { _calMonth = 1; _calYear++; }
+    if (_calMonth < 1)  { _calMonth = 12; _calYear--; }
+    _calSelectedDay = null;
+    document.getElementById('calDayDetail').className = 'cal-detail';
+    calLoad();
+}
+
+function calApplyFilter() { _calSelectedDay = null; document.getElementById('calDayDetail').className = 'cal-detail'; calLoad(); }
+
+function calLoad() {
+    var holderSel = document.getElementById('calHolderFilter').value;
+    var accSel    = document.getElementById('calAccFilter').value;
+    var url = '/trading-accounts/api/calendar?year=' + _calYear + '&month=' + _calMonth;
+    if (accSel)    url += '&acc_id=' + accSel;
+    else if (holderSel) url += '&holder=' + encodeURIComponent(holderSel);
+    document.getElementById('calGrid').innerHTML = '<div class="cal-loading">Loading…</div>';
+    document.getElementById('calSummary').innerHTML = '';
+    fetch(url).then(function(r){ return r.json(); }).then(function(data){
+        _calData = data;
+        calPopulateFilters(data);
+        calRender(data);
+    }).catch(function(){ document.getElementById('calGrid').innerHTML = '<div class="cal-loading">Failed to load.</div>'; });
+}
+
+function calPopulateFilters(data) {
+    // Holders
+    var hSel = document.getElementById('calHolderFilter');
+    var hCur = hSel.value;
+    hSel.innerHTML = '<option value="">All Holders</option>';
+    (data.holders||[]).forEach(function(h){ var o=document.createElement('option'); o.value=h; o.textContent=h; if(h===hCur) o.selected=true; hSel.appendChild(o); });
+    // Accounts
+    var aSel = document.getElementById('calAccFilter');
+    var aCur = aSel.value;
+    aSel.innerHTML = '<option value="">All Accounts</option>';
+    (data.accounts||[]).forEach(function(a){ var o=document.createElement('option'); o.value=a.id; o.textContent=a.label; if(String(a.id)===aCur) o.selected=true; aSel.appendChild(o); });
+}
+
+function calRender(data) {
+    // Update month label
+    document.getElementById('calMonthLabel').textContent = MONTHS[_calMonth-1] + ' ' + _calYear;
+
+    // Summary pills
+    var total = data.total || 0;
+    var td = data.trading_days || 0;
+    var avg = td > 0 ? (total/td) : 0;
+    var sHtml = '<div class="cal-sum-pill"><div class="cs-lbl">Month Total</div><div class="cs-val ' + (total>=0?'c-green':'c-red') + '">' + (total>=0?'+':'') + '$' + Math.abs(total).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div></div>';
+    sHtml += '<div class="cal-sum-pill"><div class="cs-lbl">Trading Days</div><div class="cs-val">' + td + '</div></div>';
+    sHtml += '<div class="cal-sum-pill"><div class="cs-lbl">Daily Avg</div><div class="cs-val ' + (avg>=0?'c-green':'c-red') + '">' + (avg>=0?'+':'') + '$' + Math.abs(avg).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div></div>';
+    document.getElementById('calSummary').innerHTML = sHtml;
+
+    // Build calendar
+    var daysInMonth = new Date(_calYear, _calMonth, 0).getDate();
+    var firstDow = new Date(_calYear, _calMonth-1, 1).getDay(); // 0=Sun
+    var offset = firstDow === 0 ? 6 : firstDow - 1; // Mon=0
+    var today = new Date();
+    var todayStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+
+    var html = '';
+    DOWS.forEach(function(d){ html += '<div class="cal-dow">' + d + '</div>'; });
+    for(var i=0;i<offset;i++) html += '<div class="cal-day empty"></div>';
+    for(var day=1; day<=daysInMonth; day++) {
+        var dateStr = _calYear + '-' + String(_calMonth).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+        var dayData = data.days[dateStr];
+        var dow = (offset + day - 1) % 7; // 0=Mon..6=Sun
+        var isWeekend = (dow === 5 || dow === 6);
+        var cls = 'cal-day';
+        if (isWeekend) cls += ' weekend-cell';
+        if (dateStr === todayStr) cls += ' today-cell';
+        if (dateStr === _calSelectedDay) cls += ' has-profit'; // highlight selected
+        if (dayData) {
+            if (dayData.total > 0) cls += ' has-profit';
+            else if (dayData.total < 0) cls += ' has-loss';
+        }
+        html += '<div class="' + cls + '" onclick="calDayClick(\'' + dateStr + '\')">';
+        html += '<div class="cal-dn">' + day + (dateStr===todayStr?' ●':'') + '</div>';
+        if (dayData) {
+            var amtColor = dayData.total >= 0 ? '#27ae60' : '#c0392b';
+            html += '<div class="cal-amt" style="color:' + amtColor + '">' + (dayData.total>=0?'+':'') + '$' + Math.abs(dayData.total).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</div>';
+            // broker mini-list (max 2)
+            var brokers = dayData.entries.slice(0,2).map(function(e){ return e.broker; });
+            if(dayData.entries.length > 2) brokers.push('+'+(dayData.entries.length-2)+' more');
+            html += '<div class="cal-bks">' + brokers.join(', ') + '</div>';
+        }
+        html += '</div>';
+    }
+    // Fill remaining cells to complete last row
+    var totalCells = offset + daysInMonth;
+    var remainder = totalCells % 7;
+    if (remainder > 0) for(var j=0; j<7-remainder; j++) html += '<div class="cal-day empty"></div>';
+
+    document.getElementById('calGrid').innerHTML = html;
+}
+
+function calDayClick(dateStr) {
+    var data = _calData;
+    if (!data) return;
+    var detail = document.getElementById('calDayDetail');
+    if (_calSelectedDay === dateStr && detail.classList.contains('open')) {
+        detail.classList.remove('open');
+        _calSelectedDay = null;
+        return;
+    }
+    _calSelectedDay = dateStr;
+    var dayData = data.days[dateStr];
+    if (!dayData || !dayData.entries || dayData.entries.length === 0) {
+        detail.classList.remove('open');
+        return;
+    }
+    var d = new Date(dateStr + 'T00:00:00');
+    var label = d.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    var total = dayData.total;
+    var html = '<div class="cd-date">' + label + ' — Total: <strong style="color:' + (total>=0?'#27ae60':'#c0392b') + '">' + (total>=0?'+':'') + '$' + total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</strong></div>';
+    dayData.entries.forEach(function(e){
+        html += '<div class="cd-row">';
+        html += '<span style="font-weight:700">' + e.broker + (e.holder?' <span style="color:var(--text-secondary);font-weight:400;font-size:.72rem">— ' + e.holder + '</span>':'') + '</span>';
+        html += '<div style="display:flex;align-items:center;gap:10px;">';
+        if (e.notes) html += '<span style="color:var(--text-secondary);font-size:.72rem;font-style:italic">' + e.notes + '</span>';
+        html += '<span style="font-weight:800;color:' + (e.amount>=0?'#27ae60':'#c0392b') + '">' + (e.amount>=0?'+':'') + '$' + e.amount.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</span>';
+        html += '</div></div>';
+    });
+    detail.innerHTML = html;
+    detail.classList.add('open');
+    detail.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 </script>
 </body>

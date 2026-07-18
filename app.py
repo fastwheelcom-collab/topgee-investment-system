@@ -2878,6 +2878,74 @@ def trading_account_detail(acc_id):
 
 
 
+# ── Forex Calendar API ─────────────────────────────────────────────────────
+@app.route('/trading-accounts/api/calendar')
+def trading_accounts_calendar_api():
+    """Return daily profit entries for calendar view.
+    ?year=2026&month=7  → all accounts for that month
+    ?acc_id=5           → filter to one account
+    ?holder=Sadakat+Ali → filter by holder name
+    """
+    if not session.get('logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    from datetime import date, timedelta
+    import calendar as cal_mod
+    try:
+        year  = int(request.args.get('year',  date.today().year))
+        month = int(request.args.get('month', date.today().month))
+        acc_id_filter = request.args.get('acc_id', type=int)
+        holder_filter = request.args.get('holder', '')
+    except Exception:
+        return jsonify({'error': 'Bad params'}), 400
+
+    # Month date range
+    first_day = date(year, month, 1)
+    last_day  = date(year, month, cal_mod.monthrange(year, month)[1])
+
+    q = db.session.query(AccountProfit).join(TradingAccount)
+    if acc_id_filter:
+        q = q.filter(AccountProfit.account_id == acc_id_filter)
+    elif holder_filter:
+        q = q.filter(TradingAccount.account_holder == holder_filter)
+    q = q.filter(
+        AccountProfit.profit_date >= str(first_day),
+        AccountProfit.profit_date <= str(last_day)
+    )
+    profits = q.all()
+
+    # Aggregate by date
+    day_map = {}
+    for p in profits:
+        d = str(p.profit_date)[:10]
+        if d not in day_map:
+            day_map[d] = {'total': 0, 'entries': []}
+        day_map[d]['total'] += p.profit_amount
+        day_map[d]['entries'].append({
+            'broker': p.account.broker_name if p.account else '?',
+            'holder': p.account.account_holder if p.account else '',
+            'amount': p.profit_amount,
+            'notes': p.notes or '',
+        })
+
+    # Month totals summary
+    total = sum(v['total'] for v in day_map.values())
+    trading_days = sum(1 for v in day_map.values() if v['total'] != 0)
+
+    # Accounts list for filter dropdown
+    accs = TradingAccount.query.order_by(TradingAccount.account_holder, TradingAccount.broker_name).all()
+    accounts_list = [{'id': a.id, 'label': f"{a.broker_name} ({a.account_holder or 'Unassigned'})", 'holder': a.account_holder or ''} for a in accs]
+    holders_list  = sorted(set(a.account_holder for a in accs if a.account_holder))
+
+    return jsonify({
+        'year': year, 'month': month,
+        'days': day_map,
+        'total': round(total, 2),
+        'trading_days': trading_days,
+        'accounts': accounts_list,
+        'holders': holders_list,
+    })
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     print("\n" + "="*60)
