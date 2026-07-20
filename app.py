@@ -2465,6 +2465,23 @@ def update_tg_percent(investor_id):
 def gold_dashboard():
     return send_from_directory('static', 'gold-dashboard.html')
 
+@app.route('/api/gold-history')
+def gold_history_proxy():
+    """Proxy CoinGecko historical prices server-side to avoid browser CORS rate limits."""
+    try:
+        # Try 14 days first (336+ points, enough for EMA200)
+        for days in [14, 7]:
+            url = f'https://api.coingecko.com/api/v3/coins/tether-gold/market_chart?vs_currency=usd&days={days}&interval=hourly'
+            r = requests.get(url, timeout=10, headers={'Accept': 'application/json'})
+            if r.status_code == 200:
+                data = r.json()
+                prices = [p[1] for p in data.get('prices', []) if p[1] and p[1] > 100]
+                if len(prices) >= 20:
+                    return jsonify({'prices': prices, 'count': len(prices), 'days': days})
+        return jsonify({'error': 'No data from CoinGecko', 'prices': []}), 503
+    except Exception as e:
+        return jsonify({'error': str(e), 'prices': []}), 503
+
 
 # ══════════════════════════════════════════════════════
 # BACKUP ROUTE — exports ALL data as structured JSON

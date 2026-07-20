@@ -819,7 +819,7 @@ let alertQueue = [];
 let alertShowing = false;
 
 // ── PRICE HISTORY BUFFER (for indicators) ──
-const PRICE_BUF_MAX = 220;
+const PRICE_BUF_MAX = 400;
 let priceBuf = []; // rolling price ticks
 let miniCharts = {}; // Chart.js instances
 
@@ -2726,36 +2726,45 @@ setInterval(fetchNews, 5 * 60 * 1000);       // refresh news every 5min
 fetchPrice();
 setInterval(fetchPrice, 10000);
 
-// ── PRE-SEED INDICATOR BUFFER with real Yahoo 1m candles ──
+// ── PRE-SEED INDICATOR BUFFER with historical candles ──
 // Gives indicators real data immediately instead of waiting 200+ ticks
 async function preSeedBuffer(){
-  // Use CoinGecko hourly history — CORS safe, no key needed
-  try{
-    const r = await fetch('https://api.coingecko.com/api/v3/coins/tether-gold/market_chart?vs_currency=usd&days=7&interval=hourly',{cache:'no-store'});
-    const d = await r.json();
-    const prices = d?.prices?.map(p=>p[1]).filter(v=>v&&v>100);
-    if(prices && prices.length >= 20 && priceBuf.length < 10){
-      priceBuf = prices.slice(-200);
-      console.log('✅ Pre-seeded buffer:',priceBuf.length,'hourly candles');
-      fetchPrice(); // re-run immediately with warm buffer
+  // Try backend proxy first (avoids browser CORS rate limits)
+  const sources = [
+    // 1. Backend proxy — no rate limit issues
+    async () => {
+      const r = await fetch('/api/gold-history', {cache:'no-store'});
+      if(!r.ok) throw new Error('proxy '+r.status);
+      const d = await r.json();
+      return d.prices.filter(v=>v&&v>100);
+    },
+    // 2. CoinGecko 14 days = 336 hourly points (enough for EMA200)
+    async () => {
+      const r = await fetch('https://api.coingecko.com/api/v3/coins/tether-gold/market_chart?vs_currency=usd&days=14&interval=hourly',{cache:'no-store'});
+      const d = await r.json();
+      return d?.prices?.map(p=>p[1]).filter(v=>v&&v>100) || [];
+    },
+    // 3. CoinGecko 7 days fallback
+    async () => {
+      const r = await fetch('https://api.coingecko.com/api/v3/coins/tether-gold/market_chart?vs_currency=usd&days=7&interval=hourly',{cache:'no-store'});
+      const d = await r.json();
+      return d?.prices?.map(p=>p[1]).filter(v=>v&&v>100) || [];
     }
-  } catch(e){
-    // Fallback: seed from Coinbase spot repeated slightly varied
-    try{
-      const r2 = await fetch('https://api.coinbase.com/v2/prices/XAU-USD/spot',{cache:'no-store'});
-      const d2 = await r2.json();
-      const base = parseFloat(d2.data.amount);
-      if(base>100 && priceBuf.length < 10){
-        // Create synthetic seed around current price
-        priceBuf = Array.from({length:50}, (_,i) => base + (Math.random()-0.5)*10);
-        console.log('✅ Synthetic seed from Coinbase:', base);
-        fetchPrice();
-      }
-    } catch(e2){ console.log('Pre-seed skipped — will warm up naturally:', e2.message); }
-    // DO NOT use random synthetic data — causes wrong signals
+  ];
+  let prices = [];
+  for(const src of sources){
+    try{ prices = await src(); if(prices.length >= 20) break; } catch(ex){ continue; }
+  }
+  if(prices.length >= 20){
+    // Always seed — don't check priceBuf.length to avoid race condition
+    priceBuf = prices.slice(-350);
+    console.log('✅ Pre-seeded buffer:', priceBuf.length, 'historical candles');
+    fetchPrice(); // re-run immediately with warm buffer
+  } else {
+    console.warn('⚠️ Pre-seed failed, indicators will warm up gradually');
   }
 }
-setTimeout(preSeedBuffer, 1500); // run 1.5s after first price fetch
+setTimeout(preSeedBuffer, 800); // run 0.8s after page load
 
 // ── STOCKTWITS SENTIMENT (free, no key) ──
 function updateSentimentBars(longPct, shortPct, source){
