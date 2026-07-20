@@ -2513,6 +2513,33 @@ def gold_history_proxy():
             continue
     return jsonify({'error': 'All history sources failed', 'prices': []}), 503
 
+@app.route('/api/gold-price')
+def gold_price_proxy():
+    """Proxy live gold spot price server-side."""
+    sources = [
+        # 1. Yahoo Finance spot
+        lambda: (__import__('requests').get(
+            'https://query1.finance.yahoo.com/v8/finance/chart/GC%3DF?interval=1m&range=1d',
+            headers={'User-Agent': 'Mozilla/5.0'}, timeout=6
+        ).json()['chart']['result'][0]['meta']['regularMarketPrice'], 'Yahoo'),
+        # 2. Coinbase
+        lambda: (float(__import__('requests').get(
+            'https://api.coinbase.com/v2/prices/XAU-USD/spot', timeout=6
+        ).json()['data']['amount']), 'Coinbase'),
+        # 3. Swissquote
+        lambda: ((__import__('requests').get(
+            'https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/USD', timeout=6
+        ).json()[0]['spreadProfilePrices'][0]['bid']), 'Swissquote'),
+    ]
+    for src in sources:
+        try:
+            price, name = src()
+            if price and float(price) > 100:
+                return jsonify({'price': float(price), 'source': name})
+        except Exception:
+            continue
+    return jsonify({'error': 'All price sources failed'}), 503
+
 
 # ══════════════════════════════════════════════════════
 # BACKUP ROUTE — exports ALL data as structured JSON

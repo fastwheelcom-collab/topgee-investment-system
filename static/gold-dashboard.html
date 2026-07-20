@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v20260720-3 -->
+<!-- v20260720-4 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1475,8 +1475,16 @@ fetchHL(); setInterval(fetchHL, 60000);
 async function fetchPrice(){
   try{
     let price, prev, high, low;
-    // ── CORS-VERIFIED sources only ──
+    // ── Price sources — server proxy first, then direct CORS ──
     const sources = [
+      // 0. Server proxy — most reliable, no CORS issues
+      async () => {
+        const r = await fetch('/api/gold-price',{cache:'no-store'});
+        const d = await r.json();
+        const p = parseFloat(d.price);
+        if(!p||p<100) throw new Error('bad price');
+        return { price:p, source: d.source+' (Proxy)' };
+      },
       // 1. Coinbase XAU/USD spot — CORS *, free, no key, real-time
       async () => {
         const r = await fetch('https://api.coinbase.com/v2/prices/XAU-USD/spot',{cache:'no-store'});
@@ -1493,7 +1501,7 @@ async function fetchPrice(){
         if(!p||p<100) throw new Error('bad price');
         return { price:p, source:'CoinGecko (Live)' };
       },
-      // 3. Swissquote — works when CORS not blocked (local file / same origin)
+      // 3. Swissquote
       async () => {
         const r = await fetch('https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/USD',{cache:'no-store'});
         const d = await r.json();
