@@ -2467,20 +2467,46 @@ def gold_dashboard():
 
 @app.route('/api/gold-history')
 def gold_history_proxy():
-    """Proxy CoinGecko historical prices server-side to avoid browser CORS rate limits."""
-    try:
-        # Try 14 days first (336+ points, enough for EMA200)
-        for days in [14, 7]:
-            url = f'https://api.coingecko.com/api/v3/coins/tether-gold/market_chart?vs_currency=usd&days={days}&interval=hourly'
-            r = requests.get(url, timeout=10, headers={'Accept': 'application/json'})
-            if r.status_code == 200:
-                data = r.json()
+    """Proxy historical Gold prices server-side to avoid browser CORS/rate limits."""
+    sources = [
+        # 1. Yahoo Finance GC=F hourly 14 days — no key, reliable, 250+ points
+        {
+            'url': 'https://query1.finance.yahoo.com/v8/finance/chart/GC%3DF?interval=1h&range=14d',
+            'headers': {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'},
+            'parser': 'yahoo'
+        },
+        # 2. Yahoo Finance fallback 7 days
+        {
+            'url': 'https://query2.finance.yahoo.com/v8/finance/chart/GC%3DF?interval=1h&range=7d',
+            'headers': {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'},
+            'parser': 'yahoo'
+        },
+        # 3. CoinGecko 14 days (fallback)
+        {
+            'url': 'https://api.coingecko.com/api/v3/coins/tether-gold/market_chart?vs_currency=usd&days=14&interval=hourly',
+            'headers': {'Accept': 'application/json'},
+            'parser': 'coingecko'
+        },
+    ]
+    for src in sources:
+        try:
+            r = requests.get(src['url'], timeout=10, headers=src['headers'])
+            if r.status_code != 200:
+                continue
+            data = r.json()
+            prices = []
+            if src['parser'] == 'yahoo':
+                result = data.get('chart', {}).get('result', [])
+                if result:
+                    closes = result[0].get('indicators', {}).get('quote', [{}])[0].get('close', [])
+                    prices = [float(p) for p in closes if p and float(p) > 100]
+            elif src['parser'] == 'coingecko':
                 prices = [p[1] for p in data.get('prices', []) if p[1] and p[1] > 100]
-                if len(prices) >= 20:
-                    return jsonify({'prices': prices, 'count': len(prices), 'days': days})
-        return jsonify({'error': 'No data from CoinGecko', 'prices': []}), 503
-    except Exception as e:
-        return jsonify({'error': str(e), 'prices': []}), 503
+            if len(prices) >= 20:
+                return jsonify({'prices': prices, 'count': len(prices), 'source': src['parser']})
+        except Exception:
+            continue
+    return jsonify({'error': 'All history sources failed', 'prices': []}), 503
 
 
 # ══════════════════════════════════════════════════════
