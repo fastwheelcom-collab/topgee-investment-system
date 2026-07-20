@@ -2463,7 +2463,12 @@ def update_tg_percent(investor_id):
 
 @app.route('/gold')
 def gold_dashboard():
-    return send_from_directory('static', 'gold-dashboard.html')
+    from flask import make_response
+    resp = make_response(send_from_directory('static', 'gold-dashboard.html'))
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 @app.route('/api/gold-history')
 def gold_history_proxy():
