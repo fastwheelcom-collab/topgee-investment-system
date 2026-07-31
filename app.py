@@ -3337,6 +3337,24 @@ def forex_investor_payout(inv_id):
     return redirect(url_for('forex_investor_view', inv_id=inv_id))
 
 
+@app.route('/forex-investors/<int:inv_id>/pct-update', methods=['POST'])
+@login_required
+def forex_investor_pct_update(inv_id):
+    """Inline % update — pencil icon save"""
+    inv   = ForexInvestor.query.get_or_404(inv_id)
+    field = request.form.get('field')
+    value = float(request.form.get('value', 0) or 0)
+    if field == 'broker_pct':
+        inv.broker_pct = value
+        audit('EDIT','ForexInvestor',inv.name,inv_id,f'broker_pct → {value}%')
+    elif field == 'investor_pct':
+        inv.investor_pct = value
+        audit('EDIT','ForexInvestor',inv.name,inv_id,f'investor_pct → {value}%')
+    db.session.commit()
+    flash(f'{inv.name} — % updated successfully!','success')
+    return redirect(url_for('forex_investors'))
+
+
 @app.route('/forex-investors/<int:inv_id>/delete', methods=['POST'])
 @login_required
 def forex_investor_delete(inv_id):
