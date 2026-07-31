@@ -470,27 +470,52 @@ class AccountTransaction(db.Model):
 
 class ForexInvestor(db.Model):
     __tablename__ = 'forex_investors'
-    id              = db.Column(db.Integer, primary_key=True)
-    name            = db.Column(db.String(100), nullable=False)
-    capital_usd     = db.Column(db.Float, default=0.0)       # investment in USD
-    broker_pct      = db.Column(db.Float, default=0.0)       # % you take FROM broker profit
-    investor_pct    = db.Column(db.Float, default=0.0)       # % you PAY TO investor per month
-    broker_name     = db.Column(db.String(100), default='')  # which broker account
-    sales_rep       = db.Column(db.String(100), default='')  # who brought this investor
-    status          = db.Column(db.String(20), default='Active')
-    notes           = db.Column(db.String(300), default='')
-    contract_start  = db.Column(db.Date, nullable=True)
-    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+    id                  = db.Column(db.Integer, primary_key=True)
+    name                = db.Column(db.String(100), nullable=False)
+    capital_usd         = db.Column(db.Float, default=0.0)       # investment in USD
+    broker_pct          = db.Column(db.Float, default=0.0)       # % you take FROM broker profit
+    investor_pct        = db.Column(db.Float, default=0.0)       # % you PAY TO investor per month
+    broker_name         = db.Column(db.String(100), default='')  # which broker account
+    sales_rep           = db.Column(db.String(100), default='')  # who brought this investor
+    status              = db.Column(db.String(20), default='Active')
+    notes               = db.Column(db.String(300), default='')
+    contract_start      = db.Column(db.Date, nullable=True)
+    trading_account_id  = db.Column(db.Integer, db.ForeignKey('trading_accounts.id'), nullable=True)
+    created_at          = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Link to trading account
+    trading_account = db.relationship('TradingAccount', backref='forex_investors', lazy=True)
+
+    @property
+    def display_name(self):
+        """Use trading account holder name if linked"""
+        if self.trading_account and self.trading_account.account_holder:
+            return self.trading_account.account_holder
+        return self.name
+
+    @property
+    def display_capital(self):
+        """Use trading account total_invested if linked"""
+        if self.trading_account:
+            return self.trading_account.total_invested
+        return self.capital_usd
+
+    @property
+    def display_broker(self):
+        """Use trading account broker name if linked"""
+        if self.trading_account:
+            return self.trading_account.broker_name
+        return self.broker_name
 
     @property
     def monthly_investor_due(self):
         """$ due to investor per month"""
-        return round(self.capital_usd * (self.investor_pct / 100), 2)
+        return round(self.display_capital * (self.investor_pct / 100), 2)
 
     @property
     def monthly_broker_take(self):
         """$ you take from broker per month (on investor capital)"""
-        return round(self.capital_usd * (self.broker_pct / 100), 2)
+        return round(self.display_capital * (self.broker_pct / 100), 2)
 
     @property
     def monthly_net_per_investor(self):
@@ -581,6 +606,7 @@ def ensure_db_ready():
                 ('forex_investors',  'sales_rep',          'VARCHAR(100) DEFAULT ""'),
                 ('forex_investors',  'notes',              'VARCHAR(300) DEFAULT ""'),
                 ('forex_investors',  'contract_start',     'DATE'),
+                ('forex_investors',  'trading_account_id', 'INTEGER'),
             ]
             for table, col, typ in migrations:
                 try:
@@ -3250,16 +3276,21 @@ def forex_investors():
     investors = ForexInvestor.query.order_by(ForexInvestor.name).all()
     now = datetime.now()
 
-    # Summary stats
-    total_capital   = sum(i.capital_usd for i in investors if i.status=='Active')
-    total_inv_due   = sum(i.monthly_investor_due for i in investors if i.status=='Active')
-    total_broker_tk = sum(i.monthly_broker_take for i in investors if i.status=='Active')
-    total_net       = sum(i.monthly_net_per_investor for i in investors if i.status=='Active')
+    # Summary stats — use display_capital (linked account or manual)
+    active = [i for i in investors if i.status=='Active']
+    total_capital   = sum(i.display_capital for i in active)
+    total_inv_due   = sum(i.monthly_investor_due for i in active)
+    total_broker_tk = sum(i.monthly_broker_take for i in active)
+    total_net       = sum(i.monthly_net_per_investor for i in active)
 
     # This month payouts
     this_month_payouts = ForexInvestorPayout.query.filter_by(
         year=now.year, month=now.month).all()
     total_paid_this_month = sum(p.amount_paid for p in this_month_payouts)
+
+    # All trading accounts for add modal dropdown
+    trading_accounts = TradingAccount.query.filter_by(is_active=True)\
+        .order_by(TradingAccount.account_holder).all()
 
     return render_template('forex_investors.html',
         investors=investors,
@@ -3268,6 +3299,7 @@ def forex_investors():
         total_broker_tk=total_broker_tk,
         total_net=total_net,
         total_paid_this_month=total_paid_this_month,
+        trading_accounts=trading_accounts,
         now=now,
     )
 
@@ -3276,11 +3308,20 @@ def forex_investors():
 @login_required
 def forex_investor_add():
     if request.method == 'POST':
-        name         = request.form.get('name','').strip()
-        capital_usd  = float(request.form.get('capital_usd',0) or 0)
+        # Get linked trading account
+        ta_id        = request.form.get('trading_account_id','')
+        ta_id        = int(ta_id) if ta_id else None
+        ta           = TradingAccount.query.get(ta_id) if ta_id else None
+
+        # Name = account holder name from trading account
+        name         = ta.account_holder if ta and ta.account_holder else request.form.get('name','').strip()
+        # Capital = from trading account deposits (or manual)
+        capital_usd  = ta.total_invested if ta else float(request.form.get('capital_usd',0) or 0)
+        # Broker = from trading account
+        broker_name  = ta.broker_name if ta else request.form.get('broker_name','').strip()
+
         broker_pct   = float(request.form.get('broker_pct',0) or 0)
         investor_pct = float(request.form.get('investor_pct',0) or 0)
-        broker_name  = request.form.get('broker_name','').strip()
         sales_rep    = request.form.get('sales_rep','').strip()
         status       = request.form.get('status','Active')
         notes        = request.form.get('notes','').strip()
@@ -3291,14 +3332,18 @@ def forex_investor_add():
             name=name, capital_usd=capital_usd,
             broker_pct=broker_pct, investor_pct=investor_pct,
             broker_name=broker_name, sales_rep=sales_rep,
-            status=status, notes=notes, contract_start=contract_start
+            status=status, notes=notes, contract_start=contract_start,
+            trading_account_id=ta_id,
         )
         db.session.add(inv)
         db.session.commit()
         audit('ADD','ForexInvestor',name,inv.id)
-        flash(f'Forex investor {name} added!','success')
+        flash(f'Forex investor {name} added!','forex_success')
         return redirect(url_for('forex_investors'))
-    return render_template('forex_investor_form.html', investor=None, action='Add')
+    trading_accounts = TradingAccount.query.filter_by(is_active=True)\
+        .order_by(TradingAccount.account_holder).all()
+    return render_template('forex_investor_form.html', investor=None, action='Add',
+                           trading_accounts=trading_accounts)
 
 
 @app.route('/forex-investors/<int:inv_id>/edit', methods=['GET','POST'])
@@ -3306,11 +3351,23 @@ def forex_investor_add():
 def forex_investor_edit(inv_id):
     inv = ForexInvestor.query.get_or_404(inv_id)
     if request.method == 'POST':
-        inv.name         = request.form.get('name','').strip()
-        inv.capital_usd  = float(request.form.get('capital_usd',0) or 0)
+        ta_id = request.form.get('trading_account_id','')
+        ta_id = int(ta_id) if ta_id else None
+        ta    = TradingAccount.query.get(ta_id) if ta_id else None
+
+        inv.trading_account_id = ta_id
+        # If linked — pull name/capital/broker from trading account
+        if ta:
+            inv.name        = ta.account_holder or inv.name
+            inv.capital_usd = ta.total_invested
+            inv.broker_name = ta.broker_name
+        else:
+            inv.name        = request.form.get('name','').strip()
+            inv.capital_usd = float(request.form.get('capital_usd',0) or 0)
+            inv.broker_name = request.form.get('broker_name','').strip()
+
         inv.broker_pct   = float(request.form.get('broker_pct',0) or 0)
         inv.investor_pct = float(request.form.get('investor_pct',0) or 0)
-        inv.broker_name  = request.form.get('broker_name','').strip()
         inv.sales_rep    = request.form.get('sales_rep','').strip()
         inv.status       = request.form.get('status','Active')
         inv.notes        = request.form.get('notes','').strip()
@@ -3318,9 +3375,12 @@ def forex_investor_edit(inv_id):
         inv.contract_start = datetime.strptime(cs,'%Y-%m-%d').date() if cs else None
         db.session.commit()
         audit('EDIT','ForexInvestor',inv.name,inv.id)
-        flash('Investor updated!','success')
+        flash('Investor updated!','forex_success')
         return redirect(url_for('forex_investors'))
-    return render_template('forex_investor_form.html', investor=inv, action='Edit')
+    trading_accounts = TradingAccount.query.filter_by(is_active=True)\
+        .order_by(TradingAccount.account_holder).all()
+    return render_template('forex_investor_form.html', investor=inv, action='Edit',
+                           trading_accounts=trading_accounts)
 
 
 @app.route('/forex-investors/<int:inv_id>/view')

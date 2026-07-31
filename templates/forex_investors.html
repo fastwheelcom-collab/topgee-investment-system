@@ -161,11 +161,12 @@
     <!-- Card Header -->
     <div class="acc-head">
         <div>
-            <div class="acc-broker">{{ inv.name }}</div>
+            <div class="acc-broker">{{ inv.display_name }}</div>
             <div class="acc-meta">
-                {% if inv.broker_name %}{{ inv.broker_name }} · {% endif %}
+                {% if inv.display_broker %}{{ inv.display_broker }} · {% endif %}
                 {% if inv.sales_rep %}👤 {{ inv.sales_rep }}{% endif %}
                 {% if inv.contract_start %} · Since {{ inv.contract_start.strftime('%b %Y') }}{% endif %}
+                {% if inv.trading_account %}<span style="font-size:.65rem;background:rgba(74,144,226,.15);color:#4A90E2;padding:1px 6px;border-radius:10px;margin-left:4px;">🔗 Linked</span>{% endif %}
             </div>
         </div>
         <span class="acc-badge {% if inv.status=='Active' %}active{% else %}inactive-badge{% endif %}">
@@ -179,8 +180,8 @@
         <!-- Capital → Monthly Due formula -->
         <div class="formula-row">
             <div class="f-box">
-                <div class="f-lbl">Capital</div>
-                <div class="f-val c-blue">${{ '{:,.0f}'.format(inv.capital_usd) }}</div>
+                <div class="f-lbl">Capital{% if inv.trading_account %} 🔗{% endif %}</div>
+                <div class="f-val c-blue">${{ '{:,.0f}'.format(inv.display_capital) }}</div>
             </div>
             <div class="f-op">→</div>
             <div class="f-box purple">
@@ -256,10 +257,10 @@
 
     <!-- Actions -->
     <div class="acc-actions">
-        <button class="a-btn payout" onclick="openPayoutModal({{ inv.id }}, '{{ inv.name }}', {{ inv.monthly_investor_due }})">💸 Payout</button>
+        <button class="a-btn payout" onclick="openPayoutModal({{ inv.id }}, '{{ inv.display_name }}', {{ inv.monthly_investor_due }})">💸 Payout</button>
         {% if is_admin %}
-        <button class="a-btn edit-btn" onclick="openEditModal({{ inv.id }}, '{{ inv.name }}', {{ inv.capital_usd }}, {{ inv.broker_pct }}, {{ inv.investor_pct }}, '{{ inv.broker_name or '' }}', '{{ inv.sales_rep or '' }}', '{{ inv.status }}', '{{ inv.notes or '' }}')">✏️ Edit</button>
-        <button class="a-btn del-btn" onclick="confirmDelete({{ inv.id }}, '{{ inv.name }}')">🗑</button>
+        <button class="a-btn edit-btn" onclick="openEditModal({{ inv.id }}, {{ inv.trading_account_id or 'null' }}, {{ inv.broker_pct }}, {{ inv.investor_pct }}, '{{ inv.sales_rep or '' }}', '{{ inv.status }}', '{{ inv.notes or '' }}')">✏️ Edit</button>
+        <button class="a-btn del-btn" onclick="confirmDelete({{ inv.id }}, '{{ inv.display_name }}')">🗑</button>
         {% endif %}
     </div>
 </div>
@@ -284,37 +285,51 @@
 <div class="modal-box">
     <h3>➕ Add Forex Investor</h3>
     <form method="POST" action="{{ url_for('forex_investor_add') }}" id="addForm">
+
+        <!-- Trading Account Selector -->
         <div class="form-group">
-            <label>Full Name *</label>
-            <input type="text" name="name" required placeholder="e.g. Mr. Ahmed Ali">
+            <label>🔗 Link Trading Account *</label>
+            <select name="trading_account_id" id="add_ta_select" onchange="onTASelect(this,'add')" required>
+                <option value="">— Select Account Holder —</option>
+                {% for ta in trading_accounts %}
+                <option value="{{ ta.id }}"
+                    data-holder="{{ ta.account_holder or '' }}"
+                    data-capital="{{ ta.total_invested }}"
+                    data-broker="{{ ta.broker_name }}">
+                    {{ ta.account_holder or 'Unknown' }} — {{ ta.broker_name }} (${{ '{:,.0f}'.format(ta.total_invested) }})
+                </option>
+                {% endfor %}
+            </select>
         </div>
-        <div class="g2">
-            <div class="form-group">
-                <label>Capital (USD) *</label>
-                <input type="number" step="0.01" name="capital_usd" required placeholder="50000" oninput="previewNet()">
-            </div>
-            <div class="form-group">
-                <label>Contract Start</label>
-                <input type="date" name="contract_start">
+
+        <!-- Auto-filled preview -->
+        <div id="add_ta_preview" style="display:none;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:.85rem;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                <div><div style="font-size:.65rem;color:var(--text-secondary);text-transform:uppercase;">Investor</div><strong id="add_preview_name">—</strong></div>
+                <div><div style="font-size:.65rem;color:var(--text-secondary);text-transform:uppercase;">Broker</div><strong id="add_preview_broker">—</strong></div>
+                <div><div style="font-size:.65rem;color:var(--text-secondary);text-transform:uppercase;">Capital</div><strong id="add_preview_capital" style="color:#4A90E2;">—</strong></div>
             </div>
         </div>
+
         <div class="g2">
             <div class="form-group">
                 <label>Broker % (you take)</label>
-                <input type="number" step="0.01" name="broker_pct" placeholder="8" oninput="previewNet()">
-                <div class="hint-text">% of capital you earn from broker</div>
+                <input type="number" step="0.01" name="broker_pct" id="add_broker_pct" placeholder="8" oninput="previewNet('add')">
+                <div class="hint-text">% you earn from broker per month</div>
             </div>
             <div class="form-group">
                 <label>Investor % (you pay)</label>
-                <input type="number" step="0.01" name="investor_pct" placeholder="5" oninput="previewNet()">
-                <div class="hint-text">% of capital you pay investor</div>
+                <input type="number" step="0.01" name="investor_pct" id="add_investor_pct" placeholder="5" oninput="previewNet('add')">
+                <div class="hint-text">% you pay to investor per month</div>
             </div>
         </div>
+
         <div id="netPreviewBox" class="net-preview" style="display:none;"></div>
+
         <div class="g2">
             <div class="form-group">
-                <label>Broker / Account</label>
-                <input type="text" name="broker_name" placeholder="e.g. Vantage">
+                <label>Contract Start</label>
+                <input type="date" name="contract_start">
             </div>
             <div class="form-group">
                 <label>Sales Rep</label>
@@ -339,13 +354,42 @@
     <h3>✏️ Edit Investor</h3>
     <form method="POST" id="editForm">
         <div class="form-group">
-            <label>Full Name *</label>
-            <input type="text" name="name" id="edit_name" required>
+            <label>🔗 Trading Account</label>
+            <select name="trading_account_id" id="edit_ta_select" onchange="onTASelect(this,'edit')">
+                <option value="">— Select Account Holder —</option>
+                {% for ta in trading_accounts %}
+                <option value="{{ ta.id }}"
+                    data-holder="{{ ta.account_holder or '' }}"
+                    data-capital="{{ ta.total_invested }}"
+                    data-broker="{{ ta.broker_name }}">
+                    {{ ta.account_holder or 'Unknown' }} — {{ ta.broker_name }} (${{ '{:,.0f}'.format(ta.total_invested) }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <!-- Preview -->
+        <div id="edit_ta_preview" style="display:none;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:.85rem;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                <div><div style="font-size:.65rem;color:var(--text-secondary);text-transform:uppercase;">Investor</div><strong id="edit_preview_name">—</strong></div>
+                <div><div style="font-size:.65rem;color:var(--text-secondary);text-transform:uppercase;">Broker</div><strong id="edit_preview_broker">—</strong></div>
+                <div><div style="font-size:.65rem;color:var(--text-secondary);text-transform:uppercase;">Capital</div><strong id="edit_preview_capital" style="color:#4A90E2;">—</strong></div>
+            </div>
         </div>
         <div class="g2">
             <div class="form-group">
-                <label>Capital (USD)</label>
-                <input type="number" step="0.01" name="capital_usd" id="edit_capital">
+                <label>Broker %</label>
+                <input type="number" step="0.01" name="broker_pct" id="edit_broker_pct" oninput="previewNet('edit')">
+            </div>
+            <div class="form-group">
+                <label>Investor %</label>
+                <input type="number" step="0.01" name="investor_pct" id="edit_investor_pct" oninput="previewNet('edit')">
+            </div>
+        </div>
+        <div id="editNetPreview" class="net-preview" style="display:none;"></div>
+        <div class="g2">
+            <div class="form-group">
+                <label>Sales Rep</label>
+                <input type="text" name="sales_rep" id="edit_sales_rep">
             </div>
             <div class="form-group">
                 <label>Status</label>
@@ -353,26 +397,6 @@
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
                 </select>
-            </div>
-        </div>
-        <div class="g2">
-            <div class="form-group">
-                <label>Broker %</label>
-                <input type="number" step="0.01" name="broker_pct" id="edit_broker_pct">
-            </div>
-            <div class="form-group">
-                <label>Investor %</label>
-                <input type="number" step="0.01" name="investor_pct" id="edit_investor_pct">
-            </div>
-        </div>
-        <div class="g2">
-            <div class="form-group">
-                <label>Broker / Account</label>
-                <input type="text" name="broker_name" id="edit_broker_name">
-            </div>
-            <div class="form-group">
-                <label>Sales Rep</label>
-                <input type="text" name="sales_rep" id="edit_sales_rep">
             </div>
         </div>
         <div class="form-group">
@@ -441,20 +465,43 @@ document.querySelectorAll('.modal-overlay').forEach(function(el){
 function openAddModal(){
     document.getElementById('addForm').reset();
     document.getElementById('netPreviewBox').style.display='none';
+    document.getElementById('add_ta_preview').style.display='none';
     openModal('addModal');
 }
 
-function openEditModal(id, name, capital, bpct, ipct, broker, rep, status, notes){
+function openEditModal(id, ta_id, bpct, ipct, rep, status, notes){
     document.getElementById('editForm').action = '/forex-investors/' + id + '/edit';
-    document.getElementById('edit_name').value = name;
-    document.getElementById('edit_capital').value = capital;
     document.getElementById('edit_broker_pct').value = bpct;
     document.getElementById('edit_investor_pct').value = ipct;
-    document.getElementById('edit_broker_name').value = broker;
     document.getElementById('edit_sales_rep').value = rep;
     document.getElementById('edit_status').value = status;
     document.getElementById('edit_notes').value = notes;
+    // Set trading account dropdown
+    var sel = document.getElementById('edit_ta_select');
+    sel.value = ta_id || '';
+    if(ta_id){
+        var opt = sel.options[sel.selectedIndex];
+        showTAPreview('edit', opt.dataset.holder, opt.dataset.broker, opt.dataset.capital);
+    } else {
+        document.getElementById('edit_ta_preview').style.display='none';
+    }
+    document.getElementById('editNetPreview').style.display='none';
     openModal('editModal');
+}
+
+// Trading account selected — show preview
+function onTASelect(sel, prefix){
+    var opt = sel.options[sel.selectedIndex];
+    if(!opt.value){ document.getElementById(prefix+'_ta_preview').style.display='none'; return; }
+    showTAPreview(prefix, opt.dataset.holder, opt.dataset.broker, opt.dataset.capital);
+    previewNet(prefix);
+}
+function showTAPreview(prefix, holder, broker, capital){
+    var box = document.getElementById(prefix+'_ta_preview');
+    box.style.display='block';
+    document.getElementById(prefix+'_preview_name').textContent    = holder || '—';
+    document.getElementById(prefix+'_preview_broker').textContent  = broker || '—';
+    document.getElementById(prefix+'_preview_capital').textContent = '$' + parseFloat(capital||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
 }
 
 function openPayoutModal(id, name, due){
@@ -472,13 +519,26 @@ function confirmDelete(id, name){
     f.submit();
 }
 
-// Net preview in add modal
-function previewNet(){
-    var cap  = parseFloat(document.querySelector('#addForm [name=capital_usd]').value)||0;
-    var bpct = parseFloat(document.querySelector('#addForm [name=broker_pct]').value)||0;
-    var ipct = parseFloat(document.querySelector('#addForm [name=investor_pct]').value)||0;
-    var box  = document.getElementById('netPreviewBox');
-    if(cap===0){ box.style.display='none'; return; }
+// Net preview
+function previewNet(prefix){
+    prefix = prefix || 'add';
+    var cap = 0;
+    // Get capital from trading account selection
+    var sel = document.getElementById(prefix+'_ta_select');
+    if(sel && sel.value){
+        var opt = sel.options[sel.selectedIndex];
+        cap = parseFloat(opt.dataset.capital || 0);
+    }
+    // Fallback to manual input if no trading account
+    if(cap===0 && prefix==='add'){
+        var capInput = document.querySelector('#addForm [name=capital_usd]');
+        if(capInput) cap = parseFloat(capInput.value)||0;
+    }
+    var bpct = parseFloat(document.getElementById(prefix+'_broker_pct').value)||0;
+    var ipct = parseFloat(document.getElementById(prefix+'_investor_pct').value)||0;
+    var boxId = prefix==='add'?'netPreviewBox':'editNetPreview';
+    var box  = document.getElementById(boxId);
+    if(cap===0||(!bpct&&!ipct)){ box.style.display='none'; return; }
     var brokerEarn = cap*(bpct/100);
     var invDue     = cap*(ipct/100);
     var net        = brokerEarn - invDue;

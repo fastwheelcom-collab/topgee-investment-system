@@ -18,7 +18,7 @@
                 <a href="{{ url_for('reports_dashboard') }}" class="nav-reports">Reports</a>
                 
                 <a href="{{ url_for('sales_reps') }}" class="nav-sales">Sales Team</a>
-                <a href="{{ url_for('trading_accounts') }}" class="nav-forex">📊 Forex</a><a href="{{ url_for('forex_investors') }}" style="background:#7c3aed;color:#fff;padding:6px 14px;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;">💱 Forex Inv</a>
+                <a href="{{ url_for('trading_accounts') }}" class="nav-forex">📊 Forex</a>
                 {% if is_admin %}<a href="{{ url_for('add_investor') }}" class="btn-green">+ Add Investor</a>{% endif %}
                 <a href="{{ url_for('backup') }}" class="nav-backup">Backup</a>
                 {% if is_admin %}<a href="{{ url_for('users') }}" class="nav-users">Users</a>{% endif %}
