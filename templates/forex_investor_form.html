@@ -26,6 +26,7 @@
         <div class="nav-links">
             <a href="{{ url_for('home') }}" style="background:#374151;color:#fff;padding:6px 12px;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;">🏠 Home</a>
             <a href="{{ url_for('forex_investors') }}" class="nav-forex" style="{# active_nav=investors #}{% if 'investors'=='investors' %}background:#7c3aed;color:#fff;{% endif %}">💱 Investors</a>
+            <a href="{{ url_for('trading_accounts') }}" style="background:#0f4c75;border:1px solid #1b6ca8;color:#7eb8f7;padding:6px 14px;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;">📊 Forex Accounts</a>
             <a href="{{ url_for('forex_report') }}" style="background:#1e3a5f;border:1px solid #2d5a8e;color:#7eb8f7;padding:6px 14px;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;{% if 'investors'=='report' %}background:#2d5a8e;{% endif %}">📊 Monthly Report</a>
             {% if is_admin %}<a href="{{ url_for('forex_investors') }}?add=1" onclick="event.preventDefault();openAddModal();" style="background:#16a34a;color:#fff;padding:6px 14px;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;">＋ Add Investor</a>{% endif %}
             <div style="position:relative;display:inline-block;" id="profileMenu">
