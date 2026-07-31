@@ -20,23 +20,25 @@
 <body>
 <!-- NAV -->
 <nav class="navbar">
-  <div class="container">
-    <h1>🏦 TopGee It</h1>
-    <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
-    <div class="nav-links">
-      <a href="{{ url_for('home') }}" style="background:#374151;color:#fff;padding:6px 12px;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;">🏠 Home</a>
-            <a href="{{ url_for('dashboard') }}" class="nav-investors">All Investors</a>
-      <a href="{{ url_for('analytics_dashboard') }}" class="nav-dashboard">Dashboard</a>
-      <a href="{{ url_for('reports_dashboard') }}" class="nav-reports">Reports</a>
-      <a href="{{ url_for('sales_reps') }}" class="nav-sales">Sales Team</a>
-      <a href="{{ url_for('trading_accounts') }}" class="nav-forex">📊 Forex</a>
-      <a href="{{ url_for('forex_investors') }}" style="background:#7c3aed;color:#fff;padding:6px 14px;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;">💱 Forex Inv</a>
-      {% if is_admin %}<a href="{{ url_for('add_investor') }}" class="btn-green">+ Add Investor</a>{% endif %}
-      <a href="{{ url_for('backup') }}" class="nav-backup">Backup</a>
-      {% if is_admin %}<a href="{{ url_for('users') }}" class="nav-users">Users</a>{% endif %}
-      <a href="{{ url_for('audit_log') }}" class="nav-audit">Audit Log</a>
+    <div class="container">
+        <h1>💱 TopG Forex</h1>
+        <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
+        <div class="nav-links">
+            <a href="{{ url_for('home') }}" style="background:#374151;color:#fff;padding:6px 12px;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;">🏠 Home</a>
+            <a href="{{ url_for('forex_investors') }}" class="nav-forex" style="{# active_nav=investors #}{% if 'investors'=='investors' %}background:#7c3aed;color:#fff;{% endif %}">💱 Investors</a>
+            <a href="{{ url_for('forex_report') }}" style="background:#1e3a5f;border:1px solid #2d5a8e;color:#7eb8f7;padding:6px 14px;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;{% if 'investors'=='report' %}background:#2d5a8e;{% endif %}">📊 Monthly Report</a>
+            {% if is_admin %}<a href="{{ url_for('forex_investors') }}?add=1" onclick="event.preventDefault();openAddModal();" style="background:#16a34a;color:#fff;padding:6px 14px;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;">＋ Add Investor</a>{% endif %}
+            <div style="position:relative;display:inline-block;" id="profileMenu">
+                <button onclick="toggleProfile()" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:4px 12px;font-weight:700;font-size:.85rem;cursor:pointer;">{{ current_user }} ▾</button>
+                <div id="profileDropdown" style="display:none;position:absolute;right:0;top:110%;background:var(--bg-card);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);min-width:160px;z-index:9999;overflow:hidden;border:1px solid var(--border);">
+                    <a href="{{ url_for('profile') }}" style="display:block;padding:12px 16px;color:var(--text-primary);text-decoration:none;font-weight:600;border-bottom:1px solid var(--border);">👤 My Profile</a>
+                    <a href="{{ url_for('change_password') }}" style="display:block;padding:12px 16px;color:var(--text-primary);text-decoration:none;font-weight:600;border-bottom:1px solid var(--border);">🔑 Change Password</a>
+                    <a href="{{ url_for('logout') }}" style="display:block;padding:12px 16px;color:#dc2626;text-decoration:none;font-weight:700;">🚪 Logout</a>
+                </div>
+                <script>function toggleProfile(){var d=document.getElementById("profileDropdown");d.style.display=d.style.display=="none"?"block":"none";}document.addEventListener("click",function(e){if(!document.getElementById("profileMenu").contains(e.target)){document.getElementById("profileDropdown").style.display="none";}});</script>
+            </div>
+        </div>
     </div>
-  </div>
 </nav>
 
 <div class="container">
