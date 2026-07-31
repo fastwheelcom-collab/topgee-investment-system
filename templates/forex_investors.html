@@ -124,31 +124,37 @@
     </div>
 </div>
 
+{% set AED = 3.67 %}
 <!-- Summary Strip -->
 <div class="sum-strip">
     <div class="sum-box">
         <div class="sum-lbl">Total Capital</div>
         <div class="sum-val c-blue">${{ '{:,.0f}'.format(total_capital) }}</div>
+        <div class="sum-sub">AED {{ '{:,.0f}'.format(total_capital * AED) }}</div>
         <div class="sum-sub">{{ investors|selectattr('status','equalto','Active')|list|length }} active investors</div>
     </div>
     <div class="sum-box">
         <div class="sum-lbl">Broker Take /mo</div>
         <div class="sum-val c-purple">${{ '{:,.2f}'.format(total_broker_tk) }}</div>
+        <div class="sum-sub">AED {{ '{:,.2f}'.format(total_broker_tk * AED) }}</div>
         <div class="sum-sub">Your % from broker</div>
     </div>
     <div class="sum-box">
         <div class="sum-lbl">Investor Due /mo</div>
         <div class="sum-val c-red">${{ '{:,.2f}'.format(total_inv_due) }}</div>
+        <div class="sum-sub">AED {{ '{:,.2f}'.format(total_inv_due * AED) }}</div>
         <div class="sum-sub">Pay to investors</div>
     </div>
     <div class="sum-box">
         <div class="sum-lbl">Net Profit /mo</div>
         <div class="sum-val c-green">${{ '{:,.2f}'.format(total_net) }}</div>
+        <div class="sum-sub">AED {{ '{:,.2f}'.format(total_net * AED) }}</div>
         <div class="sum-sub">After investor payouts</div>
     </div>
     <div class="sum-box">
         <div class="sum-lbl">Paid This Month</div>
         <div class="sum-val c-blue">${{ '{:,.2f}'.format(total_paid_this_month) }}</div>
+        <div class="sum-sub">AED {{ '{:,.2f}'.format(total_paid_this_month * AED) }}</div>
         <div class="sum-sub">{{ now.strftime('%B %Y') }}</div>
     </div>
 </div>

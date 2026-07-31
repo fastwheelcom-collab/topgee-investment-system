@@ -91,43 +91,83 @@
   {% if is_admin %}
   <div class="card" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;">
     <h3 style="margin:0 0 14px;font-size:1rem;color:#166534;">📥 Record Monthly Broker Profit — {{ MONTHS[month] }} {{ year }}{% if broker!='All' %} ({{ broker }}){% endif %}</h3>
-    <form method="POST" action="{{ url_for('forex_report_save_profit') }}" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+    <form method="POST" action="{{ url_for('forex_report_save_profit') }}" id="profitForm" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
       <input type="hidden" name="year" value="{{ year }}">
       <input type="hidden" name="month" value="{{ month }}">
       <input type="hidden" name="broker_name" value="{{ broker }}">
+      <input type="hidden" name="total_generated" id="final_generated" value="{{ total_generated }}">
       <div>
-        <label style="font-size:.75rem;font-weight:700;display:block;margin-bottom:4px;">TOTAL GENERATED ($)</label>
-        <input type="number" step="0.01" name="total_generated" value="{{ total_generated }}" style="width:160px;" placeholder="e.g. 12000">
+        <label style="font-size:.75rem;font-weight:700;display:block;margin-bottom:4px;">INPUT TYPE</label>
+        <select id="profit_input_mode" onchange="calcProfit()" style="padding:8px 10px;border:1.5px solid #bbf7d0;border-radius:8px;font-size:.88rem;background:#fff;">
+          <option value="usd">$ Dollar</option>
+          <option value="aed">AED</option>
+          <option value="pct">% of Capital</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.75rem;font-weight:700;display:block;margin-bottom:4px;">AMOUNT</label>
+        <input type="number" step="0.01" id="profit_input_value" value="{{ total_generated }}"
+               oninput="calcProfit()" style="width:140px;padding:8px 10px;border:1.5px solid #bbf7d0;border-radius:8px;font-size:.88rem;" placeholder="Enter amount">
+      </div>
+      <div id="profit_preview" style="padding:8px 12px;background:#fff;border-radius:8px;border:1px solid #bbf7d0;font-size:.82rem;min-width:160px;">
+        <div style="color:#6b7280;font-size:.7rem;text-transform:uppercase;">Preview</div>
+        <div id="preview_usd" style="font-weight:800;color:#166534;">$0.00</div>
+        <div id="preview_aed" style="color:#6b7280;font-size:.75rem;">AED 0.00</div>
       </div>
       <div>
         <label style="font-size:.75rem;font-weight:700;display:block;margin-bottom:4px;">NOTES</label>
-        <input type="text" name="notes" placeholder="Optional..." style="width:200px;">
+        <input type="text" name="notes" placeholder="Optional..." style="width:160px;padding:8px 10px;border:1.5px solid #bbf7d0;border-radius:8px;font-size:.88rem;">
       </div>
       <button type="submit" class="btn-green">💾 Save Profit</button>
     </form>
     {% if profit_record %}
-    <p style="margin:10px 0 0;font-size:.8rem;color:#166534;">✅ Saved: ${{ '{:,.2f}'.format(profit_record.total_generated) }} on {{ profit_record.created_at.strftime('%d %b %Y') }}</p>
+    <div style="margin-top:10px;font-size:.82rem;color:#166534;">
+      ✅ Saved: <strong>${{ '{:,.2f}'.format(profit_record.total_generated) }}</strong>
+      = <strong>AED {{ '{:,.2f}'.format(profit_record.total_generated * 3.67) }}</strong>
+      on {{ profit_record.created_at.strftime('%d %b %Y') }}
+    </div>
     {% endif %}
   </div>
   {% endif %}
+  <script>
+  var TOTAL_CAPITAL_USD = {{ total_capital }};
+  var AED_RATE = 3.67;
+  function calcProfit(){
+    var mode = document.getElementById('profit_input_mode').value;
+    var val  = parseFloat(document.getElementById('profit_input_value').value) || 0;
+    var usd  = 0;
+    if(mode==='usd')      usd = val;
+    else if(mode==='aed') usd = val / AED_RATE;
+    else if(mode==='pct') usd = TOTAL_CAPITAL_USD * (val / 100);
+    document.getElementById('final_generated').value = usd.toFixed(2);
+    document.getElementById('preview_usd').textContent = '$' + usd.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    document.getElementById('preview_aed').textContent = 'AED ' + (usd*AED_RATE).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
+  calcProfit();
+  </script>
 
   <!-- Summary cards -->
+  {% set AED = 3.67 %}
   <div class="stat-row">
     <div class="stat-box" style="background:linear-gradient(135deg,#1d4ed8,#2563eb);">
       <h4>Total Capital</h4>
       <div class="val">${{ '{:,.0f}'.format(total_capital) }}</div>
+      <div style="font-size:.72rem;opacity:.8;margin-top:3px;">AED {{ '{:,.0f}'.format(total_capital * AED) }}</div>
     </div>
     <div class="stat-box" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">
       <h4>Broker Take (your %)</h4>
       <div class="val">${{ '{:,.2f}'.format(total_broker_share) }}</div>
+      <div style="font-size:.72rem;opacity:.8;margin-top:3px;">AED {{ '{:,.2f}'.format(total_broker_share * AED) }}</div>
     </div>
     <div class="stat-box" style="background:linear-gradient(135deg,#dc2626,#ef4444);">
       <h4>Investor Due (pay out)</h4>
       <div class="val">${{ '{:,.2f}'.format(total_inv_share) }}</div>
+      <div style="font-size:.72rem;opacity:.8;margin-top:3px;">AED {{ '{:,.2f}'.format(total_inv_share * AED) }}</div>
     </div>
     <div class="stat-box" style="background:linear-gradient(135deg,#16a34a,#22c55e);">
       <h4>Net Profit</h4>
       <div class="val">${{ '{:,.2f}'.format(total_net) }}</div>
+      <div style="font-size:.72rem;opacity:.8;margin-top:3px;">AED {{ '{:,.2f}'.format(total_net * AED) }}</div>
     </div>
   </div>
 
@@ -138,17 +178,20 @@
       <div class="partner-card">
         <h4>Mr. Sadi</h4>
         <div class="val">${{ '{:,.2f}'.format(partner_share) }}</div>
-        <div style="font-size:.78rem;opacity:.8;margin-top:4px;">33.3%</div>
+        <div style="font-size:.78rem;opacity:.8;margin-top:4px;">AED {{ '{:,.2f}'.format(partner_share * AED) }}</div>
+        <div style="font-size:.72rem;opacity:.7;margin-top:2px;">33.3%</div>
       </div>
       <div class="partner-card" style="background:linear-gradient(135deg,#0891b2,#06b6d4);">
         <h4>Mr. Dubbay</h4>
         <div class="val">${{ '{:,.2f}'.format(partner_share) }}</div>
-        <div style="font-size:.78rem;opacity:.8;margin-top:4px;">33.3%</div>
+        <div style="font-size:.78rem;opacity:.8;margin-top:4px;">AED {{ '{:,.2f}'.format(partner_share * AED) }}</div>
+        <div style="font-size:.72rem;opacity:.7;margin-top:2px;">33.3%</div>
       </div>
       <div class="partner-card" style="background:linear-gradient(135deg,#d97706,#f59e0b);">
         <h4>Mr. Arif</h4>
         <div class="val">${{ '{:,.2f}'.format(partner_share) }}</div>
-        <div style="font-size:.78rem;opacity:.8;margin-top:4px;">33.3%</div>
+        <div style="font-size:.78rem;opacity:.8;margin-top:4px;">AED {{ '{:,.2f}'.format(partner_share * AED) }}</div>
+        <div style="font-size:.72rem;opacity:.7;margin-top:2px;">33.3%</div>
       </div>
     </div>
   </div>
