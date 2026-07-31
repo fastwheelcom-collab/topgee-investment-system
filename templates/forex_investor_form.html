@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ action }} Forex Investor - TopGee It</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+      .form-card{background:#fff;border-radius:14px;padding:32px;max-width:640px;margin:32px auto;box-shadow:0 4px 16px rgba(0,0,0,.1);}
+      .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+      .form-group{display:flex;flex-direction:column;gap:4px;}
+      label{font-size:.8rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.04em;}
+      input,select,textarea{padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.95rem;color:#111;width:100%;box-sizing:border-box;}
+      input:focus,select:focus{border-color:#7c3aed;outline:none;}
+      .btn-submit{background:#7c3aed;color:#fff;padding:12px 28px;border:none;border-radius:8px;font-weight:800;font-size:1rem;cursor:pointer;width:100%;margin-top:8px;}
+      .hint{font-size:.75rem;color:#9ca3af;margin-top:2px;}
+      .net-preview{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:.9rem;color:#166534;}
+    </style>
+</head>
+<body>
+<!-- NAV -->
+<nav class="navbar">
+  <div class="container">
+    <h1>🏦 TopGee It</h1>
+    <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
+    <div class="nav-links">
+      <a href="{{ url_for('dashboard') }}" class="nav-investors">All Investors</a>
+      <a href="{{ url_for('analytics_dashboard') }}" class="nav-dashboard">Dashboard</a>
+      <a href="{{ url_for('reports_dashboard') }}" class="nav-reports">Reports</a>
+      <a href="{{ url_for('sales_reps') }}" class="nav-sales">Sales Team</a>
+      <a href="{{ url_for('trading_accounts') }}" class="nav-forex">📊 Forex</a>
+      <a href="{{ url_for('forex_investors') }}" style="background:#7c3aed;color:#fff;padding:6px 14px;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;">💱 Forex Inv</a>
+      {% if is_admin %}<a href="{{ url_for('add_investor') }}" class="btn-green">+ Add Investor</a>{% endif %}
+      <a href="{{ url_for('backup') }}" class="nav-backup">Backup</a>
+      {% if is_admin %}<a href="{{ url_for('users') }}" class="nav-users">Users</a>{% endif %}
+      <a href="{{ url_for('audit_log') }}" class="nav-audit">Audit Log</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+<div class="form-card">
+  <h2 style="margin:0 0 24px;font-size:1.4rem;">{{ action }} Forex Investor</h2>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}{% for cat,msg in messages %}
+  <div style="background:#fee2e2;color:#dc2626;padding:10px;border-radius:8px;margin-bottom:12px;">{{ msg }}</div>
+  {% endfor %}{% endif %}{% endwith %}
+
+  <form method="POST" id="investorForm">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input type="text" name="name" value="{{ investor.name if investor else '' }}" required placeholder="e.g. Mr. Ahmed Ali">
+      </div>
+      <div class="form-group">
+        <label>Capital (USD) *</label>
+        <input type="number" step="0.01" name="capital_usd" id="capital_usd" value="{{ investor.capital_usd if investor else '' }}" required placeholder="e.g. 50000" oninput="calcNet()">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Broker % — You Take</label>
+        <input type="number" step="0.01" name="broker_pct" id="broker_pct" value="{{ investor.broker_pct if investor else '' }}" placeholder="e.g. 8" oninput="calcNet()">
+        <span class="hint">% of capital YOU earn from broker per month</span>
+      </div>
+      <div class="form-group">
+        <label>Investor % — You Pay</label>
+        <input type="number" step="0.01" name="investor_pct" id="investor_pct" value="{{ investor.investor_pct if investor else '' }}" placeholder="e.g. 5" oninput="calcNet()">
+        <span class="hint">% of capital YOU PAY to investor per month</span>
+      </div>
+    </div>
+
+    <!-- Live net preview -->
+    <div class="net-preview" id="netPreview">
+      Enter capital and % above to see monthly calculation preview
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Broker / Account</label>
+        <input type="text" name="broker_name" value="{{ investor.broker_name if investor else '' }}" placeholder="e.g. Vantage, Eone Capital">
+      </div>
+      <div class="form-group">
+        <label>Sales Rep</label>
+        <input type="text" name="sales_rep" value="{{ investor.sales_rep if investor else '' }}" placeholder="e.g. Mr. Sadi">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Contract Start</label>
+        <input type="date" name="contract_start" value="{{ investor.contract_start.strftime('%Y-%m-%d') if investor and investor.contract_start else '' }}">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select name="status">
+          <option value="Active" {{ 'selected' if not investor or investor.status=='Active' else '' }}>Active</option>
+          <option value="Inactive" {{ 'selected' if investor and investor.status=='Inactive' else '' }}>Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:16px;">
+      <label>Notes</label>
+      <textarea name="notes" rows="2" placeholder="Optional notes...">{{ investor.notes if investor else '' }}</textarea>
+    </div>
+
+    <button type="submit" class="btn-submit">💾 Save Investor</button>
+    <div style="text-align:center;margin-top:12px;">
+      <a href="{{ url_for('forex_investors') }}" style="color:#6b7280;font-size:.85rem;">← Back to Forex Investors</a>
+    </div>
+  </form>
+</div>
+</div>
+
+<script>
+function calcNet(){
+  var cap  = parseFloat(document.getElementById('capital_usd').value)||0;
+  var bpct = parseFloat(document.getElementById('broker_pct').value)||0;
+  var ipct = parseFloat(document.getElementById('investor_pct').value)||0;
+  if(cap===0){document.getElementById('netPreview').innerHTML='Enter capital and % above to see monthly calculation preview';return;}
+  var brokerEarn = cap*(bpct/100);
+  var invDue     = cap*(ipct/100);
+  var net        = brokerEarn - invDue;
+  var color = net>=0?'#166534':'#dc2626';
+  document.getElementById('netPreview').innerHTML =
+    '📊 Monthly Preview: <strong>Broker take = $'+brokerEarn.toFixed(2)+'</strong> | ' +
+    'Investor due = $'+invDue.toFixed(2)+' | ' +
+    '<strong style="color:'+color+'">Net = $'+net.toFixed(2)+'</strong>';
+}
+calcNet();
+</script>
+</body>
+</html>

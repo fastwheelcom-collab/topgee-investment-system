@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forex Investors - TopGee It</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+      .stat-cards{display:flex;gap:16px;flex-wrap:wrap;margin:20px 0;}
+      .stat-card{background:#fff;border-radius:12px;padding:20px 24px;flex:1;min-width:160px;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+      .stat-card h4{font-size:.75rem;color:#6b7280;margin:0 0 6px;text-transform:uppercase;letter-spacing:.05em;}
+      .stat-card .val{font-size:1.6rem;font-weight:800;color:#111;}
+      .stat-card .sub{font-size:.78rem;color:#9ca3af;margin-top:2px;}
+      .badge-active{background:#dcfce7;color:#15803d;padding:2px 10px;border-radius:20px;font-size:.78rem;font-weight:700;}
+      .badge-inactive{background:#fee2e2;color:#dc2626;padding:2px 10px;border-radius:20px;font-size:.78rem;font-weight:700;}
+      table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.07);}
+      th{background:#f8fafc;padding:12px 14px;text-align:left;font-size:.78rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e5e7eb;}
+      td{padding:12px 14px;border-bottom:1px solid #f3f4f6;font-size:.88rem;color:#374151;}
+      tr:hover td{background:#f9fafb;}
+      .btn-purple{background:#7c3aed;color:#fff;padding:8px 16px;border-radius:8px;font-weight:700;border:none;cursor:pointer;text-decoration:none;font-size:.85rem;}
+      .btn-blue{background:#2563eb;color:#fff;padding:6px 12px;border-radius:6px;font-weight:600;border:none;cursor:pointer;text-decoration:none;font-size:.8rem;}
+      .btn-gray{background:#6b7280;color:#fff;padding:6px 12px;border-radius:6px;font-weight:600;border:none;cursor:pointer;text-decoration:none;font-size:.8rem;}
+    </style>
+</head>
+<body>
+<nav class="navbar">
+        <div class="container">
+            <h1>🏦 TopGee It</h1>
+            <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
+                        <div class="nav-links">
+                <a href="{{ url_for('dashboard') }}" class="nav-investors">All Investors</a>
+                <a href="{{ url_for('analytics_dashboard') }}" class="nav-dashboard">Dashboard</a>
+                <a href="{{ url_for('reports_dashboard') }}" class="nav-reports">Reports</a>
+                
+                <a href="{{ url_for('sales_reps') }}" class="nav-sales">Sales Team</a>
+                <a href="{{ url_for('trading_accounts') }}" class="nav-forex">📊 Forex</a><a href="{{ url_for('forex_investors') }}" style="background:#7c3aed;color:#fff;padding:6px 14px;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;">💱 Forex Inv</a>
+                {% if is_admin %}<a href="{{ url_for('add_investor') }}" class="btn-green">+ Add Investor</a>{% endif %}
+                <a href="{{ url_for('backup') }}" class="nav-backup">Backup</a>
+                {% if is_admin %}<a href="{{ url_for('users') }}" class="nav-users">Users</a>{% endif %}
+                <a href="{{ url_for('audit_log') }}" class="nav-audit">Audit Log</a>
+                <a href="{{ url_for('change_password') }}" class="nav-password">Password</a>
+                <div style="position:relative;display:inline-block;" id="profileMenu"><button onclick="toggleProfile()" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:4px 12px 4px 4px;font-weight:700;font-size:.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:8px;">{% if current_user_pic %}<img src="{{ url_for('static', filename='profile_pics/' + current_user_pic) }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.7);">{% else %}<span style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);display:inline-flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;">{{ current_user[0].upper() if current_user else "?" }}</span>{% endif %}{{ current_user }} ▾</button><div id="profileDropdown" style="display:none;position:absolute;right:0;top:110%;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);min-width:160px;z-index:999;overflow:hidden;"><a href="{{ url_for('profile') }}" style="display:block;padding:12px 16px;color:#374151;text-decoration:none;font-weight:600;border-bottom:1px solid #f3f4f6;">👤 My Profile</a><a href="{{ url_for('change_password') }}" style="display:block;padding:12px 16px;color:#374151;text-decoration:none;font-weight:600;border-bottom:1px solid #f3f4f6;">🔑 Change Password</a><a href="{{ url_for('logout') }}" style="display:block;padding:12px 16px;color:#dc2626;text-decoration:none;font-weight:700;">🚪 Logout</a></div></div><script>function toggleProfile(){var d=document.getElementById("profileDropdown");d.style.display=d.style.display=="none"?"block":"none";}document.addEventListener("click",function(e){if(!document.getElementById("profileMenu").contains(e.target)){document.getElementById("profileDropdown").style.display="none";}});</script>
+            </div></div>
+    </nav>
+<div class="container" style="padding:24px 16px;">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:8px;">
+    <h2 style="margin:0;font-size:1.5rem;">💱 Forex Investors</h2>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a href="{{ url_for('forex_report') }}" class="btn-purple">📊 Monthly Report</a>
+      {%if is_admin%}<a href="{{ url_for('forex_investor_add') }}" class="btn-purple" style="background:#16a34a;">+ Add Investor</a>{%endif%}
+    </div>
+  </div>
+
+  <!-- Flash messages -->
+  {%with messages = get_flashed_messages(with_categories=true)%}
+  {%if messages%}{%for cat,msg in messages%}
+  <div style="background:{'#dcfce7' if cat=='success' else '#fee2e2'};color:{'#166534' if cat=='success' else '#dc2626'};padding:12px 16px;border-radius:8px;margin-bottom:12px;">{{msg}}</div>
+  {%endfor%}{%endif%}{%endwith%}
+
+  <!-- Summary Cards -->
+  <div class="stat-cards">
+    <div class="stat-card">
+      <h4>Total Capital</h4>
+      <div class="val">${{total_capital:,.0f}}</div>
+      <div class="sub">{{investors|selectattr('status','eq','Active')|list|length}} active investors</div>
+    </div>
+    <div class="stat-card">
+      <h4>Monthly Broker Take</h4>
+      <div class="val" style="color:#7c3aed;">${{total_broker_tk:,.2f}}</div>
+      <div class="sub">Your % from broker</div>
+    </div>
+    <div class="stat-card">
+      <h4>Monthly Investor Due</h4>
+      <div class="val" style="color:#dc2626;">${{total_inv_due:,.2f}}</div>
+      <div class="sub">Pay to investors</div>
+    </div>
+    <div class="stat-card">
+      <h4>Net This Month</h4>
+      <div class="val" style="color:#16a34a;">${{total_net:,.2f}}</div>
+      <div class="sub">After investor payouts</div>
+    </div>
+    <div class="stat-card">
+      <h4>Paid This Month</h4>
+      <div class="val" style="color:#2563eb;">${{total_paid_this_month:,.2f}}</div>
+      <div class="sub">{{now.strftime('%B %Y')}}</div>
+    </div>
+  </div>
+
+  <!-- Investor Table -->
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Name</th>
+        <th>Capital (USD)</th>
+        <th>Broker %</th>
+        <th>Investor %</th>
+        <th>Monthly Due</th>
+        <th>Broker</th>
+        <th>Sales Rep</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+    {%for inv in investors%}
+    <tr>
+      <td>{{loop.index}}</td>
+      <td><strong>{{inv.name}}</strong></td>
+      <td>${{inv.capital_usd:,.0f}}</td>
+      <td><span style="color:#7c3aed;font-weight:700;">{{inv.broker_pct}}%</span></td>
+      <td><span style="color:#dc2626;font-weight:700;">{{inv.investor_pct}}%</span></td>
+      <td><strong style="color:#16a34a;">${{inv.monthly_investor_due:,.2f}}</strong></td>
+      <td>{{inv.broker_name or '—'}}</td>
+      <td>{{inv.sales_rep or '—'}}</td>
+      <td>
+        {%if inv.status=='Active'%}<span class="badge-active">Active</span>
+        {%else%}<span class="badge-inactive">Inactive</span>{%endif%}
+      </td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap;">
+        <a href="{{ url_for('forex_investor_view', inv_id=inv.id) }}" class="btn-blue">View</a>
+        {%if is_admin%}<a href="{{ url_for('forex_investor_edit', inv_id=inv.id) }}" class="btn-gray">Edit</a>{%endif%}
+      </td>
+    </tr>
+    {%else%}
+    <tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:40px;">No forex investors yet. <a href="{{ url_for('forex_investor_add') }}">Add one →</a></td></tr>
+    {%endfor%}
+    </tbody>
+  </table>
+
+</div>
+</body>
+</html>

@@ -466,6 +466,68 @@ class AccountTransaction(db.Model):
     created_at     = db.Column(db.DateTime, default=datetime.utcnow)
 
 
+# ============= FOREX INVESTOR MODELS =============
+
+class ForexInvestor(db.Model):
+    __tablename__ = 'forex_investors'
+    id              = db.Column(db.Integer, primary_key=True)
+    name            = db.Column(db.String(100), nullable=False)
+    capital_usd     = db.Column(db.Float, default=0.0)       # investment in USD
+    broker_pct      = db.Column(db.Float, default=0.0)       # % you take FROM broker profit
+    investor_pct    = db.Column(db.Float, default=0.0)       # % you PAY TO investor per month
+    broker_name     = db.Column(db.String(100), default='')  # which broker account
+    sales_rep       = db.Column(db.String(100), default='')  # who brought this investor
+    status          = db.Column(db.String(20), default='Active')
+    notes           = db.Column(db.String(300), default='')
+    contract_start  = db.Column(db.Date, nullable=True)
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def monthly_investor_due(self):
+        """$ due to investor per month"""
+        return round(self.capital_usd * (self.investor_pct / 100), 2)
+
+    @property
+    def monthly_broker_take(self):
+        """$ you take from broker per month (on investor capital)"""
+        return round(self.capital_usd * (self.broker_pct / 100), 2)
+
+    @property
+    def monthly_net_per_investor(self):
+        """your net per month from this investor"""
+        return round(self.monthly_broker_take - self.monthly_investor_due, 2)
+
+
+class ForexMonthlyProfit(db.Model):
+    __tablename__ = 'forex_monthly_profits'
+    id              = db.Column(db.Integer, primary_key=True)
+    year            = db.Column(db.Integer, nullable=False)
+    month           = db.Column(db.Integer, nullable=False)
+    broker_name     = db.Column(db.String(100), default='All')  # broker filter
+    total_generated = db.Column(db.Float, default=0.0)          # total broker profit this month
+    notes           = db.Column(db.String(300), default='')
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+
+    MONTH_NAMES = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+    @property
+    def month_name(self):
+        return self.MONTH_NAMES[self.month] if 0 < self.month <= 12 else str(self.month)
+
+
+class ForexInvestorPayout(db.Model):
+    __tablename__ = 'forex_investor_payouts'
+    id              = db.Column(db.Integer, primary_key=True)
+    investor_id     = db.Column(db.Integer, db.ForeignKey('forex_investors.id'), nullable=False)
+    year            = db.Column(db.Integer, nullable=False)
+    month           = db.Column(db.Integer, nullable=False)
+    amount_paid     = db.Column(db.Float, default=0.0)
+    paid_date       = db.Column(db.Date, nullable=True)
+    notes           = db.Column(db.String(200), default='')
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+    investor        = db.relationship('ForexInvestor', backref='payouts')
+
+
 # ============= DATABASE INITIALIZATION =============
 
 def audit(action, target_type, target_name='', target_id=None, detail=''):
@@ -515,6 +577,10 @@ def ensure_db_ready():
                 ('user_account',     'profile_pic',        'VARCHAR(256)'),
                 ('trading_accounts', 'account_holder',     'VARCHAR(100)'),
                 ('trading_accounts', 'deposit_via',        'VARCHAR(30)'),
+                ('forex_investors',  'broker_name',        'VARCHAR(100) DEFAULT ""'),
+                ('forex_investors',  'sales_rep',          'VARCHAR(100) DEFAULT ""'),
+                ('forex_investors',  'notes',              'VARCHAR(300) DEFAULT ""'),
+                ('forex_investors',  'contract_start',     'DATE'),
             ]
             for table, col, typ in migrations:
                 try:
@@ -3145,6 +3211,263 @@ def trading_accounts_calendar_api():
         'trading_days': trading_days,
         'accounts': accounts_list,
         'holders': holders_list,
+    })
+
+
+# ============================================================
+# FOREX INVESTORS MODULE
+# Completely separate from TopG It investors
+# ============================================================
+
+@app.route('/forex-investors')
+@login_required
+def forex_investors():
+    investors = ForexInvestor.query.order_by(ForexInvestor.name).all()
+    now = datetime.now()
+
+    # Summary stats
+    total_capital   = sum(i.capital_usd for i in investors if i.status=='Active')
+    total_inv_due   = sum(i.monthly_investor_due for i in investors if i.status=='Active')
+    total_broker_tk = sum(i.monthly_broker_take for i in investors if i.status=='Active')
+    total_net       = sum(i.monthly_net_per_investor for i in investors if i.status=='Active')
+
+    # This month payouts
+    this_month_payouts = ForexInvestorPayout.query.filter_by(
+        year=now.year, month=now.month).all()
+    total_paid_this_month = sum(p.amount_paid for p in this_month_payouts)
+
+    return render_template('forex_investors.html',
+        investors=investors,
+        total_capital=total_capital,
+        total_inv_due=total_inv_due,
+        total_broker_tk=total_broker_tk,
+        total_net=total_net,
+        total_paid_this_month=total_paid_this_month,
+        now=now,
+    )
+
+
+@app.route('/forex-investors/add', methods=['GET','POST'])
+@login_required
+def forex_investor_add():
+    if request.method == 'POST':
+        name         = request.form.get('name','').strip()
+        capital_usd  = float(request.form.get('capital_usd',0) or 0)
+        broker_pct   = float(request.form.get('broker_pct',0) or 0)
+        investor_pct = float(request.form.get('investor_pct',0) or 0)
+        broker_name  = request.form.get('broker_name','').strip()
+        sales_rep    = request.form.get('sales_rep','').strip()
+        status       = request.form.get('status','Active')
+        notes        = request.form.get('notes','').strip()
+        cs           = request.form.get('contract_start','')
+        contract_start = datetime.strptime(cs,'%Y-%m-%d').date() if cs else None
+
+        inv = ForexInvestor(
+            name=name, capital_usd=capital_usd,
+            broker_pct=broker_pct, investor_pct=investor_pct,
+            broker_name=broker_name, sales_rep=sales_rep,
+            status=status, notes=notes, contract_start=contract_start
+        )
+        db.session.add(inv)
+        db.session.commit()
+        audit('ADD','ForexInvestor',name,inv.id)
+        flash(f'Forex investor {name} added!','success')
+        return redirect(url_for('forex_investors'))
+    return render_template('forex_investor_form.html', investor=None, action='Add')
+
+
+@app.route('/forex-investors/<int:inv_id>/edit', methods=['GET','POST'])
+@login_required
+def forex_investor_edit(inv_id):
+    inv = ForexInvestor.query.get_or_404(inv_id)
+    if request.method == 'POST':
+        inv.name         = request.form.get('name','').strip()
+        inv.capital_usd  = float(request.form.get('capital_usd',0) or 0)
+        inv.broker_pct   = float(request.form.get('broker_pct',0) or 0)
+        inv.investor_pct = float(request.form.get('investor_pct',0) or 0)
+        inv.broker_name  = request.form.get('broker_name','').strip()
+        inv.sales_rep    = request.form.get('sales_rep','').strip()
+        inv.status       = request.form.get('status','Active')
+        inv.notes        = request.form.get('notes','').strip()
+        cs = request.form.get('contract_start','')
+        inv.contract_start = datetime.strptime(cs,'%Y-%m-%d').date() if cs else None
+        db.session.commit()
+        audit('EDIT','ForexInvestor',inv.name,inv.id)
+        flash('Investor updated!','success')
+        return redirect(url_for('forex_investors'))
+    return render_template('forex_investor_form.html', investor=inv, action='Edit')
+
+
+@app.route('/forex-investors/<int:inv_id>/view')
+@login_required
+def forex_investor_view(inv_id):
+    inv = ForexInvestor.query.get_or_404(inv_id)
+    payouts = ForexInvestorPayout.query.filter_by(investor_id=inv_id)\
+              .order_by(ForexInvestorPayout.year.desc(), ForexInvestorPayout.month.desc()).all()
+    total_paid = sum(p.amount_paid for p in payouts)
+    months_active = 0
+    if inv.contract_start:
+        delta = datetime.now().date() - inv.contract_start
+        months_active = max(1, delta.days // 30)
+    total_due = inv.monthly_investor_due * months_active
+    return render_template('forex_investor_detail.html',
+        inv=inv, payouts=payouts,
+        total_paid=total_paid, total_due=total_due,
+        months_active=months_active, now=datetime.now())
+
+
+@app.route('/forex-investors/<int:inv_id>/payout', methods=['POST'])
+@login_required
+def forex_investor_payout(inv_id):
+    inv = ForexInvestor.query.get_or_404(inv_id)
+    year   = int(request.form.get('year', datetime.now().year))
+    month  = int(request.form.get('month', datetime.now().month))
+    amount = float(request.form.get('amount',0) or 0)
+    notes  = request.form.get('notes','').strip()
+    pd_str = request.form.get('paid_date','')
+    paid_date = datetime.strptime(pd_str,'%Y-%m-%d').date() if pd_str else datetime.now().date()
+    payout = ForexInvestorPayout(
+        investor_id=inv_id, year=year, month=month,
+        amount_paid=amount, paid_date=paid_date, notes=notes
+    )
+    db.session.add(payout)
+    db.session.commit()
+    audit('PAYOUT','ForexInvestor',inv.name,inv_id,f'${amount} for {year}-{month:02d}')
+    flash(f'Payout of ${amount:,.2f} recorded!','success')
+    return redirect(url_for('forex_investor_view', inv_id=inv_id))
+
+
+@app.route('/forex-investors/<int:inv_id>/delete', methods=['POST'])
+@login_required
+def forex_investor_delete(inv_id):
+    inv = ForexInvestor.query.get_or_404(inv_id)
+    ForexInvestorPayout.query.filter_by(investor_id=inv_id).delete()
+    db.session.delete(inv)
+    db.session.commit()
+    audit('DELETE','ForexInvestor',inv.name,inv_id)
+    flash('Investor deleted.','success')
+    return redirect(url_for('forex_investors'))
+
+
+@app.route('/forex-report', methods=['GET','POST'])
+@login_required
+def forex_report():
+    now      = datetime.now()
+    year     = int(request.form.get('year', now.year))
+    month    = int(request.form.get('month', now.month))
+    broker   = request.form.get('broker_filter','All')
+
+    # All active investors — filter by broker if selected
+    investors = ForexInvestor.query.filter_by(status='Active').all()
+    if broker != 'All':
+        investors = [i for i in investors if i.broker_name == broker]
+
+    # Monthly profit record
+    profit_record = ForexMonthlyProfit.query.filter_by(
+        year=year, month=month, broker_name=broker).first()
+
+    total_generated   = profit_record.total_generated if profit_record else 0.0
+    total_capital     = sum(i.capital_usd for i in investors)
+
+    # Per investor calculations
+    rows = []
+    total_broker_share = 0
+    total_inv_share    = 0
+    for inv in investors:
+        broker_earn = round(inv.capital_usd * (inv.broker_pct / 100), 2)
+        inv_due     = round(inv.capital_usd * (inv.investor_pct / 100), 2)
+        net         = round(broker_earn - inv_due, 2)
+        # payout this month?
+        paid = ForexInvestorPayout.query.filter_by(
+            investor_id=inv.id, year=year, month=month).first()
+        rows.append({
+            'inv': inv,
+            'broker_earn': broker_earn,
+            'inv_due': inv_due,
+            'net': net,
+            'paid': paid.amount_paid if paid else 0,
+            'paid_id': paid.id if paid else None,
+        })
+        total_broker_share += broker_earn
+        total_inv_share    += inv_due
+
+    total_net      = round(total_broker_share - total_inv_share, 2)
+    partner_share  = round(total_net / 3, 2)
+
+    # All brokers for filter dropdown
+    all_brokers = sorted(set(i.broker_name for i in ForexInvestor.query.all() if i.broker_name))
+
+    # Revenue history
+    history = ForexMonthlyProfit.query.order_by(
+        ForexMonthlyProfit.year.desc(), ForexMonthlyProfit.month.desc()).all()
+
+    MONTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+    return render_template('forex_report.html',
+        year=year, month=month, broker=broker,
+        investors=investors, rows=rows,
+        total_generated=total_generated,
+        total_capital=total_capital,
+        total_broker_share=total_broker_share,
+        total_inv_share=total_inv_share,
+        total_net=total_net,
+        partner_share=partner_share,
+        all_brokers=all_brokers,
+        history=history,
+        MONTHS=MONTHS,
+        now=now,
+        profit_record=profit_record,
+    )
+
+
+@app.route('/forex-report/save-profit', methods=['POST'])
+@login_required
+def forex_report_save_profit():
+    year           = int(request.form.get('year', datetime.now().year))
+    month          = int(request.form.get('month', datetime.now().month))
+    broker         = request.form.get('broker_name','All')
+    total_generated= float(request.form.get('total_generated',0) or 0)
+    notes          = request.form.get('notes','').strip()
+
+    rec = ForexMonthlyProfit.query.filter_by(
+        year=year, month=month, broker_name=broker).first()
+    if rec:
+        rec.total_generated = total_generated
+        rec.notes           = notes
+    else:
+        rec = ForexMonthlyProfit(
+            year=year, month=month,
+            broker_name=broker,
+            total_generated=total_generated,
+            notes=notes
+        )
+        db.session.add(rec)
+    db.session.commit()
+    flash('Monthly profit saved!','success')
+    return redirect(url_for('forex_report',
+        year=year, month=month, broker_filter=broker))
+
+
+@app.route('/forex-dashboard-data')
+@login_required
+def forex_dashboard_data():
+    """JSON endpoint for dashboard forex summary card"""
+    investors = ForexInvestor.query.filter_by(status='Active').all()
+    now = datetime.now()
+    total_capital    = sum(i.capital_usd for i in investors)
+    total_inv_due    = sum(i.monthly_investor_due for i in investors)
+    total_broker_tk  = sum(i.monthly_broker_take for i in investors)
+    total_net        = sum(i.monthly_net_per_investor for i in investors)
+    count            = len(investors)
+    this_month_paid  = sum(p.amount_paid for p in ForexInvestorPayout.query.filter_by(
+                           year=now.year, month=now.month).all())
+    return jsonify({
+        'count': count,
+        'total_capital_usd': total_capital,
+        'total_inv_due': total_inv_due,
+        'total_broker_take': total_broker_tk,
+        'total_net': total_net,
+        'this_month_paid': this_month_paid,
     })
 
 
