@@ -63,27 +63,27 @@
   <div class="stat-cards">
     <div class="stat-card">
       <h4>Total Capital</h4>
-      <div class="val">${{total_capital:,.0f}}</div>
-      <div class="sub">{{investors|selectattr('status','eq','Active')|list|length}} active investors</div>
+      <div class="val">${{ '{:,.0f}'.format(total_capital) }}</div>
+      <div class="sub">{{investors|selectattr('status','equalto','Active')|list|length}} active investors</div>
     </div>
     <div class="stat-card">
       <h4>Monthly Broker Take</h4>
-      <div class="val" style="color:#7c3aed;">${{total_broker_tk:,.2f}}</div>
+      <div class="val" style="color:#7c3aed;">${{ '{:,.2f}'.format(total_broker_tk) }}</div>
       <div class="sub">Your % from broker</div>
     </div>
     <div class="stat-card">
       <h4>Monthly Investor Due</h4>
-      <div class="val" style="color:#dc2626;">${{total_inv_due:,.2f}}</div>
+      <div class="val" style="color:#dc2626;">${{ '{:,.2f}'.format(total_inv_due) }}</div>
       <div class="sub">Pay to investors</div>
     </div>
     <div class="stat-card">
       <h4>Net This Month</h4>
-      <div class="val" style="color:#16a34a;">${{total_net:,.2f}}</div>
+      <div class="val" style="color:#16a34a;">${{ '{:,.2f}'.format(total_net) }}</div>
       <div class="sub">After investor payouts</div>
     </div>
     <div class="stat-card">
       <h4>Paid This Month</h4>
-      <div class="val" style="color:#2563eb;">${{total_paid_this_month:,.2f}}</div>
+      <div class="val" style="color:#2563eb;">${{ '{:,.2f}'.format(total_paid_this_month) }}</div>
       <div class="sub">{{now.strftime('%B %Y')}}</div>
     </div>
   </div>
@@ -109,10 +109,10 @@
     <tr>
       <td>{{loop.index}}</td>
       <td><strong>{{inv.name}}</strong></td>
-      <td>${{inv.capital_usd:,.0f}}</td>
+      <td>${{ '{:,.0f}'.format(inv.capital_usd) }}</td>
       <td><span style="color:#7c3aed;font-weight:700;">{{inv.broker_pct}}%</span></td>
       <td><span style="color:#dc2626;font-weight:700;">{{inv.investor_pct}}%</span></td>
-      <td><strong style="color:#16a34a;">${{inv.monthly_investor_due:,.2f}}</strong></td>
+      <td><strong style="color:#16a34a;">${{ '{:,.2f}'.format(inv.monthly_investor_due) }}</strong></td>
       <td>{{inv.broker_name or '—'}}</td>
       <td>{{inv.sales_rep or '—'}}</td>
       <td>
