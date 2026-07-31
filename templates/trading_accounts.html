@@ -258,6 +258,9 @@
             {% if acc.account_holder %}
             <div style="font-size:.72rem;font-weight:700;color:#4A90E2;margin-top:1px;">👤 {{ acc.account_holder }}</div>
             {% endif %}
+            {% if acc.investor_name %}
+            <div style="font-size:.72rem;font-weight:700;color:#27ae60;margin-top:1px;">💰 {{ acc.investor_name }}</div>
+            {% endif %}
             <div class="acc-meta">
                 {% if acc.account_number %}{{ acc.account_number }} · {% endif %}{{ acc.platform }} · {{ acc.symbol }} · {{ acc.currency }}
             </div>
@@ -325,7 +328,7 @@
         <button class="a-btn withdraw" onclick="openTxnModal({{ acc.id }},'{{ acc.broker_name }}','withdrawal')">↑ Withdraw</button>
         <a href="{{ url_for('trading_account_detail', acc_id=acc.id) }}" class="a-btn history">📋 History</a>
         {% if is_admin %}
-        <button class="a-btn edit" onclick="openEditModal({{ acc.id }},'{{ acc.broker_name }}','{{ acc.account_holder or '' }}','{{ acc.account_number or '' }}','{{ acc.deposit_via or 'Bank' }}','{{ acc.platform }}','{{ acc.symbol }}','{{ acc.currency }}',{{ acc.current_balance }},'{{ acc.notes or '' }}',{{ 'true' if acc.is_active else 'false' }})">✏️ Edit</button>
+        <button class="a-btn edit" onclick="openEditModal({{ acc.id }},'{{ acc.broker_name }}','{{ acc.account_holder or '' }}','{{ acc.investor_name or '' }}','{{ acc.account_number or '' }}','{{ acc.deposit_via or 'Bank' }}','{{ acc.platform }}','{{ acc.symbol }}','{{ acc.currency }}',{{ acc.current_balance }},'{{ acc.notes or '' }}',{{ 'true' if acc.is_active else 'false' }})">✏️ Edit</button>
         <form method="POST" action="{{ url_for('trading_account_delete', acc_id=acc.id) }}" style="display:inline" onsubmit="return confirm('Delete {{ acc.broker_name }}?')">
             <button type="submit" class="a-btn del">🗑</button>
         </form>
@@ -355,6 +358,7 @@
     <form method="POST" action="{{ url_for('trading_account_add') }}">
         <div class="form-group"><label>Broker Name *</label><input type="text" name="broker_name" required placeholder="e.g. Vantage, Exness"></div>
         <div class="form-group"><label>Account Holder</label><input type="text" name="account_holder" placeholder="e.g. Sadi Ali"></div>
+        <div class="form-group"><label>Investor Name</label><input type="text" name="investor_name" placeholder="e.g. Mr. Ahmed"></div>
         <div class="form-group"><label>Account Number</label><input type="text" name="account_number" placeholder="e.g. 260060912"></div>
         <div class="form-group"><label>Deposit Via</label>
             <select name="deposit_via">
@@ -392,6 +396,7 @@
     <form method="POST" id="editAccountForm">
         <div class="form-group"><label>Broker Name *</label><input type="text" name="broker_name" id="edit_broker_name" required></div>
         <div class="form-group"><label>Account Holder</label><input type="text" name="account_holder" id="edit_account_holder"></div>
+        <div class="form-group"><label>Investor Name</label><input type="text" name="investor_name" id="edit_investor_name"></div>
         <div class="form-group"><label>Account Number</label><input type="text" name="account_number" id="edit_account_number"></div>
         <div class="form-group"><label>Deposit Via</label>
             <select name="deposit_via" id="edit_deposit_via">
@@ -492,10 +497,11 @@ function openTxnModal(accId, name, type) {
     document.getElementById('txnSubmitBtn').style.background = type==='deposit'?'#4A90E2':'#e67e22';
     openModal('txnModal');
 }
-function openEditModal(id,broker,holder,accNum,depositVia,platform,symbol,currency,balance,notes,isActive){
+function openEditModal(id,broker,holder,invName,accNum,depositVia,platform,symbol,currency,balance,notes,isActive){
     document.getElementById('editAccountForm').action='/trading-accounts/'+id+'/edit';
     document.getElementById('edit_broker_name').value=broker;
     document.getElementById('edit_account_holder').value=holder;
+    document.getElementById('edit_investor_name').value=invName;
     document.getElementById('edit_account_number').value=accNum;
     document.getElementById('edit_deposit_via').value=depositVia;
     document.getElementById('edit_platform').value=platform;

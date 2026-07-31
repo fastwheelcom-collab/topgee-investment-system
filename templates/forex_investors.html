@@ -153,119 +153,128 @@
     </div>
 </div>
 
-<!-- Investor Cards -->
+<!-- Investor Table -->
 {% if investors %}
-<div class="acc-grid">
-{% for inv in investors %}
-<div class="acc-card {% if inv.status != 'Active' %}inactive{% endif %}">
+<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:24px;">
+<table style="width:100%;border-collapse:collapse;">
+  <thead>
+    <tr style="background:var(--bg-dark);border-bottom:2px solid var(--border);">
+      <th style="padding:12px 14px;text-align:left;font-size:.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">#</th>
+      <th style="padding:12px 14px;text-align:left;font-size:.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">Investor</th>
+      <th style="padding:12px 14px;text-align:left;font-size:.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">Broker</th>
+      <th style="padding:12px 14px;text-align:right;font-size:.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">Capital</th>
+      <th style="padding:12px 14px;text-align:center;font-size:.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">Broker %</th>
+      <th style="padding:12px 14px;text-align:center;font-size:.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">Investor %</th>
+      <th style="padding:12px 14px;text-align:left;font-size:.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">Sales Rep</th>
+      <th style="padding:12px 14px;text-align:right;font-size:.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">Net /mo</th>
+      <th style="padding:12px 14px;text-align:center;font-size:.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">Status</th>
+      <th style="padding:12px 14px;text-align:center;font-size:.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for inv in investors %}
+  <tr style="border-bottom:1px solid var(--border);transition:background .1s;{% if inv.status != 'Active' %}opacity:.6;{% endif %}"
+      onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
 
-    <!-- Card Header -->
-    <div class="acc-head">
-        <div>
-            <div class="acc-broker">{{ inv.display_name }}</div>
-            <div class="acc-meta">
-                {% if inv.display_broker %}{{ inv.display_broker }} · {% endif %}
-                {% if inv.sales_rep %}👤 {{ inv.sales_rep }}{% endif %}
-                {% if inv.contract_start %} · Since {{ inv.contract_start.strftime('%b %Y') }}{% endif %}
-                {% if inv.trading_account %}<span style="font-size:.65rem;background:rgba(74,144,226,.15);color:#4A90E2;padding:1px 6px;border-radius:10px;margin-left:4px;">🔗 Linked</span>{% endif %}
-            </div>
-        </div>
-        <span class="acc-badge {% if inv.status=='Active' %}active{% else %}inactive-badge{% endif %}">
-            {{ inv.status }}
-        </span>
-    </div>
+    <!-- # -->
+    <td style="padding:14px;font-size:.82rem;color:var(--text-secondary);font-weight:700;">{{ loop.index }}</td>
 
-    <!-- Body: Capital formula -->
-    <div class="acc-body">
+    <!-- Name -->
+    <td style="padding:14px;">
+      <div style="font-weight:800;color:var(--text-primary);font-size:.92rem;">{{ inv.display_name }}</div>
+      {% if inv.trading_account and inv.trading_account.investor_name %}
+      <div style="font-size:.72rem;color:#27ae60;margin-top:2px;">💰 {{ inv.trading_account.investor_name }}</div>
+      {% endif %}
+      {% if inv.trading_account %}
+      <div style="font-size:.65rem;color:#4A90E2;margin-top:1px;">🔗 Linked</div>
+      {% endif %}
+    </td>
 
-        <!-- Capital → Monthly Due formula -->
-        <div class="formula-row">
-            <div class="f-box">
-                <div class="f-lbl">Capital{% if inv.trading_account %} 🔗{% endif %}</div>
-                <div class="f-val c-blue">${{ '{:,.0f}'.format(inv.display_capital) }}</div>
-            </div>
-            <div class="f-op">→</div>
-            <div class="f-box purple">
-                <div class="f-lbl">Broker Take</div>
-                <div class="f-val c-purple">${{ '{:,.2f}'.format(inv.monthly_broker_take) }}</div>
-            </div>
-            <div class="f-op">=</div>
-            <div class="f-box green">
-                <div class="f-lbl">Net /month</div>
-                <div class="f-val c-green">${{ '{:,.2f}'.format(inv.monthly_net_per_investor) }}</div>
-            </div>
-        </div>
+    <!-- Broker -->
+    <td style="padding:14px;font-size:.85rem;color:var(--text-primary);">{{ inv.display_broker or '—' }}</td>
 
-        <!-- Second row: Broker % | Investor % | Investor Due -->
-        <div class="formula-row">
-            <div class="f-box">
-                <div class="f-lbl">Broker %</div>
-                <div class="f-val c-purple">{{ inv.broker_pct }}%</div>
-            </div>
-            <div class="f-op">−</div>
-            <div class="f-box">
-                <div class="f-lbl">Investor %</div>
-                <div class="f-val c-orange">{{ inv.investor_pct }}%</div>
-            </div>
-            <div class="f-op">=</div>
-            <div class="f-box red">
-                <div class="f-lbl">Investor Due</div>
-                <div class="f-val c-red">−${{ '{:,.2f}'.format(inv.monthly_investor_due) }}</div>
-            </div>
-        </div>
+    <!-- Capital -->
+    <td style="padding:14px;text-align:right;">
+      <span style="font-weight:800;color:#4A90E2;font-size:.92rem;">${{ '{:,.0f}'.format(inv.display_capital) }}</span>
+    </td>
 
-        <!-- Inline % edit pills -->
-        {% if is_admin %}
-        <div class="pct-row">
-            <!-- Broker % inline edit -->
-            <div class="pct-pill">
-                <div style="flex:1;">
-                    <label>Broker %</label>
-                    <div class="pct-display" id="bpct-display-{{ inv.id }}" onclick="editPct('broker','{{ inv.id }}','{{ inv.broker_pct }}')">
-                        <span class="pct-num" style="color:#8e44ad;">{{ inv.broker_pct }}%</span>
-                        <span style="font-size:.85rem;">✏️</span>
-                    </div>
-                    <form class="pct-edit-form" id="bpct-form-{{ inv.id }}"
-                          action="{{ url_for('forex_investor_pct_update', inv_id=inv.id) }}" method="POST">
-                        <input type="hidden" name="field" value="broker_pct">
-                        <input type="number" step="0.01" name="value" id="bpct-input-{{ inv.id }}" value="{{ inv.broker_pct }}" min="0" max="100">
-                        <button type="submit" class="pct-save">✓</button>
-                        <button type="button" class="pct-cancel" onclick="cancelPct('broker','{{ inv.id }}')">✕</button>
-                    </form>
-                </div>
-            </div>
-            <!-- Investor % inline edit -->
-            <div class="pct-pill">
-                <div style="flex:1;">
-                    <label>Investor %</label>
-                    <div class="pct-display" id="ipct-display-{{ inv.id }}" onclick="editPct('investor','{{ inv.id }}','{{ inv.investor_pct }}')">
-                        <span class="pct-num" style="color:#e67e22;">{{ inv.investor_pct }}%</span>
-                        <span style="font-size:.85rem;">✏️</span>
-                    </div>
-                    <form class="pct-edit-form" id="ipct-form-{{ inv.id }}"
-                          action="{{ url_for('forex_investor_pct_update', inv_id=inv.id) }}" method="POST">
-                        <input type="hidden" name="field" value="investor_pct">
-                        <input type="number" step="0.01" name="value" id="ipct-input-{{ inv.id }}" value="{{ inv.investor_pct }}" min="0" max="100">
-                        <button type="submit" class="pct-save">✓</button>
-                        <button type="button" class="pct-cancel" onclick="cancelPct('investor','{{ inv.id }}')">✕</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-        {% endif %}
+    <!-- Broker % with inline edit -->
+    <td style="padding:14px;text-align:center;">
+      {% if is_admin %}
+      <div id="bpct-display-{{ inv.id }}" style="display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;" onclick="editPct('broker','{{ inv.id }}','{{ inv.broker_pct }}')">
+        <span style="font-weight:800;color:#8e44ad;font-size:.92rem;">{{ inv.broker_pct }}%</span>
+        <span style="font-size:.75rem;">✏️</span>
+      </div>
+      <form class="pct-edit-form" id="bpct-form-{{ inv.id }}" style="display:none;align-items:center;justify-content:center;gap:4px;"
+            action="{{ url_for('forex_investor_pct_update', inv_id=inv.id) }}" method="POST">
+        <input type="hidden" name="field" value="broker_pct">
+        <input type="number" step="0.01" name="value" id="bpct-input-{{ inv.id }}" value="{{ inv.broker_pct }}" min="0" max="100"
+               style="width:55px;padding:3px 5px;border-radius:5px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:.82rem;text-align:center;">
+        <button type="submit" style="background:#27ae60;color:#fff;border:none;border-radius:4px;padding:3px 6px;cursor:pointer;font-size:.75rem;">✓</button>
+        <button type="button" onclick="cancelPct('broker','{{ inv.id }}')" style="background:var(--bg-hover);border:1px solid var(--border);border-radius:4px;padding:3px 6px;cursor:pointer;font-size:.75rem;">✕</button>
+      </form>
+      {% else %}
+      <span style="font-weight:800;color:#8e44ad;">{{ inv.broker_pct }}%</span>
+      {% endif %}
+    </td>
 
-    </div><!-- /acc-body -->
+    <!-- Investor % with inline edit -->
+    <td style="padding:14px;text-align:center;">
+      {% if is_admin %}
+      <div id="ipct-display-{{ inv.id }}" style="display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;" onclick="editPct('investor','{{ inv.id }}','{{ inv.investor_pct }}')">
+        <span style="font-weight:800;color:#e67e22;font-size:.92rem;">{{ inv.investor_pct }}%</span>
+        <span style="font-size:.75rem;">✏️</span>
+      </div>
+      <form class="pct-edit-form" id="ipct-form-{{ inv.id }}" style="display:none;align-items:center;justify-content:center;gap:4px;"
+            action="{{ url_for('forex_investor_pct_update', inv_id=inv.id) }}" method="POST">
+        <input type="hidden" name="field" value="investor_pct">
+        <input type="number" step="0.01" name="value" id="ipct-input-{{ inv.id }}" value="{{ inv.investor_pct }}" min="0" max="100"
+               style="width:55px;padding:3px 5px;border-radius:5px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:.82rem;text-align:center;">
+        <button type="submit" style="background:#27ae60;color:#fff;border:none;border-radius:4px;padding:3px 6px;cursor:pointer;font-size:.75rem;">✓</button>
+        <button type="button" onclick="cancelPct('investor','{{ inv.id }}')" style="background:var(--bg-hover);border:1px solid var(--border);border-radius:4px;padding:3px 6px;cursor:pointer;font-size:.75rem;">✕</button>
+      </form>
+      {% else %}
+      <span style="font-weight:800;color:#e67e22;">{{ inv.investor_pct }}%</span>
+      {% endif %}
+    </td>
+
+    <!-- Sales Rep -->
+    <td style="padding:14px;font-size:.82rem;color:var(--text-secondary);">{{ inv.sales_rep or '—' }}</td>
+
+    <!-- Net /mo -->
+    <td style="padding:14px;text-align:right;">
+      <span style="font-weight:800;font-size:.92rem;color:{% if inv.monthly_net_per_investor >= 0 %}#27ae60{% else %}#c0392b{% endif %};">
+        ${{ '{:,.2f}'.format(inv.monthly_net_per_investor) }}
+      </span>
+    </td>
+
+    <!-- Status -->
+    <td style="padding:14px;text-align:center;">
+      <span style="padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700;
+        {% if inv.status=='Active' %}background:rgba(39,174,96,.12);color:#27ae60;border:1px solid rgba(39,174,96,.3);
+        {% else %}background:rgba(120,120,120,.1);color:#888;border:1px solid #ccc;{% endif %}">
+        {{ inv.status }}
+      </span>
+    </td>
 
     <!-- Actions -->
-    <div class="acc-actions">
-        <button class="a-btn payout" onclick="openPayoutModal({{ inv.id }}, '{{ inv.display_name }}', {{ inv.monthly_investor_due }})">💸 Payout</button>
+    <td style="padding:14px;text-align:center;">
+      <div style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap;">
+        <button onclick="openPayoutModal({{ inv.id }}, '{{ inv.display_name }}', {{ inv.monthly_investor_due }})"
+                style="padding:4px 10px;background:#27ae60;color:#fff;border:none;border-radius:6px;font-size:.72rem;font-weight:700;cursor:pointer;">💸 Payout</button>
         {% if is_admin %}
-        <button class="a-btn edit-btn" onclick="openEditModal({{ inv.id }}, {{ inv.trading_account_id or 'null' }}, {{ inv.broker_pct }}, {{ inv.investor_pct }}, '{{ inv.sales_rep or '' }}', '{{ inv.status }}', '{{ inv.notes or '' }}')">✏️ Edit</button>
-        <button class="a-btn del-btn" onclick="confirmDelete({{ inv.id }}, '{{ inv.display_name }}')">🗑</button>
+        <button onclick="openEditModal({{ inv.id }}, {{ inv.trading_account_id or 'null' }}, {{ inv.broker_pct }}, {{ inv.investor_pct }}, '{{ inv.sales_rep or '' }}', '{{ inv.status }}', '{{ inv.notes or '' }}')"
+                style="padding:4px 10px;background:var(--bg-hover);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;font-size:.72rem;font-weight:700;cursor:pointer;">✏️ Edit</button>
+        <button onclick="confirmDelete({{ inv.id }}, '{{ inv.display_name }}')"
+                style="padding:4px 10px;background:#1a1a1a;color:#fff;border:none;border-radius:6px;font-size:.72rem;font-weight:700;cursor:pointer;">🗑</button>
         {% endif %}
-    </div>
-</div>
-{% endfor %}
+      </div>
+    </td>
+
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
 </div>
 
 {% else %}

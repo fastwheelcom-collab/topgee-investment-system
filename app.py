@@ -352,7 +352,8 @@ class TradingAccount(db.Model):
     __tablename__ = 'trading_accounts'
     id              = db.Column(db.Integer, primary_key=True)
     broker_name     = db.Column(db.String(100), nullable=False)
-    account_holder  = db.Column(db.String(100))               # account holder name
+    account_holder  = db.Column(db.String(100))               # account holder name (broker account name)
+    investor_name   = db.Column(db.String(100))               # actual investor person name
     account_number  = db.Column(db.String(60))
     deposit_via     = db.Column(db.String(30), default='Bank') # Cash, Crypto, Bank
     platform        = db.Column(db.String(40), default='MT5')  # MT5, MT4, cTrader
@@ -601,6 +602,7 @@ def ensure_db_ready():
                 ('investor',        'tg_percent',         'FLOAT DEFAULT 5.0'),
                 ('user_account',     'profile_pic',        'VARCHAR(256)'),
                 ('trading_accounts', 'account_holder',     'VARCHAR(100)'),
+                ('trading_accounts', 'investor_name',      'VARCHAR(100)'),
                 ('trading_accounts', 'deposit_via',        'VARCHAR(30)'),
                 ('forex_investors',  'broker_name',        'VARCHAR(100) DEFAULT ""'),
                 ('forex_investors',  'sales_rep',          'VARCHAR(100) DEFAULT ""'),
@@ -2836,6 +2838,7 @@ def trading_account_add():
     acc = TradingAccount(
         broker_name    = request.form['broker_name'],
         account_holder = request.form.get('account_holder', ''),
+        investor_name  = request.form.get('investor_name', ''),
         account_number = request.form.get('account_number', ''),
         deposit_via    = request.form.get('deposit_via', 'Bank'),
         platform       = request.form.get('platform', 'MT5'),
@@ -2860,6 +2863,7 @@ def trading_account_edit(acc_id):
     acc = TradingAccount.query.get_or_404(acc_id)
     acc.broker_name    = request.form['broker_name']
     acc.account_holder = request.form.get('account_holder', '')
+    acc.investor_name  = request.form.get('investor_name', '')
     acc.account_number = request.form.get('account_number', '')
     acc.deposit_via    = request.form.get('deposit_via', 'Bank')
     acc.platform       = request.form.get('platform', 'MT5')
