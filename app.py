@@ -615,7 +615,7 @@ def login():
             session['display_name'] = 'Admin'
             audit('LOGIN', 'System', username)
             flash('Login successful!', 'success')
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('home'))
 
         # Check UserAccount table
         user = UserAccount.query.filter_by(username=username, active=True).first()
@@ -628,7 +628,7 @@ def login():
             db.session.commit()
             audit('LOGIN', 'System', username)
             flash(f'Welcome, {user.display_name}!', 'success')
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('home'))
 
         flash('Invalid credentials', 'error')
     return render_template('login.html')
@@ -751,6 +751,31 @@ def debug_check():
         results.append(f"❌ Sum calculation failed: {e}")
     
     return "<h1>Debug Check</h1>" + "<br>".join(results)
+
+@app.route('/home')
+@login_required
+def home():
+    """Landing page — choose TopG It or Forex"""
+    # Quick stats for both sides
+    from sqlalchemy import func
+    now = datetime.now()
+
+    # TopG It stats
+    topg_investors = Investor.query.filter_by(status='Active').count()
+    topg_capital   = sum(i.total_capital for i in Investor.query.all())
+    topg_monthly   = sum(i.monthly_investor_roi for i in Investor.query.all())
+
+    # Forex stats
+    forex_investors = ForexInvestor.query.filter_by(status='Active').count()
+    forex_capital   = sum(i.capital_usd for i in ForexInvestor.query.filter_by(status='Active').all())
+    forex_net       = sum(i.monthly_net_per_investor for i in ForexInvestor.query.filter_by(status='Active').all())
+
+    return render_template('home.html',
+        topg_investors=topg_investors, topg_capital=topg_capital, topg_monthly=topg_monthly,
+        forex_investors=forex_investors, forex_capital=forex_capital, forex_net=forex_net,
+        now=now,
+    )
+
 
 @app.route('/')
 @login_required
@@ -2092,13 +2117,13 @@ def update_global_revenue():
 
     if currency == 'USD':
         amount = input_value * exchange_rate
-        flash(f"Revenue ${input_value:,.2f} USD = {amount:,.2f} AED saved for {datetime(rev_year, rev_month, 1).strftime('%B %Y')}", 'success')
+        flash(f"Revenue ${input_value:,.2f} USD = {amount:,.2f} AED saved for {datetime(rev_year, rev_month, 1).strftime('%B %Y')}", 'topg_success')
     elif input_mode == 'percentage':
         amount = total_investment * (input_value / 100)
-        flash(f"Revenue {input_value}% = {amount:,.2f} AED saved for {datetime(rev_year, rev_month, 1).strftime('%B %Y')}", 'success')
+        flash(f"Revenue {input_value}% = {amount:,.2f} AED saved for {datetime(rev_year, rev_month, 1).strftime('%B %Y')}", 'topg_success')
     else:
         amount = input_value
-        flash(f"Revenue {amount:,.2f} AED saved for {datetime(rev_year, rev_month, 1).strftime('%B %Y')}", 'success')
+        flash(f"Revenue {amount:,.2f} AED saved for {datetime(rev_year, rev_month, 1).strftime('%B %Y')}", 'topg_success')
 
     # Capital snapshot
     cap_aed = total_investment
@@ -3371,9 +3396,10 @@ def forex_investor_delete(inv_id):
 @login_required
 def forex_report():
     now      = datetime.now()
-    year     = int(request.form.get('year', now.year))
-    month    = int(request.form.get('month', now.month))
-    broker   = request.form.get('broker_filter','All')
+    # Accept both GET and POST params
+    year     = int(request.values.get('year', now.year))
+    month    = int(request.values.get('month', now.month))
+    broker   = request.values.get('broker_filter','All')
 
     # All active investors — filter by broker if selected
     investors = ForexInvestor.query.filter_by(status='Active').all()
@@ -3461,7 +3487,7 @@ def forex_report_save_profit():
         )
         db.session.add(rec)
     db.session.commit()
-    flash('Monthly profit saved!','success')
+    flash('Monthly profit saved!','forex_success')
     return redirect(url_for('forex_report',
         year=year, month=month, broker_filter=broker))
 

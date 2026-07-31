@@ -48,7 +48,8 @@
             <h1>🏦 TopGee It</h1>
             <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
                         <div class="nav-links">
-                <a href="{{ url_for('dashboard') }}" class="nav-investors">All Investors</a>
+                <a href="{{ url_for('home') }}" style="background:#374151;color:#fff;padding:6px 12px;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;">🏠 Home</a>
+            <a href="{{ url_for('dashboard') }}" class="nav-investors">All Investors</a>
                 <a href="{{ url_for('analytics_dashboard') }}" class="nav-dashboard active">Dashboard</a>
                 <a href="{{ url_for('reports_dashboard') }}" class="nav-reports">Reports</a>
                 

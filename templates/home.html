@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TopGee It — Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body { display:flex; flex-direction:column; min-height:100vh; }
+        .home-wrap {
+            flex:1;
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
+            padding:40px 20px;
+        }
+        .home-title {
+            font-size:2rem;
+            font-weight:900;
+            color:var(--text-primary);
+            margin-bottom:8px;
+            text-align:center;
+        }
+        .home-sub {
+            font-size:.95rem;
+            color:var(--text-secondary);
+            margin-bottom:48px;
+            text-align:center;
+        }
+        .home-cards {
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:24px;
+            max-width:820px;
+            width:100%;
+        }
+        @media(max-width:600px){ .home-cards{ grid-template-columns:1fr; } }
+        .home-card {
+            background:var(--bg-card);
+            border:1px solid var(--border);
+            border-radius:20px;
+            padding:36px 32px;
+            text-decoration:none;
+            transition:transform .15s, box-shadow .15s, border-color .15s;
+            cursor:pointer;
+            display:block;
+        }
+        .home-card:hover {
+            transform:translateY(-4px);
+            box-shadow:0 12px 40px rgba(0,0,0,.18);
+        }
+        .home-card.topg:hover { border-color:#4A90E2; }
+        .home-card.forex:hover { border-color:#7c3aed; }
+
+        .card-icon { font-size:3rem; margin-bottom:16px; }
+        .card-title { font-size:1.4rem; font-weight:900; color:var(--text-primary); margin-bottom:6px; }
+        .card-desc  { font-size:.85rem; color:var(--text-secondary); margin-bottom:24px; line-height:1.5; }
+
+        .card-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+        .cs-box { background:var(--bg-dark); border:1px solid var(--border); border-radius:10px; padding:10px 12px; text-align:center; }
+        .cs-lbl { font-size:.6rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.5px; }
+        .cs-val { font-size:.95rem; font-weight:800; margin-top:3px; }
+        .cs-val.blue   { color:#4A90E2; }
+        .cs-val.green  { color:#27ae60; }
+        .cs-val.purple { color:#7c3aed; }
+
+        .card-btn {
+            display:block;
+            width:100%;
+            margin-top:20px;
+            padding:12px;
+            border-radius:10px;
+            font-weight:800;
+            font-size:.95rem;
+            text-align:center;
+            border:none;
+            cursor:pointer;
+            text-decoration:none;
+        }
+        .card-btn.blue   { background:#4A90E2; color:#fff; }
+        .card-btn.purple { background:#7c3aed; color:#fff; }
+
+        /* Top bar */
+        .top-bar {
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            padding:16px 32px;
+            border-bottom:1px solid var(--border);
+            background:var(--bg-card);
+        }
+        .top-bar-logo { font-size:1.1rem; font-weight:900; color:var(--text-primary); }
+        .top-bar-user { font-size:.85rem; color:var(--text-secondary); }
+    </style>
+</head>
+<body>
+<div class="top-bar">
+    <div class="top-bar-logo">🏦 TopGee It</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+        <span class="top-bar-user">{{ now.strftime('%A, %d %B %Y') }}</span>
+        <a href="{{ url_for('logout') }}" style="color:#dc2626;font-size:.82rem;font-weight:700;text-decoration:none;">🚪 Logout</a>
+    </div>
+</div>
+
+<div class="home-wrap">
+    <div class="home-title">Welcome back, {{ current_user }} 👋</div>
+    <div class="home-sub">Choose which system to manage</div>
+
+    <div class="home-cards">
+
+        <!-- TopG It Card -->
+        <div class="home-card topg">
+            <div class="card-icon">🏦</div>
+            <div class="card-title">TopG It</div>
+            <div class="card-desc">Investment management system — track investors, ROI, payouts, revenue and partner splits.</div>
+            <div class="card-stats">
+                <div class="cs-box">
+                    <div class="cs-lbl">Investors</div>
+                    <div class="cs-val blue">{{ topg_investors }}</div>
+                </div>
+                <div class="cs-box">
+                    <div class="cs-lbl">Capital</div>
+                    <div class="cs-val blue">{{ '{:,.0f}'.format(topg_capital) }}</div>
+                </div>
+                <div class="cs-box">
+                    <div class="cs-lbl">Monthly ROI</div>
+                    <div class="cs-val green">{{ '{:,.0f}'.format(topg_monthly) }}</div>
+                </div>
+            </div>
+            <a href="{{ url_for('dashboard') }}" class="card-btn blue">Open TopG It →</a>
+        </div>
+
+        <!-- Forex Card -->
+        <div class="home-card forex">
+            <div class="card-icon">💱</div>
+            <div class="card-title">Forex Investors</div>
+            <div class="card-desc">Forex investment management — track broker accounts, investor %, monthly profits and partner splits.</div>
+            <div class="card-stats">
+                <div class="cs-box">
+                    <div class="cs-lbl">Investors</div>
+                    <div class="cs-val purple">{{ forex_investors }}</div>
+                </div>
+                <div class="cs-box">
+                    <div class="cs-lbl">Capital</div>
+                    <div class="cs-val purple">${{ '{:,.0f}'.format(forex_capital) }}</div>
+                </div>
+                <div class="cs-box">
+                    <div class="cs-lbl">Net /month</div>
+                    <div class="cs-val green">${{ '{:,.2f}'.format(forex_net) }}</div>
+                </div>
+            </div>
+            <a href="{{ url_for('forex_investors') }}" class="card-btn purple">Open Forex →</a>
+        </div>
+
+    </div>
+</div>
+</body>
+</html>

@@ -29,7 +29,8 @@
     <h1>🏦 TopGee It</h1>
     <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
     <div class="nav-links">
-      <a href="{{ url_for('dashboard') }}" class="nav-investors">All Investors</a>
+      <a href="{{ url_for('home') }}" style="background:#374151;color:#fff;padding:6px 12px;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;">🏠 Home</a>
+            <a href="{{ url_for('dashboard') }}" class="nav-investors">All Investors</a>
       <a href="{{ url_for('analytics_dashboard') }}" class="nav-dashboard">Dashboard</a>
       <a href="{{ url_for('reports_dashboard') }}" class="nav-reports">Reports</a>
       <a href="{{ url_for('sales_reps') }}" class="nav-sales">Sales Team</a>
@@ -47,9 +48,9 @@
   </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}{% for cat,msg in messages %}
-  <div style="background:{% if cat=='success' %}#dcfce7{% else %}#fee2e2{% endif %};color:{% if cat=='success' %}#166534{% else %}#dc2626{% endif %};padding:12px;border-radius:8px;margin-bottom:12px;">{{ msg }}</div>
-  {% endfor %}{% endif %}{% endwith %}
+  {% if messages %}{% for cat,msg in messages %}{% if 'forex' in cat %}
+  <div style="background:{% if 'success' in cat %}#dcfce7{% else %}#fee2e2{% endif %};color:{% if 'success' in cat %}#166534{% else %}#dc2626{% endif %};padding:12px;border-radius:8px;margin-bottom:12px;">{{ msg }}</div>
+  {% endif %}{% endfor %}{% endif %}{% endwith %}
 
   <!-- Filter form -->
   <div class="card">
