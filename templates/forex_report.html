@@ -149,6 +149,14 @@
   <!-- Summary cards -->
   {% set AED = 3.67 %}
   <div class="stat-row">
+    {% if total_generated > 0 %}
+    <div class="stat-box" style="background:linear-gradient(135deg,#0f766e,#14b8a6);">
+      <h4>Total Generated</h4>
+      <div class="val">${{ '{:,.2f}'.format(total_generated) }}</div>
+      <div style="font-size:.88rem;font-weight:700;color:rgba(255,255,255,.95);margin-top:5px;letter-spacing:.5px;">AED {{ '{:,.2f}'.format(total_generated * AED) }}</div>
+      <div style="font-size:.78rem;background:rgba(255,255,255,.2);border-radius:20px;padding:2px 10px;display:inline-block;margin-top:5px;font-weight:700;">{{ '{:.1f}'.format(total_generated / total_capital * 100) if total_capital > 0 else '0.0' }}% of Capital</div>
+    </div>
+    {% endif %}
     {% set broker_pct_avg = (total_broker_share / total_capital * 100) if total_capital > 0 else 0 %}
     {% set inv_pct_avg = (total_inv_share / total_capital * 100) if total_capital > 0 else 0 %}
     {% set net_pct_avg = (total_net / total_capital * 100) if total_capital > 0 else 0 %}
@@ -179,25 +187,39 @@
 
   <!-- Partner split -->
   <div class="card">
-    <h3 style="margin:0 0 16px;font-size:1.1rem;">🤝 Partner Share — 3 Equal Parts</h3>
+    <h3 style="margin:0 0 6px;font-size:1.1rem;">🤝 Partner Share — 3 Equal Parts</h3>
+    {% if total_generated > 0 %}
+    <!-- Calculation breakdown -->
+    <div style="background:#f8fafc;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:.84rem;color:#374151;border:1px solid #e5e7eb;">
+      <strong>How calculated:</strong>
+      Total Generated <span style="color:#16a34a;font-weight:700;">${{ '{:,.2f}'.format(total_generated) }}</span>
+      &minus; Broker Take <span style="color:#7c3aed;font-weight:700;">${{ '{:,.2f}'.format(total_broker_share) }}</span>
+      = Remaining <span style="color:#0369a1;font-weight:700;">${{ '{:,.2f}'.format(generated_remaining) }}</span>
+      &div; 3 Partners = <span style="color:#15803d;font-weight:800;">${{ '{:,.2f}'.format(partner_share) }}</span> each
+    </div>
+    {% else %}
+    <div style="background:#fef9c3;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:.82rem;color:#854d0e;border:1px solid #fde047;">
+      ⚠️ No profit recorded for this month yet — save the Total Generated above first. Partner share will calculate automatically.
+    </div>
+    {% endif %}
     <div style="display:flex;gap:14px;flex-wrap:wrap;">
       <div class="partner-card">
         <h4>Mr. Sadi</h4>
         <div class="val">${{ '{:,.2f}'.format(partner_share) }}</div>
-        <div style="font-size:.78rem;opacity:.8;margin-top:4px;">AED {{ '{:,.2f}'.format(partner_share * AED) }}</div>
-        <div style="font-size:.72rem;opacity:.7;margin-top:2px;">33.3%</div>
+        <div style="font-size:.88rem;font-weight:700;color:rgba(255,255,255,.95);margin-top:5px;">AED {{ '{:,.2f}'.format(partner_share * AED) }}</div>
+        <div style="font-size:.75rem;background:rgba(255,255,255,.2);border-radius:20px;padding:2px 10px;display:inline-block;margin-top:6px;font-weight:700;">33.3%</div>
       </div>
       <div class="partner-card" style="background:linear-gradient(135deg,#0891b2,#06b6d4);">
         <h4>Mr. Dubbay</h4>
         <div class="val">${{ '{:,.2f}'.format(partner_share) }}</div>
-        <div style="font-size:.78rem;opacity:.8;margin-top:4px;">AED {{ '{:,.2f}'.format(partner_share * AED) }}</div>
-        <div style="font-size:.72rem;opacity:.7;margin-top:2px;">33.3%</div>
+        <div style="font-size:.88rem;font-weight:700;color:rgba(255,255,255,.95);margin-top:5px;">AED {{ '{:,.2f}'.format(partner_share * AED) }}</div>
+        <div style="font-size:.75rem;background:rgba(255,255,255,.2);border-radius:20px;padding:2px 10px;display:inline-block;margin-top:6px;font-weight:700;">33.3%</div>
       </div>
       <div class="partner-card" style="background:linear-gradient(135deg,#d97706,#f59e0b);">
         <h4>Mr. Arif</h4>
         <div class="val">${{ '{:,.2f}'.format(partner_share) }}</div>
-        <div style="font-size:.78rem;opacity:.8;margin-top:4px;">AED {{ '{:,.2f}'.format(partner_share * AED) }}</div>
-        <div style="font-size:.72rem;opacity:.7;margin-top:2px;">33.3%</div>
+        <div style="font-size:.88rem;font-weight:700;color:rgba(255,255,255,.95);margin-top:5px;">AED {{ '{:,.2f}'.format(partner_share * AED) }}</div>
+        <div style="font-size:.75rem;background:rgba(255,255,255,.2);border-radius:20px;padding:2px 10px;display:inline-block;margin-top:6px;font-weight:700;">33.3%</div>
       </div>
     </div>
   </div>

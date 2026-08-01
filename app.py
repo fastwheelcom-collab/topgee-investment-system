@@ -3499,8 +3499,10 @@ def forex_report():
         total_broker_share += broker_earn
         total_inv_share    += inv_due
 
-    total_net      = round(total_broker_share - total_inv_share, 2)
-    partner_share  = round(total_net / 3, 2)
+    total_net           = round(total_broker_share - total_inv_share, 2)
+    # Partner share = what's left after broker takes their cut from total generated
+    generated_remaining = round(total_generated - total_broker_share, 2)
+    partner_share       = round(generated_remaining / 3, 2) if total_generated > 0 else round(total_net / 3, 2)
 
     # All brokers for filter dropdown
     all_brokers = sorted(set(i.broker_name for i in ForexInvestor.query.all() if i.broker_name))
@@ -3519,6 +3521,7 @@ def forex_report():
         total_broker_share=total_broker_share,
         total_inv_share=total_inv_share,
         total_net=total_net,
+        generated_remaining=generated_remaining,
         partner_share=partner_share,
         all_brokers=all_brokers,
         history=history,
