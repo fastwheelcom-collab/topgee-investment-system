@@ -619,6 +619,16 @@ def ensure_db_ready():
                 except Exception:
                     pass  # already exists
 
+            # Backfill: set tg_percent=5.0 only where it is NULL (won't touch custom values like 6.5)
+            try:
+                with db.engine.connect() as conn:
+                    result = conn.execute(db.text("UPDATE investor SET tg_percent = 5.0 WHERE tg_percent IS NULL"))
+                    conn.commit()
+                    if result.rowcount:
+                        print(f'✅ Backfilled {result.rowcount} investor(s) tg_percent NULL → 5.0')
+            except Exception as bf_e:
+                print(f'⚠️ tg_percent backfill skipped: {bf_e}')
+
             app._db_initialized = True
             print("✅ Database initialized successfully")
         except Exception as e:
