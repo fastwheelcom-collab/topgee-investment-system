@@ -213,7 +213,9 @@ function saveTg() {
     .then(function(r){ return r.json(); })
     .then(function(data){
         if (data.success) {
-            document.getElementById('tg-val-' + _tgInvestorId).textContent = val + '%';
+            // Use server-returned value to ensure display matches DB
+            var displayVal = data.tg_percent !== undefined ? data.tg_percent : val;
+            document.getElementById('tg-val-' + _tgInvestorId).textContent = displayVal + '%';
             closeTgModal();
         } else {
             document.getElementById('tgError').textContent = data.error || 'Error saving';
