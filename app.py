@@ -852,7 +852,10 @@ def dashboard():
     sales_share_percent  = (total_sales_share  / total_roi_pool * 100) if total_roi_pool > 0 else 0
 
     # TG % stats
-    avg_tg_percent = (sum((i.tg_percent or 5.0) for i in investors) / len(investors)) if investors else 5.0
+    # Weighted avg TG% by capital (not simple average)
+    _tg_capital_sum = sum((i.tg_percent or 5.0) * i.total_capital for i in investors)
+    _tg_total_cap   = sum(i.total_capital for i in investors)
+    avg_tg_percent  = (_tg_capital_sum / _tg_total_cap) if _tg_total_cap > 0 else 5.0
     tg_breakdown   = [{'name': i.name, 'capital': i.total_capital,
                         'tg_pct': i.tg_percent or 5.0,
                         'pool_amount': i.total_capital * ((i.tg_percent or 5.0) / 100)}
@@ -2296,7 +2299,7 @@ def analytics_dashboard():
         'total_investor_roi':       total_investor_roi,
         'total_sales_share':        total_sales_share,
         'extra_profit':             extra_profit,
-        'avg_tg_percent':           (sum((inv.tg_percent or 5.0) for inv in investors) / len(investors)) if investors else 5.0,
+        'avg_tg_percent':           (sum((inv.tg_percent or 5.0) * inv.total_capital for inv in investors) / sum(inv.total_capital for inv in investors)) if investors and sum(inv.total_capital for inv in investors) > 0 else 5.0,
         'tg_breakdown':             [{'name': inv.name, 'capital': inv.total_capital,
                                       'tg_pct': inv.tg_percent or 5.0,
                                       'pool_amount': inv.total_capital * ((inv.tg_percent or 5.0) / 100)}
