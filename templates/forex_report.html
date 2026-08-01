@@ -149,25 +149,31 @@
   <!-- Summary cards -->
   {% set AED = 3.67 %}
   <div class="stat-row">
+    {% set broker_pct_avg = (total_broker_share / total_capital * 100) if total_capital > 0 else 0 %}
+    {% set inv_pct_avg = (total_inv_share / total_capital * 100) if total_capital > 0 else 0 %}
+    {% set net_pct_avg = (total_net / total_capital * 100) if total_capital > 0 else 0 %}
     <div class="stat-box" style="background:linear-gradient(135deg,#1d4ed8,#2563eb);">
       <h4>Total Capital</h4>
       <div class="val">${{ '{:,.0f}'.format(total_capital) }}</div>
-      <div style="font-size:.72rem;opacity:.8;margin-top:3px;">AED {{ '{:,.0f}'.format(total_capital * AED) }}</div>
+      <div style="font-size:.88rem;font-weight:700;color:rgba(255,255,255,.95);margin-top:5px;letter-spacing:.5px;">AED {{ '{:,.0f}'.format(total_capital * AED) }}</div>
     </div>
     <div class="stat-box" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">
       <h4>Broker Take (your %)</h4>
       <div class="val">${{ '{:,.2f}'.format(total_broker_share) }}</div>
-      <div style="font-size:.72rem;opacity:.8;margin-top:3px;">AED {{ '{:,.2f}'.format(total_broker_share * AED) }}</div>
+      <div style="font-size:.88rem;font-weight:700;color:rgba(255,255,255,.95);margin-top:5px;letter-spacing:.5px;">AED {{ '{:,.2f}'.format(total_broker_share * AED) }}</div>
+      <div style="font-size:.78rem;background:rgba(255,255,255,.2);border-radius:20px;padding:2px 10px;display:inline-block;margin-top:5px;font-weight:700;">{{ '{:.1f}'.format(broker_pct_avg) }}% of Capital</div>
     </div>
     <div class="stat-box" style="background:linear-gradient(135deg,#dc2626,#ef4444);">
       <h4>Investor Due (pay out)</h4>
       <div class="val">${{ '{:,.2f}'.format(total_inv_share) }}</div>
-      <div style="font-size:.72rem;opacity:.8;margin-top:3px;">AED {{ '{:,.2f}'.format(total_inv_share * AED) }}</div>
+      <div style="font-size:.88rem;font-weight:700;color:rgba(255,255,255,.95);margin-top:5px;letter-spacing:.5px;">AED {{ '{:,.2f}'.format(total_inv_share * AED) }}</div>
+      <div style="font-size:.78rem;background:rgba(255,255,255,.2);border-radius:20px;padding:2px 10px;display:inline-block;margin-top:5px;font-weight:700;">{{ '{:.1f}'.format(inv_pct_avg) }}% of Capital</div>
     </div>
     <div class="stat-box" style="background:linear-gradient(135deg,#16a34a,#22c55e);">
       <h4>Net Profit</h4>
       <div class="val">${{ '{:,.2f}'.format(total_net) }}</div>
-      <div style="font-size:.72rem;opacity:.8;margin-top:3px;">AED {{ '{:,.2f}'.format(total_net * AED) }}</div>
+      <div style="font-size:.88rem;font-weight:700;color:rgba(255,255,255,.95);margin-top:5px;letter-spacing:.5px;">AED {{ '{:,.2f}'.format(total_net * AED) }}</div>
+      <div style="font-size:.78rem;background:rgba(255,255,255,.2);border-radius:20px;padding:2px 10px;display:inline-block;margin-top:5px;font-weight:700;">{{ '{:.1f}'.format(net_pct_avg) }}% of Capital</div>
     </div>
   </div>
 
@@ -252,25 +258,55 @@
 
   <!-- Revenue history -->
   <div class="card">
-    <h3 style="margin:0 0 16px;font-size:1.1rem;">📅 Profit History</h3>
+    <h3 style="margin:0 0 4px;font-size:1.1rem;">📅 Monthly Profit Log</h3>
+    <p style="color:#6b7280;font-size:.82rem;margin:0 0 16px;">Every month you record profit, it appears here automatically.</p>
     {% if history %}
+    {% set total_ever = history | sum(attribute='total_generated') %}
+    <!-- Summary bar -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 18px;flex:1;min-width:140px;">
+        <div style="font-size:.7rem;color:#6b7280;text-transform:uppercase;font-weight:700;">Total Months Recorded</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#15803d;">{{ history | length }}</div>
+      </div>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 18px;flex:1;min-width:140px;">
+        <div style="font-size:.7rem;color:#6b7280;text-transform:uppercase;font-weight:700;">Total Generated (All Time)</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#15803d;">${{ '{:,.2f}'.format(total_ever) }}</div>
+        <div style="font-size:.8rem;font-weight:700;color:#16a34a;">AED {{ '{:,.2f}'.format(total_ever * AED) }}</div>
+      </div>
+    </div>
     <table>
       <thead>
-        <tr><th>Month</th><th>Broker</th><th>Total Generated</th><th>Notes</th></tr>
+        <tr>
+          <th>#</th>
+          <th>Month / Year</th>
+          <th>Broker</th>
+          <th>Total Generated (USD)</th>
+          <th>Total Generated (AED)</th>
+          <th>Notes</th>
+        </tr>
       </thead>
       <tbody>
       {% for h in history %}
       <tr>
-        <td>{{ MONTHS[h.month] }} {{ h.year }}</td>
-        <td>{{ h.broker_name }}</td>
-        <td><strong style="color:#16a34a;">${{ '{:,.2f}'.format(h.total_generated) }}</strong></td>
-        <td>{{ h.notes or '—' }}</td>
+        <td style="color:#9ca3af;font-size:.78rem;">{{ loop.index }}</td>
+        <td><strong>{{ MONTHS[h.month] }} {{ h.year }}</strong></td>
+        <td><span style="background:#f3f4f6;padding:2px 8px;border-radius:8px;font-size:.78rem;">{{ h.broker_name }}</span></td>
+        <td><strong style="color:#16a34a;font-size:1rem;">${{ '{:,.2f}'.format(h.total_generated) }}</strong></td>
+        <td><strong style="color:#0369a1;font-size:.9rem;">AED {{ '{:,.2f}'.format(h.total_generated * AED) }}</strong></td>
+        <td style="color:#6b7280;font-size:.82rem;">{{ h.notes or '—' }}</td>
       </tr>
       {% endfor %}
+      <!-- Grand total row -->
+      <tr style="background:#f0fdf4;font-weight:800;border-top:2px solid #bbf7d0;">
+        <td colspan="3" style="color:#15803d;">TOTAL (All Time)</td>
+        <td style="color:#15803d;font-size:1rem;">${{ '{:,.2f}'.format(total_ever) }}</td>
+        <td style="color:#0369a1;">AED {{ '{:,.2f}'.format(total_ever * AED) }}</td>
+        <td></td>
+      </tr>
       </tbody>
     </table>
     {% else %}
-    <p style="color:#9ca3af;text-align:center;padding:20px 0;">No profit history recorded yet.</p>
+    <p style="color:#9ca3af;text-align:center;padding:20px 0;">No profit history recorded yet. Save your first month above!</p>
     {% endif %}
   </div>
 
