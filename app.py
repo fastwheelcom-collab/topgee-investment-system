@@ -790,8 +790,8 @@ def home():
 
     # TopG It stats
     topg_investors = Investor.query.filter_by(status='Active').count()
-    topg_capital   = sum(i.total_capital for i in Investor.query.all())
-    topg_monthly   = sum(i.monthly_investor_roi for i in Investor.query.all())
+    topg_capital   = sum(i.total_capital for i in Investor.query.filter_by(status='Active').all())
+    topg_monthly   = sum(i.monthly_investor_roi for i in Investor.query.filter_by(status='Active').all())
 
     # Forex stats
     forex_investors = ForexInvestor.query.filter_by(status='Active').count()
@@ -2196,7 +2196,7 @@ def analytics_dashboard():
     _pfx = re.compile(r'^(Mr\.?|Mrs\.?|Ms\.?|Dr\.)\s*', re.IGNORECASE)
     def _skey(inv): return _pfx.sub('', inv.name).strip().lower()
 
-    investors      = sorted(Investor.query.all(), key=_skey)
+    investors      = sorted(Investor.query.filter_by(status='Active').all(), key=_skey)
     global_revenue = GlobalRevenue.get_instance()
     now            = datetime.now()
     current_month  = now.month
