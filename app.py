@@ -905,7 +905,7 @@ def dashboard():
     filter_status = request.args.get('filter_status', '')
 
     if search_query or filter_category or filter_sales_rep or filter_status:
-        query = Investor.query
+        query = Investor.query.filter_by(status='Active')
         if search_query:
             query = query.filter(
                 db.or_(

@@ -82,9 +82,9 @@
                             <td>{{ investor.category }}</td>
                             <td>{{ '{:,.0f}'.format(investor.total_capital) }} AED</td>
                             <td>
-                                <span id="tg-val-{{ investor.id }}" style="font-weight:700;color:#1d4ed8;">{{ investor.tg_percent or 5.0 }}%</span>
+                                <span id="tg-val-{{ investor.id }}" style="font-weight:700;color:#1d4ed8;">{{ investor.tg_percent if investor.tg_percent is not none else 5.0 }}%</span>
                                 {% if is_admin %}
-                                <button onclick="openTgEdit({{ investor.id }}, {{ investor.tg_percent or 5.0 }})" style="background:none;border:none;cursor:pointer;font-size:.8rem;color:#6b7280;margin-left:4px;" title="Edit TG %">✏️</button>
+                                <button onclick="openTgEdit({{ investor.id }}, {{ investor.tg_percent if investor.tg_percent is not none else 5.0 }})" style="background:none;border:none;cursor:pointer;font-size:.8rem;color:#6b7280;margin-left:4px;" title="Edit TG %">✏️</button>
                                 {% endif %}
                             </td>
                             <td>{{ investor.sales_rep.name if investor.sales_rep else '-' }}</td>
