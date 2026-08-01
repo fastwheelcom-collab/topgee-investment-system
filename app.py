@@ -3510,6 +3510,8 @@ def forex_report():
     # Revenue history
     history = ForexMonthlyProfit.query.order_by(
         ForexMonthlyProfit.year.desc(), ForexMonthlyProfit.month.desc()).all()
+    # Most recent saved profit record (for top banner)
+    latest_profit = history[0] if history else None
 
     MONTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -3525,6 +3527,7 @@ def forex_report():
         partner_share=partner_share,
         all_brokers=all_brokers,
         history=history,
+        latest_profit=latest_profit,
         MONTHS=MONTHS,
         now=now,
         profit_record=profit_record,

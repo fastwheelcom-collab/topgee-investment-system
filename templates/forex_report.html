@@ -59,6 +59,37 @@
   <div style="background:{% if 'success' in cat %}#dcfce7{% else %}#fee2e2{% endif %};color:{% if 'success' in cat %}#166534{% else %}#dc2626{% endif %};padding:12px;border-radius:8px;margin-bottom:12px;">{{ msg }}</div>
   {% endif %}{% endfor %}{% endif %}{% endwith %}
 
+  <!-- Latest month banner -->
+  {% if latest_profit %}
+  {% set lp_remaining = latest_profit.total_generated - total_broker_share %}
+  <div style="background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:14px;padding:16px 22px;margin-bottom:20px;display:flex;flex-wrap:wrap;align-items:center;gap:16px;border:1px solid #334155;">
+    <div style="color:#94a3b8;font-size:.72rem;text-transform:uppercase;font-weight:700;letter-spacing:1px;">📅 Most Recent Month</div>
+    <div style="font-size:1rem;font-weight:800;color:#f1f5f9;">{{ MONTHS[latest_profit.month] }} {{ latest_profit.year }}</div>
+    <div style="width:1px;height:32px;background:#334155;"></div>
+    <div style="text-align:center;">
+      <div style="font-size:.68rem;color:#94a3b8;text-transform:uppercase;font-weight:700;">Generated</div>
+      <div style="font-size:1.1rem;font-weight:900;color:#34d399;">${{ '{:,.2f}'.format(latest_profit.total_generated) }}</div>
+      <div style="font-size:.78rem;color:#6ee7b7;font-weight:700;">AED {{ '{:,.0f}'.format(latest_profit.total_generated * 3.67) }}</div>
+    </div>
+    <div style="width:1px;height:32px;background:#334155;"></div>
+    <div style="text-align:center;">
+      <div style="font-size:.68rem;color:#94a3b8;text-transform:uppercase;font-weight:700;">Broker Take</div>
+      <div style="font-size:1.1rem;font-weight:900;color:#a78bfa;">${{ '{:,.2f}'.format(total_broker_share) }}</div>
+      <div style="font-size:.78rem;color:#c4b5fd;font-weight:700;">AED {{ '{:,.0f}'.format(total_broker_share * 3.67) }}</div>
+    </div>
+    <div style="width:1px;height:32px;background:#334155;"></div>
+    <div style="text-align:center;">
+      <div style="font-size:.68rem;color:#94a3b8;text-transform:uppercase;font-weight:700;">Each Partner</div>
+      <div style="font-size:1.1rem;font-weight:900;color:#fbbf24;">${{ '{:,.2f}'.format((latest_profit.total_generated - total_broker_share) / 3) }}</div>
+      <div style="font-size:.78rem;color:#fde68a;font-weight:700;">AED {{ '{:,.0f}'.format(((latest_profit.total_generated - total_broker_share) / 3) * 3.67) }}</div>
+    </div>
+    {% if latest_profit.notes %}
+    <div style="width:1px;height:32px;background:#334155;"></div>
+    <div style="font-size:.8rem;color:#94a3b8;">📝 {{ latest_profit.notes }}</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <!-- Filter form -->
   <div class="card">
     <form method="POST" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
