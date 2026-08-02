@@ -1522,6 +1522,7 @@ def reports_dashboard():
     rep_id_filt      = request.args.get('rep_id', '')
     month_filt       = request.args.get('month', '')
     year_filt        = request.args.get('year', str(datetime.now().year))
+    paid_filter      = request.args.get('paid_filter', '')  # '' | 'paid' | 'unpaid'
 
     _pfx = re.compile(r'^(Mr\.?|Mrs\.?|Ms\.?|Dr\.?)\s*', re.IGNORECASE)
     def _sk(inv): return _pfx.sub('', inv.name).strip().lower()
@@ -1624,6 +1625,20 @@ def reports_dashboard():
 
     # Filter by single investor
     filtered_rows = [r for r in all_rows if str(r['inv'].id) == investor_id_filt] if investor_id_filt else all_rows
+
+    # Filter by specific month/year (investor_active report)
+    sel_month = int(month_filt) if month_filt else 0
+    sel_year  = int(year_filt)  if year_filt  else 0
+    if sel_month and sel_year and report_type == 'investor_active':
+        def _month_paid(r):
+            """Return True if this investor has any payout tagged for sel_month/sel_year"""
+            key = (sel_year, sel_month)
+            return r['monthly'].get(key, {}).get('inv', 0) > 0
+        if paid_filter == 'paid':
+            filtered_rows = [r for r in filtered_rows if _month_paid(r)]
+        elif paid_filter == 'unpaid':
+            filtered_rows = [r for r in filtered_rows if not _month_paid(r)]
+        # else: show all but month context is still set
 
     # Sales rep rows
     has_date_filter = bool(date_from and date_to)
@@ -1755,6 +1770,9 @@ def reports_dashboard():
         date_from        = date_from,
         date_to          = date_to,
         now              = now,
+        sel_month        = sel_month,
+        sel_year         = sel_year,
+        paid_filter      = paid_filter,
     )
 
 @app.route('/investor/<int:investor_id>/transaction/add', methods=['POST'])
