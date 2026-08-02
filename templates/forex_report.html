@@ -18,7 +18,40 @@
       .partner-card{background:linear-gradient(135deg,#7c3aed,#4f46e5);border-radius:12px;padding:20px 24px;color:#fff;text-align:center;flex:1;min-width:160px;}
       .partner-card h4{font-size:.8rem;opacity:.8;margin:0 0 6px;}
       .partner-card .val{font-size:1.8rem;font-weight:900;}
-      select,input[type=number]{padding:8px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.9rem;}
+      input[type=number]{padding:8px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.9rem;}
+
+      /* Custom styled select dropdowns */
+      .custom-select-wrap { position:relative; display:inline-block; }
+      .custom-select-wrap select {
+        appearance: none;
+        -webkit-appearance: none;
+        background: #fff;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 9px 36px 9px 12px;
+        font-size: .88rem;
+        color: #1a1a2e;
+        font-weight: 600;
+        cursor: pointer;
+        outline: none;
+        transition: border-color .15s, box-shadow .15s;
+        min-width: 130px;
+      }
+      .custom-select-wrap select:hover { border-color: #7c3aed; }
+      .custom-select-wrap select:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.12); }
+      .custom-select-wrap::after {
+        content: '';
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 6px solid #7c3aed;
+        pointer-events: none;
+      }
       .btn-submit{background:#7c3aed;color:#fff;padding:10px 20px;border:none;border-radius:8px;font-weight:700;cursor:pointer;}
       .btn-green{background:#16a34a;color:#fff;padding:10px 20px;border:none;border-radius:8px;font-weight:700;cursor:pointer;}
     </style>
@@ -97,32 +130,38 @@
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;">
         <div>
           <label style="font-size:.75rem;font-weight:700;color:#374151;display:block;margin-bottom:4px;">MONTH</label>
-          <select name="month">
-            {% for i in range(1,13) %}
-            <option value="{{ i }}" {% if i==month %}selected{% endif %}>{{ MONTHS[i] }}</option>
-            {% endfor %}
-          </select>
+          <div class="custom-select-wrap">
+            <select name="month">
+              {% for i in range(1,13) %}
+              <option value="{{ i }}" {% if i==month %}selected{% endif %}>{{ MONTHS[i] }}</option>
+              {% endfor %}
+            </select>
+          </div>
         </div>
         <div>
           <label style="font-size:.75rem;font-weight:700;color:#374151;display:block;margin-bottom:4px;">YEAR</label>
-          <input type="number" name="year" value="{{ year }}" style="width:90px;">
+          <input type="number" name="year" value="{{ year }}" style="width:90px;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.88rem;">
         </div>
         <div>
           <label style="font-size:.75rem;font-weight:700;color:#374151;display:block;margin-bottom:4px;">BROKER FILTER</label>
-          <select name="broker_filter" onchange="filterCheckboxes(this.value)">
-            <option value="All" {% if broker=='All' %}selected{% endif %}>All Brokers</option>
-            {% for b in all_brokers %}
-            <option value="{{ b }}" {% if b==broker %}selected{% endif %}>{{ b }}</option>
-            {% endfor %}
-          </select>
+          <div class="custom-select-wrap">
+            <select name="broker_filter" onchange="filterCheckboxes(this.value)">
+              <option value="All" {% if broker=='All' %}selected{% endif %}>All Brokers</option>
+              {% for b in all_brokers %}
+              <option value="{{ b }}" {% if b==broker %}selected{% endif %}>{{ b }}</option>
+              {% endfor %}
+            </select>
+          </div>
         </div>
         <div>
           <label style="font-size:.75rem;font-weight:700;color:#374151;display:block;margin-bottom:4px;">STATUS</label>
-          <select name="paid_filter">
-            <option value="" {% if paid_filter=='' %}selected{% endif %}>All</option>
-            <option value="paid"   {% if paid_filter=='paid'   %}selected{% endif %}>✅ Paid</option>
-            <option value="unpaid" {% if paid_filter=='unpaid' %}selected{% endif %}>❌ Unpaid</option>
-          </select>
+          <div class="custom-select-wrap">
+            <select name="paid_filter">
+              <option value="" {% if paid_filter=='' %}selected{% endif %}>All</option>
+              <option value="paid"   {% if paid_filter=='paid'   %}selected{% endif %}>Paid</option>
+              <option value="unpaid" {% if paid_filter=='unpaid' %}selected{% endif %}>Unpaid</option>
+            </select>
+          </div>
         </div>
         <div style="display:flex;gap:8px;align-items:flex-end;">
           <button type="submit" class="btn-submit">🔍 Generate</button>
@@ -215,11 +254,13 @@
       <input type="hidden" name="total_generated" id="final_generated" value="{{ total_generated }}">
       <div>
         <label style="font-size:.75rem;font-weight:700;display:block;margin-bottom:4px;">INPUT TYPE</label>
-        <select id="profit_input_mode" onchange="calcProfit()" style="padding:8px 10px;border:1.5px solid #bbf7d0;border-radius:8px;font-size:.88rem;background:#fff;">
+        <div class="custom-select-wrap" style="--sel-border:#bbf7d0;">
+        <select id="profit_input_mode" onchange="calcProfit()" style="border-color:#bbf7d0;">
           <option value="usd">$ Dollar</option>
           <option value="aed">AED</option>
           <option value="pct">% of Capital</option>
         </select>
+        </div>
       </div>
       <div>
         <label style="font-size:.75rem;font-weight:700;display:block;margin-bottom:4px;">AMOUNT</label>
