@@ -1630,15 +1630,26 @@ def reports_dashboard():
     sel_month = int(month_filt) if month_filt else 0
     sel_year  = int(year_filt)  if year_filt  else 0
     if sel_month and sel_year and report_type == 'investor_active':
+        def _investor_active_in_month(r):
+            """Return True if investor's contract started on or before sel_month/sel_year"""
+            cs = r['inv'].contract_start
+            if not cs:
+                return False
+            return (cs.year, cs.month) <= (sel_year, sel_month)
+
         def _month_paid(r):
             """Return True if this investor has any payout tagged for sel_month/sel_year"""
             key = (sel_year, sel_month)
             return r['monthly'].get(key, {}).get('inv', 0) > 0
+
+        # Always exclude investors not yet active in the selected month
+        filtered_rows = [r for r in filtered_rows if _investor_active_in_month(r)]
+
         if paid_filter == 'paid':
             filtered_rows = [r for r in filtered_rows if _month_paid(r)]
         elif paid_filter == 'unpaid':
             filtered_rows = [r for r in filtered_rows if not _month_paid(r)]
-        # else: show all but month context is still set
+        # else: show all active-in-month investors
 
     # Sales rep rows
     has_date_filter = bool(date_from and date_to)
