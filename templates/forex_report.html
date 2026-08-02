@@ -20,38 +20,36 @@
       .partner-card .val{font-size:1.8rem;font-weight:900;}
       input[type=number]{padding:8px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.9rem;}
 
-      /* Custom styled select dropdowns */
-      .custom-select-wrap { position:relative; display:inline-block; }
-      .custom-select-wrap select {
-        appearance: none;
-        -webkit-appearance: none;
-        background: #fff;
-        border: 1.5px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 9px 36px 9px 12px;
-        font-size: .88rem;
-        color: #1a1a2e;
-        font-weight: 600;
-        cursor: pointer;
-        outline: none;
-        transition: border-color .15s, box-shadow .15s;
-        min-width: 130px;
+      /* Custom dropdown */
+      .cd-wrap { position:relative; display:inline-block; min-width:130px; }
+      .cd-btn {
+        width:100%; background:#fff; border:1.5px solid #e5e7eb; border-radius:8px;
+        padding:9px 36px 9px 12px; font-size:.88rem; color:#1a1a2e; font-weight:600;
+        cursor:pointer; text-align:left; display:flex; align-items:center;
+        justify-content:space-between; gap:8px; transition:border-color .15s, box-shadow .15s;
+        white-space:nowrap; user-select:none;
       }
-      .custom-select-wrap select:hover { border-color: #7c3aed; }
-      .custom-select-wrap select:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.12); }
-      .custom-select-wrap::after {
-        content: '';
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 0;
-        height: 0;
-        border-left: 5px solid transparent;
-        border-right: 5px solid transparent;
-        border-top: 6px solid #7c3aed;
-        pointer-events: none;
+      .cd-btn:hover { border-color:#7c3aed; }
+      .cd-btn.open { border-color:#7c3aed; box-shadow:0 0 0 3px rgba(124,58,237,.12); }
+      .cd-btn .cd-arrow { font-size:.6rem; color:#7c3aed; transition:transform .15s; flex-shrink:0; }
+      .cd-btn.open .cd-arrow { transform:rotate(180deg); }
+      .cd-list {
+        display:none; position:absolute; top:calc(100% + 4px); left:0; min-width:100%;
+        background:#fff; border:1.5px solid #e5e7eb; border-radius:10px;
+        box-shadow:0 8px 24px rgba(0,0,0,.12); z-index:9999; overflow:hidden;
+        animation: cdFadeIn .12s ease;
       }
+      .cd-list.show { display:block; }
+      @keyframes cdFadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+      .cd-item {
+        padding:9px 14px; font-size:.88rem; color:#374151; cursor:pointer;
+        font-weight:500; transition:background .1s; display:flex; align-items:center; gap:8px;
+      }
+      .cd-item:hover { background:#f5f3ff; color:#7c3aed; }
+      .cd-item.selected { background:#ede9fe; color:#6d28d9; font-weight:700; }
+      .cd-item.selected::before { content:'✓'; font-size:.75rem; color:#7c3aed; }
+      .cd-item:not(.selected)::before { content:''; display:inline-block; width:.75rem; }
+      .cd-divider { height:1px; background:#f3f4f6; margin:2px 0; }
       .btn-submit{background:#7c3aed;color:#fff;padding:10px 20px;border:none;border-radius:8px;font-weight:700;cursor:pointer;}
       .btn-green{background:#16a34a;color:#fff;padding:10px 20px;border:none;border-radius:8px;font-weight:700;cursor:pointer;}
     </style>
@@ -126,43 +124,77 @@
   <!-- Filter form -->
   <div class="card">
     <form method="POST" id="reportForm">
+      <!-- Hidden inputs carry values on submit -->
+      <input type="hidden" name="month" id="inp_month" value="{{ month }}">
+      <input type="hidden" name="broker_filter" id="inp_broker" value="{{ broker }}">
+      <input type="hidden" name="paid_filter" id="inp_status" value="{{ paid_filter }}">
+
       <!-- Row 1: Month / Year / Broker / Status -->
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;">
+
+        <!-- MONTH -->
         <div>
           <label style="font-size:.75rem;font-weight:700;color:#374151;display:block;margin-bottom:4px;">MONTH</label>
-          <div class="custom-select-wrap">
-            <select name="month">
+          <div class="cd-wrap" id="cd_month">
+            <button type="button" class="cd-btn" onclick="cdToggle('cd_month')">
+              <span class="cd-label">{{ MONTHS[month] }}</span>
+              <span class="cd-arrow">▼</span>
+            </button>
+            <div class="cd-list" id="cd_month_list">
               {% for i in range(1,13) %}
-              <option value="{{ i }}" {% if i==month %}selected{% endif %}>{{ MONTHS[i] }}</option>
+              <div class="cd-item {% if i==month %}selected{% endif %}" onclick="cdPick('cd_month','inp_month','{{ i }}','{{ MONTHS[i] }}')">
+                {{ MONTHS[i] }}
+              </div>
               {% endfor %}
-            </select>
+            </div>
           </div>
         </div>
+
+        <!-- YEAR -->
         <div>
           <label style="font-size:.75rem;font-weight:700;color:#374151;display:block;margin-bottom:4px;">YEAR</label>
-          <input type="number" name="year" value="{{ year }}" style="width:90px;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.88rem;">
+          <input type="number" name="year" value="{{ year }}" style="width:90px;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.88rem;font-weight:600;color:#1a1a2e;outline:none;" onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#e5e7eb'">
         </div>
+
+        <!-- BROKER FILTER -->
         <div>
           <label style="font-size:.75rem;font-weight:700;color:#374151;display:block;margin-bottom:4px;">BROKER FILTER</label>
-          <div class="custom-select-wrap">
-            <select name="broker_filter" onchange="filterCheckboxes(this.value)">
-              <option value="All" {% if broker=='All' %}selected{% endif %}>All Brokers</option>
+          <div class="cd-wrap" id="cd_broker" style="min-width:150px;">
+            <button type="button" class="cd-btn" onclick="cdToggle('cd_broker')">
+              <span class="cd-label">{{ broker if broker != 'All' else 'All Brokers' }}</span>
+              <span class="cd-arrow">▼</span>
+            </button>
+            <div class="cd-list" id="cd_broker_list">
+              <div class="cd-item {% if broker=='All' %}selected{% endif %}" onclick="cdPick('cd_broker','inp_broker','All','All Brokers');filterCheckboxes('All')">
+                All Brokers
+              </div>
+              <div class="cd-divider"></div>
               {% for b in all_brokers %}
-              <option value="{{ b }}" {% if b==broker %}selected{% endif %}>{{ b }}</option>
+              <div class="cd-item {% if b==broker %}selected{% endif %}" onclick="cdPick('cd_broker','inp_broker','{{ b }}','{{ b }}');filterCheckboxes('{{ b }}')">
+                {{ b }}
+              </div>
               {% endfor %}
-            </select>
+            </div>
           </div>
         </div>
+
+        <!-- STATUS -->
         <div>
           <label style="font-size:.75rem;font-weight:700;color:#374151;display:block;margin-bottom:4px;">STATUS</label>
-          <div class="custom-select-wrap">
-            <select name="paid_filter">
-              <option value="" {% if paid_filter=='' %}selected{% endif %}>All</option>
-              <option value="paid"   {% if paid_filter=='paid'   %}selected{% endif %}>Paid</option>
-              <option value="unpaid" {% if paid_filter=='unpaid' %}selected{% endif %}>Unpaid</option>
-            </select>
+          <div class="cd-wrap" id="cd_status" style="min-width:110px;">
+            <button type="button" class="cd-btn" onclick="cdToggle('cd_status')">
+              <span class="cd-label">{% if paid_filter=='paid' %}Paid{% elif paid_filter=='unpaid' %}Unpaid{% else %}All{% endif %}</span>
+              <span class="cd-arrow">▼</span>
+            </button>
+            <div class="cd-list" id="cd_status_list">
+              <div class="cd-item {% if paid_filter=='' %}selected{% endif %}" onclick="cdPick('cd_status','inp_status','','All')">All</div>
+              <div class="cd-item {% if paid_filter=='paid' %}selected{% endif %}" onclick="cdPick('cd_status','inp_status','paid','Paid')">Paid</div>
+              <div class="cd-item {% if paid_filter=='unpaid' %}selected{% endif %}" onclick="cdPick('cd_status','inp_status','unpaid','Unpaid')">Unpaid</div>
+            </div>
           </div>
         </div>
+
+        <!-- BUTTONS -->
         <div style="display:flex;gap:8px;align-items:flex-end;">
           <button type="submit" class="btn-submit">🔍 Generate</button>
           <button type="button" onclick="csvExport()" class="btn-green">📥 CSV</button>
@@ -241,6 +273,38 @@
     filterCheckboxes('{{ broker }}');
     updateCount();
   });
+
+  // ── Custom Dropdown ────────────────────────────────────────
+  function cdToggle(id) {
+    var wrap = document.getElementById(id);
+    var btn  = wrap.querySelector('.cd-btn');
+    var list = wrap.querySelector('.cd-list');
+    var isOpen = list.classList.contains('show');
+    // close all others first
+    document.querySelectorAll('.cd-list.show').forEach(function(l){ l.classList.remove('show'); });
+    document.querySelectorAll('.cd-btn.open').forEach(function(b){ b.classList.remove('open'); });
+    if (!isOpen) {
+      list.classList.add('show');
+      btn.classList.add('open');
+    }
+  }
+  function cdPick(wrapId, inputId, value, label) {
+    document.getElementById(inputId).value = value;
+    var wrap = document.getElementById(wrapId);
+    wrap.querySelector('.cd-label').textContent = label;
+    wrap.querySelectorAll('.cd-item').forEach(function(item){
+      item.classList.toggle('selected', item.textContent.trim() === label);
+    });
+    wrap.querySelector('.cd-list').classList.remove('show');
+    wrap.querySelector('.cd-btn').classList.remove('open');
+  }
+  // close dropdown on outside click
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.cd-wrap')) {
+      document.querySelectorAll('.cd-list.show').forEach(function(l){ l.classList.remove('show'); });
+      document.querySelectorAll('.cd-btn.open').forEach(function(b){ b.classList.remove('open'); });
+    }
+  });
   </script>
 
   <!-- Record monthly profit -->
@@ -254,13 +318,18 @@
       <input type="hidden" name="total_generated" id="final_generated" value="{{ total_generated }}">
       <div>
         <label style="font-size:.75rem;font-weight:700;display:block;margin-bottom:4px;">INPUT TYPE</label>
-        <div class="custom-select-wrap" style="--sel-border:#bbf7d0;">
-        <select id="profit_input_mode" onchange="calcProfit()" style="border-color:#bbf7d0;">
-          <option value="usd">$ Dollar</option>
-          <option value="aed">AED</option>
-          <option value="pct">% of Capital</option>
-        </select>
+        <div class="cd-wrap" id="cd_profit_type" style="min-width:120px;">
+          <button type="button" class="cd-btn" onclick="cdToggle('cd_profit_type')" style="border-color:#bbf7d0;">
+            <span class="cd-label">$ Dollar</span>
+            <span class="cd-arrow">▼</span>
+          </button>
+          <div class="cd-list" id="cd_profit_type_list">
+            <div class="cd-item selected" onclick="cdPick('cd_profit_type','profit_input_mode','usd','$ Dollar');calcProfit()">$ Dollar</div>
+            <div class="cd-item" onclick="cdPick('cd_profit_type','profit_input_mode','aed','AED');calcProfit()">AED</div>
+            <div class="cd-item" onclick="cdPick('cd_profit_type','profit_input_mode','pct','% of Capital');calcProfit()">% of Capital</div>
+          </div>
         </div>
+        <input type="hidden" id="profit_input_mode" name="profit_input_mode" value="usd">
       </div>
       <div>
         <label style="font-size:.75rem;font-weight:700;display:block;margin-bottom:4px;">AMOUNT</label>
