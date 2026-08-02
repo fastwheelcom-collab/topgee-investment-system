@@ -140,15 +140,16 @@
             <button type="button" onclick="checkAll(false)" style="font-size:.75rem;color:#dc2626;background:none;border:none;cursor:pointer;font-weight:700;">✕ None</button>
           </div>
         </div>
-        <div id="investorCheckboxes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));">
+        <div id="investorCheckboxes">
           {% for inv in all_active_investors %}
           <label class="inv-cb-label" data-broker="{{ inv.broker_name or 'None' }}"
-                 style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid #f3f4f6;cursor:pointer;font-size:.84rem;font-weight:600;transition:background .1s;">
+                 style="display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid #f0f0f0;cursor:pointer;font-size:.85rem;">
             <input type="checkbox" name="inv_ids" value="{{ inv.id }}"
                    {% if not selected_ids or inv.id in selected_ids %}checked{% endif %}
-                   style="accent-color:#7c3aed;width:14px;height:14px;flex-shrink:0;">
-            <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ inv.name }}</span>
-            {% if inv.broker_name %}<span style="font-size:.7rem;color:#9ca3af;font-weight:400;flex-shrink:0;">{{ inv.broker_name }}</span>{% endif %}
+                   style="accent-color:#7c3aed;width:15px;height:15px;flex-shrink:0;">
+            <span style="font-weight:600;flex:1;">{{ inv.name }}</span>
+            <span style="font-size:.75rem;color:#9ca3af;">{{ inv.broker_name or '—' }}</span>
+            <span style="font-size:.75rem;color:#6b7280;">${{ '{:,.0f}'.format(inv.capital_usd) }}</span>
           </label>
           {% endfor %}
         </div>
