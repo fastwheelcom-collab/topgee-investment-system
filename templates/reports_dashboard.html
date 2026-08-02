@@ -129,7 +129,11 @@
                 <button type="submit" class="btn-primary">🔍 Generate</button>
                 <a href="?report_type={{ report_type }}" class="btn-secondary">↺ Reset</a>
                 <button type="button" onclick="window.print()" class="btn-secondary">🖨️ Print</button>
+                {% if report_type == 'investor_active' %}
+                <a href="{{ url_for('reports_export_csv') }}?report_type=investor_active&investor_id={{ filters.investor_id or '' }}&month={{ filters.month or '' }}&year={{ filters.year or '' }}&paid_filter={{ paid_filter or '' }}" class="btn-secondary" title="Export as CSV">📥 CSV</a>
+                {% else %}
                 <button type="button" onclick="dlCSV()" class="btn-secondary" title="Export as CSV">📥 CSV</button>
+                {% endif %}
                 <button type="button" onclick="dlPDF()" class="btn-secondary" style="background:#dc2626;color:#fff;border-color:#dc2626;" title="Export as PDF">📄 PDF</button>
             </div>
         </div>

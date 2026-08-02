@@ -1786,6 +1786,130 @@ def reports_dashboard():
         paid_filter      = paid_filter,
     )
 
+@app.route('/reports/export-csv')
+@login_required
+def reports_export_csv():
+    """Export filtered investor_active report as CSV"""
+    import csv, io
+    investor_id_filt = request.args.get('investor_id', '')
+    month_filt       = request.args.get('month', '')
+    year_filt        = request.args.get('year', str(datetime.now().year))
+    paid_filter      = request.args.get('paid_filter', '')
+
+    MONTHS = ['January','February','March','April','May','June',
+              'July','August','September','October','November','December']
+    _pfx = re.compile(r'^(Mr\.?|Mrs\.?|Ms\.?|Dr\.?)\s*', re.IGNORECASE)
+    def _sk(inv): return _pfx.sub('', inv.name).strip().lower()
+    all_investors = sorted(Investor.query.all(), key=_sk)
+    now = datetime.now()
+
+    def build_inv_row(inv):
+        txns = InvestmentTransaction.query.filter_by(investor_id=inv.id).all()
+        inv_payouts = [t for t in txns if t.transaction_type == 'Investor Payout']
+        months_active = 0
+        if inv.contract_start:
+            months_active = max(0,(now.year-inv.contract_start.year)*12+(now.month-inv.contract_start.month))
+        total_paid = sum(t.amount for t in inv_payouts)
+        paid_months = set()
+        for t in inv_payouts:
+            if t.payout_month and t.payout_year:
+                paid_months.add((t.payout_year, t.payout_month))
+        untagged_amount = sum(t.amount for t in inv_payouts if not (t.payout_month and t.payout_year))
+        pending_months = 0
+        outstanding = 0.0
+        monthly_ref = inv.monthly_investor_roi if inv.monthly_investor_roi > 0 else 1
+        TRACK_FROM = (2026, 6)
+        monthly = {}
+        for t in inv_payouts:
+            if t.payout_month and t.payout_year:
+                key = (t.payout_year, t.payout_month)
+                monthly[key] = monthly.get(key, 0) + t.amount
+        if inv.contract_start:
+            y, m = max((inv.contract_start.year, inv.contract_start.month), TRACK_FROM)
+            last_y, last_m = now.year, now.month - 1
+            if last_m == 0: last_m = 12; last_y -= 1
+            while (y < last_y) or (y == last_y and m <= last_m):
+                if (y, m) not in paid_months:
+                    if untagged_amount >= monthly_ref: untagged_amount -= monthly_ref
+                    elif untagged_amount > 0: untagged_amount = 0
+                    else: pending_months += 1; outstanding += inv.monthly_investor_roi
+                m += 1
+                if m > 12: m = 1; y += 1
+        return {
+            'inv': inv, 'capital': inv.total_capital, 'monthly_roi': inv.monthly_investor_roi,
+            'total_paid': total_paid, 'outstanding': outstanding, 'pending_months': pending_months,
+            'months_active': months_active, 'monthly': monthly,
+            'rep_name': inv.sales_rep.name if inv.sales_rep else '—',
+        }
+
+    all_rows = [build_inv_row(inv) for inv in all_investors]
+    filtered_rows = [r for r in all_rows if str(r['inv'].id) == investor_id_filt] if investor_id_filt else all_rows
+
+    sel_month = int(month_filt) if month_filt else 0
+    sel_year  = int(year_filt)  if year_filt  else 0
+
+    if sel_month and sel_year:
+        filtered_rows = [r for r in filtered_rows
+                         if r['inv'].contract_start and
+                         (r['inv'].contract_start.year, r['inv'].contract_start.month) <= (sel_year, sel_month)]
+        if paid_filter == 'paid':
+            filtered_rows = [r for r in filtered_rows if r['monthly'].get((sel_year, sel_month), 0) > 0]
+        elif paid_filter == 'unpaid':
+            filtered_rows = [r for r in filtered_rows if r['monthly'].get((sel_year, sel_month), 0) == 0]
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Header
+    month_label = f"{MONTHS[sel_month-1]} {sel_year}" if sel_month and sel_year else 'All Time'
+    status_label = paid_filter.capitalize() if paid_filter else 'All'
+    writer.writerow([f'TopGee It — Investor Report | {month_label} | Status: {status_label}'])
+    writer.writerow([])
+    writer.writerow(['Investor', 'Category', 'Sales Rep', 'Capital (AED)', 'ROI %',
+                     'Est. Monthly (AED)', 'Months Active', 'Total Paid (AED)',
+                     'Pending Months', 'Outstanding (AED)',
+                     'Contract Start', 'Contract End',
+                     f'Paid {month_label}' if (sel_month and sel_year) else 'Month Status'])
+
+    for r in filtered_rows:
+        month_paid_amt = r['monthly'].get((sel_year, sel_month), 0) if (sel_month and sel_year) else ''
+        if sel_month and sel_year:
+            month_status = f"Paid ({month_paid_amt:,.0f})" if month_paid_amt > 0 else 'Unpaid'
+        else:
+            month_status = ''
+        writer.writerow([
+            r['inv'].name,
+            r['inv'].category,
+            r['rep_name'],
+            f"{r['capital']:,.0f}",
+            f"{r['inv'].investor_roi_percent}%",
+            f"{r['monthly_roi']:,.0f}",
+            f"{r['months_active']} mo",
+            f"{r['total_paid']:,.0f}",
+            r['pending_months'],
+            f"{r['outstanding']:,.0f}",
+            r['inv'].contract_start.strftime('%d %b %Y') if r['inv'].contract_start else '',
+            r['inv'].contract_end.strftime('%d %b %Y') if r['inv'].contract_end else '',
+            month_status,
+        ])
+
+    writer.writerow([])
+    writer.writerow(['TOTAL', '', '', f"{sum(r['capital'] for r in filtered_rows):,.0f}", '',
+                     f"{sum(r['monthly_roi'] for r in filtered_rows):,.0f}", '',
+                     f"{sum(r['total_paid'] for r in filtered_rows):,.0f}", '',
+                     f"{sum(r['outstanding'] for r in filtered_rows):,.0f}", '', '', ''])
+
+    from flask import make_response
+    today = datetime.now().strftime('%Y-%m-%d')
+    month_slug = f"_{MONTHS[sel_month-1]}_{sel_year}" if sel_month and sel_year else ''
+    status_slug = f"_{paid_filter}" if paid_filter else ''
+    filename = f"TopGeeIt_InvestorReport{month_slug}{status_slug}_{today}.csv"
+    resp = make_response('\ufeff' + output.getvalue())
+    resp.headers['Content-Type'] = 'text/csv; charset=utf-8'
+    resp.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return resp
+
+
 @app.route('/investor/<int:investor_id>/transaction/add', methods=['POST'])
 @admin_required
 def add_transaction(investor_id):
