@@ -92,41 +92,117 @@
 
   <!-- Filter form -->
   <div class="card">
-    <form method="POST" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-      <div>
-        <label style="font-size:.75rem;font-weight:700;color:#374151;display:block;margin-bottom:4px;">MONTH</label>
-        <select name="month">
-          {% for i in range(1,13) %}
-          <option value="{{ i }}" {% if i==month %}selected{% endif %}>{{ MONTHS[i] }}</option>
+    <form method="POST" id="reportForm">
+      <!-- Row 1: Month / Year / Broker / Status -->
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;">
+        <div>
+          <label style="font-size:.75rem;font-weight:700;color:#374151;display:block;margin-bottom:4px;">MONTH</label>
+          <select name="month">
+            {% for i in range(1,13) %}
+            <option value="{{ i }}" {% if i==month %}selected{% endif %}>{{ MONTHS[i] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:.75rem;font-weight:700;color:#374151;display:block;margin-bottom:4px;">YEAR</label>
+          <input type="number" name="year" value="{{ year }}" style="width:90px;">
+        </div>
+        <div>
+          <label style="font-size:.75rem;font-weight:700;color:#374151;display:block;margin-bottom:4px;">BROKER FILTER</label>
+          <select name="broker_filter" onchange="filterCheckboxes(this.value)">
+            <option value="All" {% if broker=='All' %}selected{% endif %}>All Brokers</option>
+            {% for b in all_brokers %}
+            <option value="{{ b }}" {% if b==broker %}selected{% endif %}>{{ b }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:.75rem;font-weight:700;color:#374151;display:block;margin-bottom:4px;">STATUS</label>
+          <select name="paid_filter">
+            <option value="" {% if paid_filter=='' %}selected{% endif %}>All</option>
+            <option value="paid"   {% if paid_filter=='paid'   %}selected{% endif %}>✅ Paid</option>
+            <option value="unpaid" {% if paid_filter=='unpaid' %}selected{% endif %}>❌ Unpaid</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-end;">
+          <button type="submit" class="btn-submit">🔍 Generate</button>
+          <button type="button" onclick="csvExport()" class="btn-green">📥 CSV</button>
+          <button type="button" onclick="window.print()" style="background:#374151;color:#fff;padding:10px 16px;border:none;border-radius:8px;font-weight:700;cursor:pointer;">🖨️ Print</button>
+        </div>
+      </div>
+
+      <!-- Row 2: Investor checkboxes -->
+      <div style="border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;background:#f9fafb;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-size:.75rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px;">SELECT INVESTORS</span>
+          <div style="display:flex;gap:10px;">
+            <button type="button" onclick="checkAll(true)"  style="font-size:.75rem;color:#7c3aed;background:none;border:none;cursor:pointer;font-weight:700;">✔ All</button>
+            <button type="button" onclick="checkAll(false)" style="font-size:.75rem;color:#dc2626;background:none;border:none;cursor:pointer;font-weight:700;">✕ None</button>
+          </div>
+        </div>
+        <div id="investorCheckboxes" style="display:flex;flex-wrap:wrap;gap:8px;">
+          {% for inv in all_active_investors %}
+          <label class="inv-cb-label" data-broker="{{ inv.broker_name or 'None' }}"
+                 style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border:1.5px solid #e5e7eb;border-radius:20px;cursor:pointer;font-size:.83rem;font-weight:600;background:#fff;transition:all .15s;"
+                 onclick="this.classList.toggle('cb-checked')">
+            <input type="checkbox" name="inv_ids" value="{{ inv.id }}"
+                   {% if not selected_ids or inv.id in selected_ids %}checked{% endif %}
+                   style="accent-color:#7c3aed;width:14px;height:14px;">
+            {{ inv.name }}
+            {% if inv.broker_name %}<span style="font-size:.7rem;color:#9ca3af;font-weight:400;">{{ inv.broker_name }}</span>{% endif %}
+          </label>
           {% endfor %}
-        </select>
+        </div>
+        <div style="margin-top:8px;font-size:.75rem;color:#9ca3af;" id="cbCount"></div>
       </div>
-      <div>
-        <label style="font-size:.75rem;font-weight:700;color:#374151;display:block;margin-bottom:4px;">YEAR</label>
-        <input type="number" name="year" value="{{ year }}" style="width:90px;">
-      </div>
-      <div>
-        <label style="font-size:.75rem;font-weight:700;color:#374151;display:block;margin-bottom:4px;">BROKER FILTER</label>
-        <select name="broker_filter">
-          <option value="All" {% if broker=='All' %}selected{% endif %}>All Brokers</option>
-          {% for b in all_brokers %}
-          <option value="{{ b }}" {% if b==broker %}selected{% endif %}>{{ b }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div>
-        <label style="font-size:.75rem;font-weight:700;color:#374151;display:block;margin-bottom:4px;">STATUS</label>
-        <select name="paid_filter">
-          <option value="" {% if paid_filter=='' %}selected{% endif %}>All Investors</option>
-          <option value="paid"   {% if paid_filter=='paid'   %}selected{% endif %}>✅ Paid</option>
-          <option value="unpaid" {% if paid_filter=='unpaid' %}selected{% endif %}>❌ Unpaid</option>
-        </select>
-      </div>
-      <button type="submit" class="btn-submit">🔍 Generate Report</button>
-      <a href="{{ url_for('forex_report_export_csv') }}?year={{ year }}&month={{ month }}&broker_filter={{ broker }}&paid_filter={{ paid_filter }}" class="btn-green" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">📥 CSV</a>
-      <button type="button" onclick="window.print()" style="background:#374151;color:#fff;padding:10px 20px;border:none;border-radius:8px;font-weight:700;cursor:pointer;">🖨️ Print</button>
     </form>
   </div>
+
+  <script>
+  function checkAll(val) {
+    document.querySelectorAll('#investorCheckboxes input[type=checkbox]').forEach(cb => {
+      const lbl = cb.closest('label');
+      cb.checked = val;
+      lbl.style.borderColor = val ? '#7c3aed' : '#e5e7eb';
+      lbl.style.background  = val ? '#f5f3ff' : '#fff';
+    });
+    updateCount();
+  }
+  function filterCheckboxes(broker) {
+    document.querySelectorAll('#investorCheckboxes .inv-cb-label').forEach(lbl => {
+      const b = lbl.getAttribute('data-broker');
+      lbl.style.display = (broker === 'All' || b === broker) ? '' : 'none';
+    });
+  }
+  function updateCount() {
+    const total   = document.querySelectorAll('#investorCheckboxes input[type=checkbox]').length;
+    const checked = document.querySelectorAll('#investorCheckboxes input[type=checkbox]:checked').length;
+    document.getElementById('cbCount').textContent = checked + ' of ' + total + ' investors selected';
+  }
+  function csvExport() {
+    const form = document.getElementById('reportForm');
+    const url  = new URL('{{ url_for("forex_report_export_csv") }}', window.location.origin);
+    const data = new FormData(form);
+    // Convert to GET params
+    for (const [k, v] of data.entries()) url.searchParams.append(k, v);
+    window.location.href = url.toString();
+  }
+  // Init styles for pre-checked boxes
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('#investorCheckboxes input[type=checkbox]').forEach(cb => {
+      const lbl = cb.closest('label');
+      lbl.style.borderColor = cb.checked ? '#7c3aed' : '#e5e7eb';
+      lbl.style.background  = cb.checked ? '#f5f3ff' : '#fff';
+      cb.addEventListener('change', function() {
+        lbl.style.borderColor = cb.checked ? '#7c3aed' : '#e5e7eb';
+        lbl.style.background  = cb.checked ? '#f5f3ff' : '#fff';
+        updateCount();
+      });
+    });
+    filterCheckboxes('{{ broker }}');
+    updateCount();
+  });
+  </script>
 
   <!-- Record monthly profit -->
   {% if is_admin %}

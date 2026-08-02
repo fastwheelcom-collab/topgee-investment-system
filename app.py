@@ -3630,12 +3630,22 @@ def forex_report():
     year     = int(request.values.get('year', now.year))
     month    = int(request.values.get('month', now.month))
     broker   = request.values.get('broker_filter','All')
-    paid_filter = request.values.get('paid_filter', '')  # '' | 'paid' | 'unpaid'
+    paid_filter  = request.values.get('paid_filter', '')  # '' | 'paid' | 'unpaid'
+    # Multi-select investor checkboxes (list of IDs as strings)
+    selected_ids = request.values.getlist('inv_ids')  # empty = all
 
-    # All active investors — filter by broker if selected
-    investors = ForexInvestor.query.filter_by(status='Active').all()
+    # All active investors for the checkbox list (always full list)
+    all_active_investors = ForexInvestor.query.filter_by(status='Active').order_by(ForexInvestor.name).all()
+
+    # Filter by broker first
+    investors = list(all_active_investors)
     if broker != 'All':
         investors = [i for i in investors if i.broker_name == broker]
+
+    # Then filter by selected investor checkboxes (if any unchecked)
+    if selected_ids:
+        sel_set = set(int(x) for x in selected_ids if x.isdigit())
+        investors = [i for i in investors if i.id in sel_set]
 
     # Monthly profit record
     profit_record = ForexMonthlyProfit.query.filter_by(
@@ -3691,6 +3701,8 @@ def forex_report():
     return render_template('forex_report.html',
         year=year, month=month, broker=broker,
         investors=investors, rows=rows,
+        all_active_investors=all_active_investors,
+        selected_ids=[int(x) for x in selected_ids if x.isdigit()] if selected_ids else [],
         total_generated=total_generated,
         total_capital=total_capital,
         total_broker_share=total_broker_share,
@@ -3745,13 +3757,17 @@ def forex_report_export_csv():
     year   = int(request.args.get('year', now.year))
     month  = int(request.args.get('month', now.month))
     broker = request.args.get('broker_filter', 'All')
-    paid_filter = request.args.get('paid_filter', '')
+    paid_filter  = request.args.get('paid_filter', '')
+    selected_ids = request.args.getlist('inv_ids')
     MONTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
     AED    = 3.67
 
     investors = ForexInvestor.query.filter_by(status='Active').all()
     if broker != 'All':
         investors = [i for i in investors if i.broker_name == broker]
+    if selected_ids:
+        sel_set = set(int(x) for x in selected_ids if x.isdigit())
+        investors = [i for i in investors if i.id in sel_set]
 
     profit_record = ForexMonthlyProfit.query.filter_by(year=year, month=month, broker_name=broker).first()
     total_generated = profit_record.total_generated if profit_record else 0.0
