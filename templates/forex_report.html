@@ -20,36 +20,115 @@
       .partner-card .val{font-size:1.8rem;font-weight:900;}
       input[type=number]{padding:8px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.9rem;}
 
-      /* Custom dropdown */
-      .cd-wrap { position:relative; display:inline-block; min-width:130px; }
+      /* ── Custom Dropdown ─────────────────────────────── */
+      .cd-wrap {
+        position: relative;
+        display: inline-block;
+        min-width: 130px;
+      }
       .cd-btn {
-        width:100%; background:#fff; border:1.5px solid #e5e7eb; border-radius:8px;
-        padding:9px 36px 9px 12px; font-size:.88rem; color:#1a1a2e; font-weight:600;
-        cursor:pointer; text-align:left; display:flex; align-items:center;
-        justify-content:space-between; gap:8px; transition:border-color .15s, box-shadow .15s;
-        white-space:nowrap; user-select:none;
+        width: 100%;
+        background: #f9fafb;
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: .9rem;
+        color: #111827;
+        font-weight: 700;
+        cursor: pointer;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        transition: all .15s;
+        white-space: nowrap;
+        user-select: none;
+        line-height: 1.2;
       }
-      .cd-btn:hover { border-color:#7c3aed; }
-      .cd-btn.open { border-color:#7c3aed; box-shadow:0 0 0 3px rgba(124,58,237,.12); }
-      .cd-btn .cd-arrow { font-size:.6rem; color:#7c3aed; transition:transform .15s; flex-shrink:0; }
-      .cd-btn.open .cd-arrow { transform:rotate(180deg); }
+      .cd-btn:hover {
+        background: #f3f0ff;
+        border-color: #7c3aed;
+        color: #6d28d9;
+      }
+      .cd-btn.open {
+        background: #ede9fe;
+        border-color: #7c3aed;
+        color: #6d28d9;
+        box-shadow: 0 0 0 3px rgba(124,58,237,.15);
+      }
+      .cd-arrow-icon {
+        width: 18px;
+        height: 18px;
+        background: #7c3aed;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: transform .2s;
+      }
+      .cd-btn.open .cd-arrow-icon { transform: rotate(180deg); }
+      .cd-arrow-icon svg { display:block; }
       .cd-list {
-        display:none; position:absolute; top:calc(100% + 4px); left:0; min-width:100%;
-        background:#fff; border:1.5px solid #e5e7eb; border-radius:10px;
-        box-shadow:0 8px 24px rgba(0,0,0,.12); z-index:9999; overflow:hidden;
-        animation: cdFadeIn .12s ease;
+        display: none;
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        min-width: 100%;
+        background: #fff;
+        border: 2px solid #ede9fe;
+        border-radius: 12px;
+        box-shadow: 0 12px 32px rgba(124,58,237,.15), 0 2px 8px rgba(0,0,0,.08);
+        z-index: 9999;
+        overflow: hidden;
+        padding: 4px 0;
       }
-      .cd-list.show { display:block; }
-      @keyframes cdFadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+      .cd-list.show {
+        display: block;
+        animation: cdPop .15s cubic-bezier(.34,1.56,.64,1);
+      }
+      @keyframes cdPop {
+        from { opacity:0; transform:translateY(-8px) scale(.97); }
+        to   { opacity:1; transform:translateY(0) scale(1); }
+      }
       .cd-item {
-        padding:9px 14px; font-size:.88rem; color:#374151; cursor:pointer;
-        font-weight:500; transition:background .1s; display:flex; align-items:center; gap:8px;
+        padding: 10px 16px;
+        font-size: .88rem;
+        color: #374151;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background .1s;
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
-      .cd-item:hover { background:#f5f3ff; color:#7c3aed; }
-      .cd-item.selected { background:#ede9fe; color:#6d28d9; font-weight:700; }
-      .cd-item.selected::before { content:'✓'; font-size:.75rem; color:#7c3aed; }
-      .cd-item:not(.selected)::before { content:''; display:inline-block; width:.75rem; }
-      .cd-divider { height:1px; background:#f3f4f6; margin:2px 0; }
+      .cd-item:hover {
+        background: #f5f3ff;
+        color: #6d28d9;
+      }
+      .cd-item.selected {
+        background: #ede9fe;
+        color: #6d28d9;
+        font-weight: 700;
+      }
+      .cd-item .cd-check {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 2px solid #d1d5db;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .65rem;
+      }
+      .cd-item.selected .cd-check {
+        background: #7c3aed;
+        border-color: #7c3aed;
+        color: #fff;
+      }
+      .cd-divider { height: 1px; background: #f3f4f6; margin: 4px 0; }
       .btn-submit{background:#7c3aed;color:#fff;padding:10px 20px;border:none;border-radius:8px;font-weight:700;cursor:pointer;}
       .btn-green{background:#16a34a;color:#fff;padding:10px 20px;border:none;border-radius:8px;font-weight:700;cursor:pointer;}
     </style>
@@ -138,11 +217,11 @@
           <div class="cd-wrap" id="cd_month">
             <button type="button" class="cd-btn" onclick="cdToggle('cd_month')">
               <span class="cd-label">{{ MONTHS[month] }}</span>
-              <span class="cd-arrow">▼</span>
+              <div class="cd-arrow-icon"><svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
             </button>
             <div class="cd-list" id="cd_month_list">
               {% for i in range(1,13) %}
-              <div class="cd-item {% if i==month %}selected{% endif %}" onclick="cdPick('cd_month','inp_month','{{ i }}','{{ MONTHS[i] }}')">
+              <div class="cd-item {% if i==month %}selected{% endif %}" onclick="cdPick('cd_month','inp_month','{{ i }}','{{ MONTHS[i] }}')"><span class="cd-check">✓</span>
                 {{ MONTHS[i] }}
               </div>
               {% endfor %}
@@ -162,15 +241,15 @@
           <div class="cd-wrap" id="cd_broker" style="min-width:150px;">
             <button type="button" class="cd-btn" onclick="cdToggle('cd_broker')">
               <span class="cd-label">{{ broker if broker != 'All' else 'All Brokers' }}</span>
-              <span class="cd-arrow">▼</span>
+              <div class="cd-arrow-icon"><svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
             </button>
             <div class="cd-list" id="cd_broker_list">
-              <div class="cd-item {% if broker=='All' %}selected{% endif %}" onclick="cdPick('cd_broker','inp_broker','All','All Brokers');filterCheckboxes('All')">
+              <div class="cd-item {% if broker=='All' %}selected{% endif %}" onclick="cdPick('cd_broker','inp_broker','All','All Brokers');filterCheckboxes('All')"><span class="cd-check">✓</span>
                 All Brokers
               </div>
               <div class="cd-divider"></div>
               {% for b in all_brokers %}
-              <div class="cd-item {% if b==broker %}selected{% endif %}" onclick="cdPick('cd_broker','inp_broker','{{ b }}','{{ b }}');filterCheckboxes('{{ b }}')">
+              <div class="cd-item {% if b==broker %}selected{% endif %}" onclick="cdPick('cd_broker','inp_broker','{{ b }}','{{ b }}');filterCheckboxes('{{ b }}')"><span class="cd-check">✓</span>
                 {{ b }}
               </div>
               {% endfor %}
@@ -184,12 +263,12 @@
           <div class="cd-wrap" id="cd_status" style="min-width:110px;">
             <button type="button" class="cd-btn" onclick="cdToggle('cd_status')">
               <span class="cd-label">{% if paid_filter=='paid' %}Paid{% elif paid_filter=='unpaid' %}Unpaid{% else %}All{% endif %}</span>
-              <span class="cd-arrow">▼</span>
+              <div class="cd-arrow-icon"><svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
             </button>
             <div class="cd-list" id="cd_status_list">
-              <div class="cd-item {% if paid_filter=='' %}selected{% endif %}" onclick="cdPick('cd_status','inp_status','','All')">All</div>
-              <div class="cd-item {% if paid_filter=='paid' %}selected{% endif %}" onclick="cdPick('cd_status','inp_status','paid','Paid')">Paid</div>
-              <div class="cd-item {% if paid_filter=='unpaid' %}selected{% endif %}" onclick="cdPick('cd_status','inp_status','unpaid','Unpaid')">Unpaid</div>
+              <div class="cd-item {% if paid_filter=='' %}selected{% endif %}" onclick="cdPick('cd_status','inp_status','','All')"><span class="cd-check">✓</span>All</div>
+              <div class="cd-item {% if paid_filter=='paid' %}selected{% endif %}" onclick="cdPick('cd_status','inp_status','paid','Paid')"><span class="cd-check">✓</span>Paid</div>
+              <div class="cd-item {% if paid_filter=='unpaid' %}selected{% endif %}" onclick="cdPick('cd_status','inp_status','unpaid','Unpaid')"><span class="cd-check">✓</span>Unpaid</div>
             </div>
           </div>
         </div>
@@ -321,12 +400,12 @@
         <div class="cd-wrap" id="cd_profit_type" style="min-width:120px;">
           <button type="button" class="cd-btn" onclick="cdToggle('cd_profit_type')" style="border-color:#bbf7d0;">
             <span class="cd-label">$ Dollar</span>
-            <span class="cd-arrow">▼</span>
+            <div class="cd-arrow-icon"><svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           </button>
           <div class="cd-list" id="cd_profit_type_list">
-            <div class="cd-item selected" onclick="cdPick('cd_profit_type','profit_input_mode','usd','$ Dollar');calcProfit()">$ Dollar</div>
-            <div class="cd-item" onclick="cdPick('cd_profit_type','profit_input_mode','aed','AED');calcProfit()">AED</div>
-            <div class="cd-item" onclick="cdPick('cd_profit_type','profit_input_mode','pct','% of Capital');calcProfit()">% of Capital</div>
+            <div class="cd-item selected" onclick="cdPick('cd_profit_type','profit_input_mode','usd','$ Dollar');calcProfit()"><span class="cd-check">✓</span>$ Dollar</div>
+            <div class="cd-item" onclick="cdPick('cd_profit_type','profit_input_mode','aed','AED');calcProfit()"><span class="cd-check"></span>AED</div>
+            <div class="cd-item" onclick="cdPick('cd_profit_type','profit_input_mode','pct','% of Capital');calcProfit()"><span class="cd-check"></span>% of Capital</div>
           </div>
         </div>
         <input type="hidden" id="profit_input_mode" name="profit_input_mode" value="usd">
