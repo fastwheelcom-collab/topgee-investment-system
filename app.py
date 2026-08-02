@@ -3630,6 +3630,7 @@ def forex_report():
     year     = int(request.values.get('year', now.year))
     month    = int(request.values.get('month', now.month))
     broker   = request.values.get('broker_filter','All')
+    paid_filter = request.values.get('paid_filter', '')  # '' | 'paid' | 'unpaid'
 
     # All active investors — filter by broker if selected
     investors = ForexInvestor.query.filter_by(status='Active').all()
@@ -3665,6 +3666,12 @@ def forex_report():
         total_broker_share += broker_earn
         total_inv_share    += inv_due
 
+    # Apply paid/unpaid filter to rows
+    if paid_filter == 'paid':
+        rows = [r for r in rows if r['paid'] > 0]
+    elif paid_filter == 'unpaid':
+        rows = [r for r in rows if r['paid'] == 0]
+
     total_net           = round(total_broker_share - total_inv_share, 2)
     # Partner share = what's left after broker takes their cut from total generated
     generated_remaining = round(total_generated - total_broker_share, 2)
@@ -3697,6 +3704,7 @@ def forex_report():
         MONTHS=MONTHS,
         now=now,
         profit_record=profit_record,
+        paid_filter=paid_filter,
     )
 
 
@@ -3726,6 +3734,93 @@ def forex_report_save_profit():
     flash('Monthly profit saved!','forex_success')
     return redirect(url_for('forex_report',
         year=year, month=month, broker_filter=broker))
+
+
+@app.route('/forex-report/export-csv')
+@login_required
+def forex_report_export_csv():
+    """Export filtered forex investor breakdown as CSV"""
+    import csv, io
+    now    = datetime.now()
+    year   = int(request.args.get('year', now.year))
+    month  = int(request.args.get('month', now.month))
+    broker = request.args.get('broker_filter', 'All')
+    paid_filter = request.args.get('paid_filter', '')
+    MONTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    AED    = 3.67
+
+    investors = ForexInvestor.query.filter_by(status='Active').all()
+    if broker != 'All':
+        investors = [i for i in investors if i.broker_name == broker]
+
+    profit_record = ForexMonthlyProfit.query.filter_by(year=year, month=month, broker_name=broker).first()
+    total_generated = profit_record.total_generated if profit_record else 0.0
+
+    rows = []
+    for inv in investors:
+        broker_earn = round(inv.capital_usd * (inv.broker_pct / 100), 2)
+        inv_due     = round(inv.capital_usd * (inv.investor_pct / 100), 2)
+        net         = round(broker_earn - inv_due, 2)
+        paid_rec    = ForexInvestorPayout.query.filter_by(investor_id=inv.id, year=year, month=month).first()
+        paid_amt    = paid_rec.amount_paid if paid_rec else 0
+        rows.append({
+            'name': inv.name, 'broker_name': inv.broker_name or '',
+            'capital': inv.capital_usd,
+            'broker_pct': inv.broker_pct, 'broker_earn': broker_earn,
+            'inv_pct': inv.investor_pct, 'inv_due': inv_due,
+            'net': net, 'paid': paid_amt,
+        })
+
+    if paid_filter == 'paid':
+        rows = [r for r in rows if r['paid'] > 0]
+    elif paid_filter == 'unpaid':
+        rows = [r for r in rows if r['paid'] == 0]
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    month_label  = f"{MONTHS[month]} {year}"
+    broker_label = broker
+    status_label = paid_filter.capitalize() if paid_filter else 'All'
+    writer.writerow([f'TopGee Forex — Investor Report | {month_label} | Broker: {broker_label} | Status: {status_label}'])
+    writer.writerow([])
+    writer.writerow(['Investor', 'Broker', 'Capital (USD)', 'Capital (AED)',
+                     'Broker %', 'Broker Earn (USD)', 'Broker Earn (AED)',
+                     'Investor %', 'Investor Due (USD)', 'Investor Due (AED)',
+                     'Net (USD)', 'Net (AED)', 'Paid This Month?', 'Amount Paid (USD)'])
+    for r in rows:
+        status = 'Paid' if r['paid'] > 0 else 'Unpaid'
+        writer.writerow([
+            r['name'], r['broker_name'],
+            f"{r['capital']:,.2f}", f"{r['capital']*AED:,.2f}",
+            f"{r['broker_pct']}%", f"{r['broker_earn']:,.2f}", f"{r['broker_earn']*AED:,.2f}",
+            f"{r['inv_pct']}%", f"{r['inv_due']:,.2f}", f"{r['inv_due']*AED:,.2f}",
+            f"{r['net']:,.2f}", f"{r['net']*AED:,.2f}",
+            status, f"{r['paid']:,.2f}" if r['paid'] > 0 else '0.00',
+        ])
+    writer.writerow([])
+    writer.writerow(['TOTAL', '',
+        f"{sum(r['capital'] for r in rows):,.2f}",
+        f"{sum(r['capital'] for r in rows)*AED:,.2f}",
+        '', f"{sum(r['broker_earn'] for r in rows):,.2f}",
+        f"{sum(r['broker_earn'] for r in rows)*AED:,.2f}",
+        '', f"{sum(r['inv_due'] for r in rows):,.2f}",
+        f"{sum(r['inv_due'] for r in rows)*AED:,.2f}",
+        f"{sum(r['net'] for r in rows):,.2f}",
+        f"{sum(r['net'] for r in rows)*AED:,.2f}",
+        '', ''])
+    if total_generated > 0:
+        writer.writerow([])
+        writer.writerow([f'Total Generated {month_label}', f"${total_generated:,.2f}", f"AED {total_generated*AED:,.2f}"])
+
+    from flask import make_response
+    today = datetime.now().strftime('%Y-%m-%d')
+    status_slug = f"_{paid_filter}" if paid_filter else ''
+    broker_slug = f"_{broker.replace(' ','_')}" if broker != 'All' else ''
+    filename = f"TopGeeForex_{MONTHS[month]}_{year}{broker_slug}{status_slug}_{today}.csv"
+    resp = make_response('\ufeff' + output.getvalue())
+    resp.headers['Content-Type'] = 'text/csv; charset=utf-8'
+    resp.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return resp
 
 
 @app.route('/forex-dashboard-data')
