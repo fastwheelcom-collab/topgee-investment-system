@@ -140,19 +140,23 @@
             <button type="button" onclick="checkAll(false)" style="font-size:.75rem;color:#dc2626;background:none;border:none;cursor:pointer;font-weight:700;">✕ None</button>
           </div>
         </div>
-        <div id="investorCheckboxes">
+        <table style="width:100%;border-collapse:collapse;">
           {% for inv in all_active_investors %}
-          <label class="inv-cb-label" data-broker="{{ inv.broker_name or 'None' }}"
-                 style="display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid #f0f0f0;cursor:pointer;font-size:.85rem;">
-            <input type="checkbox" name="inv_ids" value="{{ inv.id }}"
-                   {% if not selected_ids or inv.id in selected_ids %}checked{% endif %}
-                   style="accent-color:#7c3aed;width:15px;height:15px;flex-shrink:0;">
-            <span style="font-weight:600;flex:1;">{{ inv.name }}</span>
-            <span style="font-size:.75rem;color:#9ca3af;">{{ inv.broker_name or '—' }}</span>
-            <span style="font-size:.75rem;color:#6b7280;">${{ '{:,.0f}'.format(inv.capital_usd) }}</span>
-          </label>
+          <tr class="inv-cb-label" data-broker="{{ inv.broker_name or 'None' }}"
+              style="border-bottom:1px solid #f0f0f0;cursor:pointer;"
+              onclick="var cb=this.querySelector('input');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change'));">
+            <td style="width:32px;padding:7px 8px 7px 14px;">
+              <input type="checkbox" name="inv_ids" value="{{ inv.id }}"
+                     {% if not selected_ids or inv.id in selected_ids %}checked{% endif %}
+                     onclick="event.stopPropagation();"
+                     style="accent-color:#7c3aed;width:15px;height:15px;">
+            </td>
+            <td style="padding:7px 8px;font-size:.85rem;font-weight:600;">{{ inv.name }}</td>
+            <td style="padding:7px 8px;font-size:.75rem;color:#9ca3af;">{{ inv.broker_name or '—' }}</td>
+            <td style="padding:7px 14px 7px 8px;font-size:.75rem;color:#6b7280;text-align:right;">${{ '{:,.0f}'.format(inv.capital_usd) }}</td>
+          </tr>
           {% endfor %}
-        </div>
+        </table>
       </div>
     </form>
   </div>
@@ -160,17 +164,15 @@
   <script>
   function checkAll(val) {
     document.querySelectorAll('#investorCheckboxes input[type=checkbox]').forEach(cb => {
-      const lbl = cb.closest('label');
       cb.checked = val;
-      lbl.style.borderColor = val ? '#7c3aed' : '#e5e7eb';
-      lbl.style.background  = val ? '#f5f3ff' : '#fff';
+      cb.closest('tr').style.background = val ? '#f5f3ff' : '';
     });
     updateCount();
   }
   function filterCheckboxes(broker) {
-    document.querySelectorAll('#investorCheckboxes .inv-cb-label').forEach(lbl => {
-      const b = lbl.getAttribute('data-broker');
-      lbl.style.display = (broker === 'All' || b === broker) ? '' : 'none';
+    document.querySelectorAll('#investorCheckboxes .inv-cb-label').forEach(row => {
+      const b = row.getAttribute('data-broker');
+      row.style.display = (broker === 'All' || b === broker) ? '' : 'none';
     });
   }
   function updateCount() {
@@ -188,14 +190,14 @@
   }
   document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('#investorCheckboxes input[type=checkbox]').forEach(cb => {
-      const lbl = cb.closest('label');
-      lbl.style.background = cb.checked ? '#f5f3ff' : '';
+      const row = cb.closest('tr');
+      row.style.background = cb.checked ? '#f5f3ff' : '';
       cb.addEventListener('change', function() {
-        lbl.style.background = cb.checked ? '#f5f3ff' : '';
+        row.style.background = cb.checked ? '#f5f3ff' : '';
         updateCount();
       });
-      lbl.addEventListener('mouseenter', () => { if(!cb.checked) lbl.style.background='#f9fafb'; });
-      lbl.addEventListener('mouseleave', () => { lbl.style.background = cb.checked ? '#f5f3ff' : ''; });
+      row.addEventListener('mouseenter', () => { if(!cb.checked) row.style.background='#fafafa'; });
+      row.addEventListener('mouseleave', () => { row.style.background = cb.checked ? '#f5f3ff' : ''; });
     });
     filterCheckboxes('{{ broker }}');
     updateCount();
