@@ -131,29 +131,27 @@
         </div>
       </div>
 
-      <!-- Row 2: Investor checkboxes -->
-      <div style="border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;background:#f9fafb;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <span style="font-size:.75rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px;">SELECT INVESTORS</span>
-          <div style="display:flex;gap:10px;">
+      <!-- Row 2: Investor checklist (compact list view) -->
+      <div style="border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;overflow:hidden;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid #e5e7eb;background:#f3f4f6;">
+          <span style="font-size:.72rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px;">SELECT INVESTORS &nbsp;<span id="cbCount" style="font-weight:400;color:#9ca3af;"></span></span>
+          <div style="display:flex;gap:12px;">
             <button type="button" onclick="checkAll(true)"  style="font-size:.75rem;color:#7c3aed;background:none;border:none;cursor:pointer;font-weight:700;">✔ All</button>
             <button type="button" onclick="checkAll(false)" style="font-size:.75rem;color:#dc2626;background:none;border:none;cursor:pointer;font-weight:700;">✕ None</button>
           </div>
         </div>
-        <div id="investorCheckboxes" style="display:flex;flex-wrap:wrap;gap:8px;">
+        <div id="investorCheckboxes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));">
           {% for inv in all_active_investors %}
           <label class="inv-cb-label" data-broker="{{ inv.broker_name or 'None' }}"
-                 style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border:1.5px solid #e5e7eb;border-radius:20px;cursor:pointer;font-size:.83rem;font-weight:600;background:#fff;transition:all .15s;"
-                 onclick="this.classList.toggle('cb-checked')">
+                 style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid #f3f4f6;cursor:pointer;font-size:.84rem;font-weight:600;transition:background .1s;">
             <input type="checkbox" name="inv_ids" value="{{ inv.id }}"
                    {% if not selected_ids or inv.id in selected_ids %}checked{% endif %}
-                   style="accent-color:#7c3aed;width:14px;height:14px;">
-            {{ inv.name }}
-            {% if inv.broker_name %}<span style="font-size:.7rem;color:#9ca3af;font-weight:400;">{{ inv.broker_name }}</span>{% endif %}
+                   style="accent-color:#7c3aed;width:14px;height:14px;flex-shrink:0;">
+            <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ inv.name }}</span>
+            {% if inv.broker_name %}<span style="font-size:.7rem;color:#9ca3af;font-weight:400;flex-shrink:0;">{{ inv.broker_name }}</span>{% endif %}
           </label>
           {% endfor %}
         </div>
-        <div style="margin-top:8px;font-size:.75rem;color:#9ca3af;" id="cbCount"></div>
       </div>
     </form>
   </div>
@@ -177,7 +175,7 @@
   function updateCount() {
     const total   = document.querySelectorAll('#investorCheckboxes input[type=checkbox]').length;
     const checked = document.querySelectorAll('#investorCheckboxes input[type=checkbox]:checked').length;
-    document.getElementById('cbCount').textContent = checked + ' of ' + total + ' investors selected';
+    document.getElementById('cbCount').textContent = '(' + checked + ' of ' + total + ' selected)';
   }
   function csvExport() {
     const form = document.getElementById('reportForm');
@@ -187,17 +185,16 @@
     for (const [k, v] of data.entries()) url.searchParams.append(k, v);
     window.location.href = url.toString();
   }
-  // Init styles for pre-checked boxes
   document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('#investorCheckboxes input[type=checkbox]').forEach(cb => {
       const lbl = cb.closest('label');
-      lbl.style.borderColor = cb.checked ? '#7c3aed' : '#e5e7eb';
-      lbl.style.background  = cb.checked ? '#f5f3ff' : '#fff';
+      lbl.style.background = cb.checked ? '#f5f3ff' : '';
       cb.addEventListener('change', function() {
-        lbl.style.borderColor = cb.checked ? '#7c3aed' : '#e5e7eb';
-        lbl.style.background  = cb.checked ? '#f5f3ff' : '#fff';
+        lbl.style.background = cb.checked ? '#f5f3ff' : '';
         updateCount();
       });
+      lbl.addEventListener('mouseenter', () => { if(!cb.checked) lbl.style.background='#f9fafb'; });
+      lbl.addEventListener('mouseleave', () => { lbl.style.background = cb.checked ? '#f5f3ff' : ''; });
     });
     filterCheckboxes('{{ broker }}');
     updateCount();
