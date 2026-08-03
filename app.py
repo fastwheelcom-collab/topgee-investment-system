@@ -41,11 +41,11 @@ db = SQLAlchemy(app)
 # Inject is_admin into all templates automatically
 @app.context_processor
 def inject_globals():
-    username = session.get('username', '')
+    email = session.get('username', '')
     profile_pic = None
-    if username and username != 'admin':
+    if email and email != 'admin':
         try:
-            u = UserAccount.query.filter_by(username=username).first()
+            u = UserAccount.query.filter_by(email=email).first()
             if u:
                 profile_pic = u.profile_pic
         except Exception:
@@ -56,9 +56,9 @@ def inject_globals():
         current_user_pic=profile_pic,
     )
 
-# Admin credentials (username: admin, password: admin123)
-ADMIN_USERNAME = 'admin'
-ADMIN_PASSWORD_HASH = hashlib.sha256('admin123'.encode()).hexdigest()
+# Admin credentials — login with EMAIL + PASSWORD
+ADMIN_EMAIL    = 'fastwheel.com@gmail.com'
+ADMIN_PASSWORD_HASH = '5a42c3a113a8bbdcea9adf4c026089eec84c4d01ba0b8f2c89a3c98b8722b864'
 
 # Login required decorator
 def login_required(f):
@@ -324,9 +324,9 @@ class RevenueHistory(db.Model):
         return datetime(self.year, self.month, 1).strftime('%B %Y')
 
 class UserAccount(db.Model):
-    """Partner/admin accounts"""
+    """Partner/admin accounts — login via email + password"""
     id           = db.Column(db.Integer, primary_key=True)
-    username     = db.Column(db.String(80), unique=True, nullable=False)
+    email        = db.Column(db.String(200), unique=True, nullable=False)
     display_name = db.Column(db.String(120), nullable=False)
     password_hash= db.Column(db.String(256), nullable=False)
     role         = db.Column(db.String(20), default='partner')  # 'admin' or 'partner'
@@ -641,34 +641,34 @@ def ensure_db_ready():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
+        email    = request.form['email'].strip().lower()
         password = request.form['password']
         password_hash = hashlib.sha256(password.encode()).hexdigest()
 
-        # Check master admin first
-        if username == ADMIN_USERNAME and password_hash == ADMIN_PASSWORD_HASH:
-            session['logged_in'] = True
-            session['is_admin']  = True
-            session['username']  = username
+        # Check master admin (email login)
+        if email == ADMIN_EMAIL.lower() and password_hash == ADMIN_PASSWORD_HASH:
+            session['logged_in']    = True
+            session['is_admin']     = True
+            session['username']     = 'admin'
             session['display_name'] = 'Admin'
-            audit('LOGIN', 'System', username)
+            audit('LOGIN', 'System', email)
             flash('Login successful!', 'success')
             return redirect(url_for('home'))
 
-        # Check UserAccount table
-        user = UserAccount.query.filter_by(username=username, active=True).first()
+        # Check UserAccount table by email
+        user = UserAccount.query.filter_by(email=email, active=True).first()
         if user and user.password_hash == password_hash:
             session['logged_in']    = True
             session['is_admin']     = (user.role == 'admin')
-            session['username']     = user.username
+            session['username']     = user.email
             session['display_name'] = user.display_name
             user.last_login = datetime.utcnow()
             db.session.commit()
-            audit('LOGIN', 'System', username)
+            audit('LOGIN', 'System', email)
             flash(f'Welcome, {user.display_name}!', 'success')
             return redirect(url_for('home'))
 
-        flash('Invalid credentials', 'error')
+        flash('Invalid email or password', 'error')
     return render_template('login.html')
 
 @app.route('/logout')
@@ -681,12 +681,12 @@ def logout():
 @app.route('/profile')
 @login_required
 def profile():
-    username = session.get('username', '')
+    email = session.get('username', '')
     display_name = session.get('display_name', '')
     is_admin = session.get('is_admin', False)
-    user = UserAccount.query.filter_by(username=username).first()
+    user = UserAccount.query.filter_by(email=email).first() if email != 'admin' else None
     return render_template('profile.html',
-        username=username,
+        username=email,
         display_name=display_name,
         is_admin=is_admin,
         user=user
@@ -696,8 +696,8 @@ def profile():
 @login_required
 def upload_profile_photo():
     import uuid
-    username = session.get('username', '')
-    user = UserAccount.query.filter_by(username=username).first()
+    email = session.get('username', '')
+    user = UserAccount.query.filter_by(email=email).first()
     if not user:
         flash('User not found', 'error')
         return redirect(url_for('profile'))
@@ -711,7 +711,7 @@ def upload_profile_photo():
         return redirect(url_for('profile'))
     upload_dir = os.path.join(app.root_path, 'static', 'profile_pics')
     os.makedirs(upload_dir, exist_ok=True)
-    filename = f'{username}_{uuid.uuid4().hex[:8]}.{ext}'
+    filename = f'{uuid.uuid4().hex[:8]}.{ext}'
     file.save(os.path.join(upload_dir, filename))
     # Delete old pic
     if user.profile_pic:
@@ -732,21 +732,39 @@ def change_password():
         confirm  = request.form.get('confirm_password', '')
 
         current_hash = hashlib.sha256(current.encode()).hexdigest()
-        global ADMIN_PASSWORD_HASH
-        if current_hash != ADMIN_PASSWORD_HASH:
+        email = session.get('username', '')
+
+        # Admin password change
+        if email == 'admin':
+            global ADMIN_PASSWORD_HASH
+            if current_hash != ADMIN_PASSWORD_HASH:
+                flash('Current password is incorrect', 'error')
+                return redirect(url_for('change_password'))
+            if len(new_pass) < 6:
+                flash('New password must be at least 6 characters', 'error')
+                return redirect(url_for('change_password'))
+            if new_pass != confirm:
+                flash('New passwords do not match', 'error')
+                return redirect(url_for('change_password'))
+            ADMIN_PASSWORD_HASH = hashlib.sha256(new_pass.encode()).hexdigest()
+            flash('Password changed successfully!', 'success')
+            return redirect(url_for('home'))
+
+        # Regular user password change
+        user = UserAccount.query.filter_by(email=email).first()
+        if not user or user.password_hash != current_hash:
             flash('Current password is incorrect', 'error')
             return redirect(url_for('change_password'))
-
         if len(new_pass) < 6:
             flash('New password must be at least 6 characters', 'error')
             return redirect(url_for('change_password'))
-
         if new_pass != confirm:
             flash('New passwords do not match', 'error')
             return redirect(url_for('change_password'))
-        ADMIN_PASSWORD_HASH = hashlib.sha256(new_pass.encode()).hexdigest()
+        user.password_hash = hashlib.sha256(new_pass.encode()).hexdigest()
+        db.session.commit()
         flash('Password changed successfully!', 'success')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('home'))
 
     return render_template('change_password.html')
 
@@ -2574,6 +2592,18 @@ with app.app_context():
                 except Exception as me:
                     print(f'⚠️ Migration {tbl}.{col}: {me}')
 
+        # ── Rename username → email in user_account ────────────────
+        try:
+            if 'user_account' in existing_tables:
+                ua_cols = [c['name'] for c in inspector.get_columns('user_account')]
+                if 'username' in ua_cols and 'email' not in ua_cols:
+                    with db.engine.connect() as conn:
+                        conn.execute(db.text('ALTER TABLE user_account RENAME COLUMN username TO email'))
+                        conn.commit()
+                        print('✅ Migrated user_account.username → email')
+        except Exception as me:
+            print(f'⚠️ username→email migration: {me}')
+
     except Exception as e:
         print(f"❌ Database initialization error: {e}")
         import traceback
@@ -2588,15 +2618,15 @@ def users():
     if request.method == 'POST':
         action = request.form.get('action')
         if action == 'create':
-            username     = request.form['username'].strip()
+            email        = request.form['email'].strip().lower()
             display_name = request.form['display_name'].strip()
             password     = request.form['password']
             role         = request.form.get('role', 'partner')
-            if UserAccount.query.filter_by(username=username).first():
-                flash(f'Username "{username}" already exists.', 'error')
+            if UserAccount.query.filter_by(email=email).first():
+                flash(f'Email "{email}" already exists.', 'error')
             else:
                 user = UserAccount(
-                    username=username,
+                    email=email,
                     display_name=display_name,
                     password_hash=hashlib.sha256(password.encode()).hexdigest(),
                     role=role,
@@ -2635,15 +2665,15 @@ def users():
 @app.route('/users/add', methods=['POST'])
 @admin_required
 def add_user():
-    username     = request.form['username'].strip()
+    email        = request.form['email'].strip().lower()
     display_name = request.form['display_name'].strip()
     password     = request.form['password']
     role         = request.form.get('role', 'partner')
-    if UserAccount.query.filter_by(username=username).first():
-        flash(f'Username "{username}" already exists.', 'error')
+    if UserAccount.query.filter_by(email=email).first():
+        flash(f'Email "{email}" already exists.', 'error')
         return redirect(url_for('users'))
     user = UserAccount(
-        username=username,
+        email=email,
         display_name=display_name,
         password_hash=hashlib.sha256(password.encode()).hexdigest(),
         role=role,
