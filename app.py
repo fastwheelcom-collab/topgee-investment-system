@@ -2598,9 +2598,17 @@ with app.app_context():
                 ua_cols = [c['name'] for c in inspector.get_columns('user_account')]
                 if 'username' in ua_cols and 'email' not in ua_cols:
                     with db.engine.connect() as conn:
-                        conn.execute(db.text('ALTER TABLE user_account RENAME COLUMN username TO email'))
+                        # Add email column first
+                        conn.execute(db.text('ALTER TABLE user_account ADD COLUMN email VARCHAR(200)'))
+                        # Copy data from username to email
+                        conn.execute(db.text('UPDATE user_account SET email = username'))
                         conn.commit()
-                        print('✅ Migrated user_account.username → email')
+                        print('✅ Migrated user_account: added email column, copied from username')
+                elif 'email' not in ua_cols:
+                    with db.engine.connect() as conn:
+                        conn.execute(db.text('ALTER TABLE user_account ADD COLUMN email VARCHAR(200)'))
+                        conn.commit()
+                        print('✅ Added email column to user_account')
         except Exception as me:
             print(f'⚠️ username→email migration: {me}')
 
