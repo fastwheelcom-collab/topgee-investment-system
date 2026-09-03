@@ -249,8 +249,8 @@
 
     <!-- Net /mo -->
     <td style="padding:14px;text-align:right;">
-      <span style="font-weight:800;font-size:.92rem;color:{% if inv.monthly_net_per_investor >= 0 %}#27ae60{% else %}#c0392b{% endif %};">
-        ${{ '{:,.2f}'.format(inv.monthly_net_per_investor) }}
+      <span style="font-weight:800;font-size:.92rem;color:#27ae60;">
+        ${{ '{:,.2f}'.format(inv.monthly_investor_due) }}
       </span>
     </td>
 
