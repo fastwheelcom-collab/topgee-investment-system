@@ -211,9 +211,19 @@
                                 </select>
                             </div>
                         </div>
+                        {% if current_carry > 0 %}
+                        <div style="background: #fffbeb; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #f59e0b;">
+                            <small style="color: #d97706; font-weight: 600;">
+                                ⚠️ Advance from last month: <strong>{{ '{:,.2f}'.format(current_carry) }} AED</strong>
+                                &nbsp;|&nbsp; This month ROI: <strong>{{ '{:,.2f}'.format(investor.monthly_investor_roi) }} AED</strong>
+                                &nbsp;|&nbsp; Left to pay: <strong style="color:#16a34a; font-size:1.05em;">{{ '{:,.2f}'.format(current_month_left) }} AED</strong>
+                            </small>
+                        </div>
+                        {% else %}
                         <div style="background: #e3f2fd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #2196f3;">
                             <small style="color: #1565c0; font-weight: 500;">💡 This payout will be automatically linked to the selected month in the 12-Month ROI Ledger below.</small>
                         </div>
+                        {% endif %}
                     </div>
                     <div class="form-group">
                         <label>Notes</label>
@@ -383,6 +393,9 @@
                             <td>
                                 {% if month_data.total_paid > 0 %}
                                 <strong>{{ '{:,.2f}'.format(month_data.total_paid) }}</strong>
+                                {% if month_data.total_paid > month_data.expected_roi %}
+                                <br><small style="color:#f59e0b; font-weight:600;">+{{ '{:,.2f}'.format(month_data.total_paid - month_data.expected_roi) }} excess</small>
+                                {% endif %}
                                 {% else %}
                                 <span style="color:#999;">—</span>
                                 {% endif %}
@@ -526,6 +539,8 @@
         }
         // ROI amounts for auto-fill
         const INVESTOR_ROI = {{ '{:.2f}'.format(investor.monthly_investor_roi) }};
+        const ADVANCE_CARRY = {{ '{:.2f}'.format(current_carry) }};
+        const NET_DUE = {{ '{:.2f}'.format(current_month_left) }};
 
         
         function togglePayoutFields(formType) {
@@ -543,8 +558,13 @@
                 if (txType === 'Investor Payout') {
                     payoutFields.style.display = 'block';
                     if (isAddForm && amountField && hintField) {
-                        amountField.value = INVESTOR_ROI.toFixed(2);
-                        hintField.textContent = '💡 Auto-filled: Investor ROI ({{ investor.investor_roi_percent }}% of {{ "{:,.0f}".format(investor.total_capital) }} AED)';
+                        if (ADVANCE_CARRY > 0) {
+                            amountField.value = NET_DUE.toFixed(2);
+                            hintField.innerHTML = '💡 Auto-filled: <strong>' + NET_DUE.toFixed(2) + ' AED</strong> (ROI ' + INVESTOR_ROI.toFixed(2) + ' − advance ' + ADVANCE_CARRY.toFixed(2) + ')';
+                        } else {
+                            amountField.value = INVESTOR_ROI.toFixed(2);
+                            hintField.textContent = '💡 Auto-filled: Investor ROI ({{ investor.investor_roi_percent }}% of {{ "{:,.0f}".format(investor.total_capital) }} AED)';
+                        }
                         hintField.style.display = 'block';
                     }
                     if (!isAddForm && hintField) {
