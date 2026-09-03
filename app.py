@@ -990,36 +990,32 @@ def investor_detail(investor_id):
     months = ['January', 'February', 'March', 'April', 'May', 'June',
               'July', 'August', 'September', 'October', 'November', 'December']
     ledger = []
-
     for month_num in range(1, 13):
         record = next((r for r in manual_records if r.month == month_num), None)
+        
+        # Get payouts for this month
         month_payouts = [t for t in payout_transactions if t.payout_month == month_num]
         total_paid = sum(p.amount for p in month_payouts)
+        
+        # Calculate expected ROI for this month (based on current total_capital)
         expected_roi = investor.monthly_investor_roi
+        
+        # Determine paid status
+        # Any amount tagged to a month = Paid
+        # Sadi manually enters payout amounts which may differ from expected ROI
         paid_status = 'unpaid'
         if total_paid > 0:
             paid_status = 'paid'
+        
         ledger.append({
             'month': month_num,
-            'month_name': months[month_num - 1],
+            'month_name': months[month_num-1],
             'record': record,
             'payouts': month_payouts,
             'total_paid': total_paid,
             'expected_roi': expected_roi,
-            'paid_status': paid_status,
+            'paid_status': paid_status
         })
-
-    # Current month advance logic:
-    # If last month was paid MORE than this month's ROI, show advance deduction
-    current_month = now.month
-    prev_month_num = current_month - 1 if current_month > 1 else 12
-    prev_entry = next((e for e in ledger if e['month'] == prev_month_num), None)
-    current_month_roi = investor.monthly_investor_roi
-    advance_from_last = 0.0
-    if prev_entry and prev_entry['total_paid'] > current_month_roi:
-        advance_from_last = round(prev_entry['total_paid'] - current_month_roi, 2)
-    current_carry = advance_from_last
-    current_month_left = round(max(0.0, current_month_roi - advance_from_last), 2)
     
     # Get all manual ROI records for totals
     all_manual_records = ManualROI.query.filter_by(investor_id=investor.id).all()
@@ -1050,8 +1046,6 @@ def investor_detail(investor_id):
     return render_template('investor_detail.html',
                          investor=investor,
                          ledger=ledger,
-                         current_carry=round(current_carry, 2),
-                         current_month_left=current_month_left,
                          transactions=transactions,
                          deposits=deposits,
                          withdrawals=withdrawals,
