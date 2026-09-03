@@ -1913,8 +1913,13 @@ def reports_export_csv():
             month_status,
         ])
 
+    total_tg  = sum((r['inv'].tg_percent or 5.0) for r in filtered_rows)
+    total_roi = sum(r['inv'].investor_roi_percent for r in filtered_rows)
     writer.writerow([])
-    writer.writerow(['', 'TOTAL', '', f"{sum(r['capital'] for r in filtered_rows):,.0f}", '', '',
+    writer.writerow(['', 'TOTAL', '',
+                     f"{sum(r['capital'] for r in filtered_rows):,.0f}",
+                     f"{total_tg:.1f}%",
+                     f"{total_roi:.1f}%",
                      f"{sum(r['monthly_roi'] for r in filtered_rows):,.0f}",
                      f"{sum(r['total_paid'] for r in filtered_rows):,.0f}", '',
                      f"{sum(r['outstanding'] for r in filtered_rows):,.0f}", ''])
