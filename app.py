@@ -1881,41 +1881,43 @@ def reports_export_csv():
     # Header
     month_label = f"{MONTHS[sel_month-1]} {sel_year}" if sel_month and sel_year else 'All Time'
     status_label = paid_filter.capitalize() if paid_filter else 'All'
-    writer.writerow([f'TopGee It — Investor Report | {month_label} | Status: {status_label}'])
+    # Sort by sales rep name, then investor name
+    filtered_rows.sort(key=lambda r: (r['rep_name'].lower(), r['inv'].name.lower()))
+
+    writer.writerow([f'TopGee It — Investor Report'])
+    writer.writerow([f'Period: {month_label}  |  Status: {status_label}'])
     writer.writerow([])
-    writer.writerow(['Investor', 'Category', 'Sales Rep', 'Capital (AED)', 'ROI %',
-                     'Est. Monthly (AED)', 'Months Active', 'Total Paid (AED)',
+    writer.writerow(['#', 'Investor', 'Sales Rep', 'Capital (AED)', 'TG %', 'ROI %',
+                     'Est. Monthly (AED)', 'Total Paid (AED)',
                      'Pending Months', 'Outstanding (AED)',
-                     'Contract Start', 'Contract End',
                      f'Paid {month_label}' if (sel_month and sel_year) else 'Month Status'])
 
-    for r in filtered_rows:
+    for idx, r in enumerate(filtered_rows, start=1):
         month_paid_amt = r['monthly'].get((sel_year, sel_month), 0) if (sel_month and sel_year) else ''
         if sel_month and sel_year:
             month_status = f"Paid ({month_paid_amt:,.0f})" if month_paid_amt > 0 else 'Unpaid'
         else:
             month_status = ''
+        tg_percent = r['inv'].tg_percent or 5.0
         writer.writerow([
+            idx,
             r['inv'].name,
-            r['inv'].category,
             r['rep_name'],
             f"{r['capital']:,.0f}",
+            f"{tg_percent:.1f}%",
             f"{r['inv'].investor_roi_percent}%",
             f"{r['monthly_roi']:,.0f}",
-            f"{r['months_active']} mo",
             f"{r['total_paid']:,.0f}",
             r['pending_months'],
             f"{r['outstanding']:,.0f}",
-            r['inv'].contract_start.strftime('%d %b %Y') if r['inv'].contract_start else '',
-            r['inv'].contract_end.strftime('%d %b %Y') if r['inv'].contract_end else '',
             month_status,
         ])
 
     writer.writerow([])
-    writer.writerow(['TOTAL', '', '', f"{sum(r['capital'] for r in filtered_rows):,.0f}", '',
-                     f"{sum(r['monthly_roi'] for r in filtered_rows):,.0f}", '',
+    writer.writerow(['', 'TOTAL', '', f"{sum(r['capital'] for r in filtered_rows):,.0f}", '', '',
+                     f"{sum(r['monthly_roi'] for r in filtered_rows):,.0f}",
                      f"{sum(r['total_paid'] for r in filtered_rows):,.0f}", '',
-                     f"{sum(r['outstanding'] for r in filtered_rows):,.0f}", '', '', ''])
+                     f"{sum(r['outstanding'] for r in filtered_rows):,.0f}", ''])
 
     from flask import make_response
     today = datetime.now().strftime('%Y-%m-%d')
