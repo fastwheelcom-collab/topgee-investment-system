@@ -189,7 +189,7 @@
                         </div>
                         <div class="form-group">
                             <label>Date *</label>
-                            <input type="date" name="transaction_date" required>
+                            <input type="date" name="transaction_date" required id="addTxDate">
                         </div>
                     </div>
                     <div id="addPayoutFields" style="display: none;">
@@ -511,6 +511,10 @@
         function showTransactionForm() {
             document.getElementById('transactionForm').style.display = 'block';
             togglePayoutFields('add'); // Initialize visibility
+            // Auto-fill today's date
+            const today = new Date().toISOString().split('T')[0];
+            const dateField = document.getElementById('addTxDate');
+            if (dateField && !dateField.value) dateField.value = today;
         }
         function hideTransactionForm() {
             document.getElementById('transactionForm').style.display = 'none';
