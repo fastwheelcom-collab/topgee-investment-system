@@ -986,38 +986,19 @@ def investor_detail(investor_id):
         InvestmentTransaction.payout_year == current_year
     ).all()
     
-    # Build 12-month ledger with payout tracking + excess/advance carry-forward
+    # Build 12-month ledger with payout tracking
     months = ['January', 'February', 'March', 'April', 'May', 'June',
               'July', 'August', 'September', 'October', 'November', 'December']
     ledger = []
-    carried_excess = 0.0  # running excess carried forward from overpayments
 
     for month_num in range(1, 13):
         record = next((r for r in manual_records if r.month == month_num), None)
         month_payouts = [t for t in payout_transactions if t.payout_month == month_num]
         total_paid = sum(p.amount for p in month_payouts)
         expected_roi = investor.monthly_investor_roi
-
+        paid_status = 'unpaid'
         if total_paid > 0:
-            # Total running surplus = what was paid + any carried excess - what was due
-            raw_diff = total_paid + carried_excess - expected_roi
-            if raw_diff > 0.005:
-                excess_after = round(raw_diff, 2)
-                paid_status  = 'overpaid'
-                carried_excess = raw_diff
-            elif raw_diff < -0.005:
-                excess_after = 0.0
-                paid_status  = 'partial'
-                carried_excess = 0.0
-            else:
-                excess_after = 0.0
-                paid_status  = 'paid'
-                carried_excess = 0.0
-        else:
-            excess_after = 0.0
-            # Don't reset carry on unpaid months — excess still carries forward
-            paid_status = 'unpaid'
-
+            paid_status = 'paid'
         ledger.append({
             'month': month_num,
             'month_name': months[month_num - 1],
@@ -1025,12 +1006,20 @@ def investor_detail(investor_id):
             'payouts': month_payouts,
             'total_paid': total_paid,
             'expected_roi': expected_roi,
-            'excess_after': excess_after,
             'paid_status': paid_status,
         })
 
-    # Pass current carry to template for next-payment info
-    current_carry = round(carried_excess, 2)
+    # Current month advance logic:
+    # If last month was paid MORE than this month's ROI, show advance deduction
+    current_month = now.month
+    prev_month_num = current_month - 1 if current_month > 1 else 12
+    prev_entry = next((e for e in ledger if e['month'] == prev_month_num), None)
+    current_month_roi = investor.monthly_investor_roi
+    advance_from_last = 0.0
+    if prev_entry and prev_entry['total_paid'] > current_month_roi:
+        advance_from_last = round(prev_entry['total_paid'] - current_month_roi, 2)
+    current_carry = advance_from_last
+    current_month_left = round(max(0.0, current_month_roi - advance_from_last), 2)
     
     # Get all manual ROI records for totals
     all_manual_records = ManualROI.query.filter_by(investor_id=investor.id).all()
@@ -1062,6 +1051,7 @@ def investor_detail(investor_id):
                          investor=investor,
                          ledger=ledger,
                          current_carry=round(current_carry, 2),
+                         current_month_left=current_month_left,
                          transactions=transactions,
                          deposits=deposits,
                          withdrawals=withdrawals,

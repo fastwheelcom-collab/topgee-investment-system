@@ -378,14 +378,11 @@
                         {% set total_paid_ledger = namespace(val=0) %}
                         {% for month_data in ledger %}
                         {% if month_data.total_paid > 0 %}{% set total_paid_ledger.val = total_paid_ledger.val + month_data.total_paid %}{% endif %}
-                        <tr style="{% if month_data.paid_status == 'paid' %}background: #f0fdf4;{% elif month_data.paid_status == 'overpaid' %}background: #fffbeb;{% elif month_data.paid_status == 'partial' %}background: #fef3c7;{% endif %}">
+                        <tr style="{% if month_data.paid_status == 'paid' %}background: #f0fdf4;{% elif month_data.paid_status == 'partial' %}background: #fef3c7;{% endif %}">
                             <td><strong>{{ month_data.month_name }}</strong></td>
                             <td>
                                 {% if month_data.total_paid > 0 %}
                                 <strong>{{ '{:,.2f}'.format(month_data.total_paid) }}</strong>
-                                {% if month_data.excess_after > 0 %}
-                                <br><small style="color:#f59e0b; font-weight:600;">+{{ '{:,.2f}'.format(month_data.excess_after) }} advance carried forward</small>
-                                {% endif %}
                                 {% else %}
                                 <span style="color:#999;">—</span>
                                 {% endif %}
@@ -393,8 +390,6 @@
                             <td>
                                 {% if month_data.paid_status == 'paid' %}
                                 <span style="color:#10b981; font-weight:bold;">✅ Paid</span>
-                                {% elif month_data.paid_status == 'overpaid' %}
-                                <span style="color:#f59e0b; font-weight:bold;">💛 Overpaid</span>
                                 {% elif month_data.paid_status == 'partial' %}
                                 <span style="color:#ef4444; font-weight:bold;">⚠️ Partial</span>
                                 {% else %}
@@ -413,9 +408,9 @@
                         {% if current_carry > 0 %}
                         <tr style="background: #fffbeb;">
                             <td colspan="3" style="color:#d97706; font-weight:600; padding: 0.75rem 1rem;">
-                                💡 Advance carried forward: <strong>{{ '{:,.2f}'.format(current_carry) }} AED</strong>
-                                — This month ROI: <strong>{{ '{:,.2f}'.format(investor.monthly_investor_roi) }} AED</strong>
-                                — Left to pay: <strong>{{ '{:,.2f}'.format([investor.monthly_investor_roi - current_carry, 0]|max) }} AED</strong>
+                                💡 Advance from last month: <strong>{{ '{:,.2f}'.format(current_carry) }} AED</strong>
+                                &nbsp;|&nbsp; This month ROI: <strong>{{ '{:,.2f}'.format(investor.monthly_investor_roi) }} AED</strong>
+                                &nbsp;|&nbsp; Left to pay: <strong style="color:#16a34a;">{{ '{:,.2f}'.format(current_month_left) }} AED</strong>
                             </td>
                         </tr>
                         {% endif %}
