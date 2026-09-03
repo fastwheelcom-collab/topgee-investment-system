@@ -986,27 +986,50 @@ def investor_detail(investor_id):
         InvestmentTransaction.payout_year == current_year
     ).all()
     
-    # Build 12-month ledger with payout tracking
+    # Build 12-month ledger with payout tracking + excess/advance carry-forward
     months = ['January', 'February', 'March', 'April', 'May', 'June',
               'July', 'August', 'September', 'October', 'November', 'December']
     ledger = []
+    carried_excess = 0.0  # tracks overpaid amount carried forward month to month
     for month_num in range(1, 13):
         record = next((r for r in manual_records if r.month == month_num), None)
-        
+
         # Get payouts for this month
         month_payouts = [t for t in payout_transactions if t.payout_month == month_num]
         total_paid = sum(p.amount for p in month_payouts)
-        
-        # Calculate expected ROI for this month (based on current total_capital)
+
+        # Expected ROI for this month
         expected_roi = investor.monthly_investor_roi
-        
-        # Determine paid status
-        # Any amount tagged to a month = Paid
-        # Sadi manually enters payout amounts which may differ from expected ROI
-        paid_status = 'unpaid'
+
+        # Net due this month = expected minus any excess carried from prior month
+        net_due = max(0.0, expected_roi - carried_excess)
+        excess_used = min(carried_excess, expected_roi)  # how much of carry was consumed
+        carry_in = carried_excess  # carry coming INTO this month (before paying)
+
+        # Calculate new excess after this month's payment
         if total_paid > 0:
-            paid_status = 'paid'
-        
+            # difference vs the original expected (not net_due) to track true over/under
+            diff = total_paid - expected_roi + carry_in  # positive = overpaid overall
+            if diff > 0:
+                new_excess = diff           # overpaid → carry forward
+                paid_status = 'overpaid'
+            elif diff < 0:
+                new_excess = 0.0
+                paid_status = 'partial'
+            else:
+                new_excess = 0.0
+                paid_status = 'paid'
+        else:
+            new_excess = 0.0
+            paid_status = 'unpaid'
+
+        # Only carry excess forward if month is in the past or current
+        if month_num <= now.month:
+            carried_excess = new_excess
+        else:
+            # Future months: keep carrying same excess but don't consume it
+            pass
+
         ledger.append({
             'month': month_num,
             'month_name': months[month_num-1],
@@ -1014,8 +1037,39 @@ def investor_detail(investor_id):
             'payouts': month_payouts,
             'total_paid': total_paid,
             'expected_roi': expected_roi,
+            'net_due': round(net_due, 2),         # what's left to pay after carry
+            'carry_in': round(carry_in, 2),        # excess brought in from last month
+            'excess_after': round(new_excess if total_paid > 0 else 0.0, 2),  # excess going out
             'paid_status': paid_status
         })
+        # Update carry for next month
+        carried_excess = new_excess if month_num <= now.month and total_paid > 0 else (carried_excess if month_num > now.month else 0.0)
+
+    # Recalculate cleanly — simple sequential pass
+    carried_excess = 0.0
+    for entry in ledger:
+        entry['carry_in'] = round(carried_excess, 2)
+        entry['net_due']  = round(max(0.0, entry['expected_roi'] - carried_excess), 2)
+        if entry['total_paid'] > 0:
+            raw_diff = entry['total_paid'] - entry['expected_roi'] + carried_excess
+            if raw_diff > 0.005:
+                entry['excess_after'] = round(raw_diff, 2)
+                entry['paid_status']  = 'overpaid'
+                carried_excess = raw_diff
+            elif raw_diff < -0.005:
+                entry['excess_after'] = 0.0
+                entry['paid_status']  = 'partial'
+                carried_excess = 0.0
+            else:
+                entry['excess_after'] = 0.0
+                entry['paid_status']  = 'paid'
+                carried_excess = 0.0
+        else:
+            entry['excess_after'] = 0.0
+            if entry['month'] <= now.month:
+                pass  # keep carried_excess as is (unpaid month doesn't reset carry)
+    # Pass current carry to template for "next payment" info
+    current_carry = carried_excess
     
     # Get all manual ROI records for totals
     all_manual_records = ManualROI.query.filter_by(investor_id=investor.id).all()
@@ -1046,6 +1100,7 @@ def investor_detail(investor_id):
     return render_template('investor_detail.html',
                          investor=investor,
                          ledger=ledger,
+                         current_carry=round(current_carry, 2),
                          transactions=transactions,
                          deposits=deposits,
                          withdrawals=withdrawals,
