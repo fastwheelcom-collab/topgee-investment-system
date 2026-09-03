@@ -925,12 +925,18 @@ def dashboard():
         'current_month': now.strftime('%B %Y')
     }
     
-    # Search functionality
-    search_query = request.args.get('search', '')
-    # Filter params
-    filter_category = request.args.get('filter_category', '')
-    filter_sales_rep = request.args.get('filter_sales_rep', '')
-    filter_status = request.args.get('filter_status', '')
+    # Search functionality — persist filters in session so they survive page navigation
+    # If any filter param is in the URL (even empty string = user cleared it), save to session
+    if 'filter_sales_rep' in request.args or 'filter_category' in request.args or 'filter_status' in request.args or 'search' in request.args:
+        session['dash_search']       = request.args.get('search', '')
+        session['dash_filter_cat']   = request.args.get('filter_category', '')
+        session['dash_filter_rep']   = request.args.get('filter_sales_rep', '')
+        session['dash_filter_status']= request.args.get('filter_status', '')
+
+    search_query     = session.get('dash_search', '')
+    filter_category  = session.get('dash_filter_cat', '')
+    filter_sales_rep = session.get('dash_filter_rep', '')
+    filter_status    = session.get('dash_filter_status', '')
 
     if search_query or filter_category or filter_sales_rep or filter_status:
         query = Investor.query.filter_by(status='Active')
