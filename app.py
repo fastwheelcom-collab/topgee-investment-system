@@ -2643,6 +2643,10 @@ with app.app_context():
             print(f"⚠️ GlobalRevenue check failed: {e}")
 
         # ── Safe column migrations ──────────────────────────────────
+        # Use PostgreSQL-compatible types when on Render, SQLite types locally
+        _is_pg = 'postgresql' in app.config['SQLALCHEMY_DATABASE_URI']
+        _bool_type  = 'BOOLEAN DEFAULT FALSE' if _is_pg else 'BOOLEAN DEFAULT 0'
+        _dt_type    = 'TIMESTAMP'             if _is_pg else 'DATETIME'
         startup_migrations = [
             ('revenue_history', 'revenue_usd',        'FLOAT'),
             ('revenue_history', 'exchange_rate_used', 'FLOAT'),
@@ -2650,8 +2654,8 @@ with app.app_context():
             ('revenue_history', 'capital_usd',        'FLOAT'),
             ('revenue_history', 'capital_pct',        'FLOAT'),
             ('investor',        'tg_percent',         'FLOAT DEFAULT 5.0'),
-            ('investor',        'is_deleted',         'BOOLEAN DEFAULT 0'),
-            ('investor',        'deleted_at',         'DATETIME'),
+            ('investor',        'is_deleted',         _bool_type),
+            ('investor',        'deleted_at',         _dt_type),
             ('investor',        'deleted_by',         'VARCHAR(200)'),
             ('user_account',    'profile_pic',        'VARCHAR(256)'),
             ('trading_accounts','account_holder',     'VARCHAR(100)'),
