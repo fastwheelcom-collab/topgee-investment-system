@@ -844,7 +844,10 @@ def dashboard():
     """Main dashboard"""
     _prefix_re = re.compile(r'^(Mr\.?|Mrs\.?|Ms\.?|Dr\.?)\s*', re.IGNORECASE)
     def _sort_key(inv): return _prefix_re.sub('', inv.name).strip().lower()
-    investors = sorted(Investor.query.filter(Investor.is_deleted != True).all(), key=_sort_key)
+    try:
+        investors = sorted(Investor.query.filter(Investor.is_deleted != True).all(), key=_sort_key)
+    except Exception:
+        investors = sorted(Investor.query.filter(Investor.status != 'Deleted').all(), key=_sort_key)
     sales_reps = SalesRep.query.filter_by(active=True).all()
     
     # Current month/year
@@ -1183,7 +1186,10 @@ def delete_investor(investor_id):
 def trash():
     """View deleted investors — trash bin, kept for 60 days."""
     from datetime import timedelta
-    deleted = Investor.query.filter_by(is_deleted=True).order_by(Investor.deleted_at.desc()).all()
+    try:
+        deleted = Investor.query.filter_by(is_deleted=True).order_by(Investor.deleted_at.desc()).all()
+    except Exception:
+        deleted = Investor.query.filter_by(status='Deleted').all()
     now = datetime.utcnow()
     trash_items = []
     for inv in deleted:
