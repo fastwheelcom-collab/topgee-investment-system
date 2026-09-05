@@ -159,6 +159,11 @@ class Investor(db.Model):
     status = db.Column(db.String(50), default='Active')
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Soft delete — never hard delete, keep in trash for 60 days
+    is_deleted = db.Column(db.Boolean, default=False)
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    deleted_by = db.Column(db.String(200), nullable=True)  # username who deleted
     
     monthly_records = db.relationship('MonthlyRecord', backref='investor', lazy=True, cascade='all, delete-orphan')
     investment_transactions = db.relationship('InvestmentTransaction', backref='investor', lazy=True, cascade='all, delete-orphan')
@@ -839,7 +844,7 @@ def dashboard():
     """Main dashboard"""
     _prefix_re = re.compile(r'^(Mr\.?|Mrs\.?|Ms\.?|Dr\.?)\s*', re.IGNORECASE)
     def _sort_key(inv): return _prefix_re.sub('', inv.name).strip().lower()
-    investors = sorted(Investor.query.all(), key=_sort_key)
+    investors = sorted(Investor.query.filter(Investor.is_deleted != True).all(), key=_sort_key)
     sales_reps = SalesRep.query.filter_by(active=True).all()
     
     # Current month/year
@@ -1161,10 +1166,65 @@ def edit_investor(investor_id):
 @admin_required
 def delete_investor(investor_id):
     investor = Investor.query.get_or_404(investor_id)
-    audit('DELETE', 'Investor', investor.name, investor.id, f'Capital was: {investor.total_capital:,.0f} AED')
+    # SOFT DELETE — move to trash, never hard delete
+    investor.is_deleted = True
+    investor.deleted_at = datetime.utcnow()
+    investor.deleted_by = session.get('username', 'unknown')
+    investor.status = 'Deleted'
+    audit('DELETE', 'Investor', investor.name, investor.id,
+          f'SOFT DELETE — moved to trash. Capital was: {investor.total_capital:,.0f} AED. Deleted by: {investor.deleted_by}. Auto-purge after 60 days.')
+    db.session.commit()
+    flash(f'{investor.name} moved to trash. Can be restored within 60 days.', 'warning')
+    return redirect(url_for('dashboard'))
+
+
+@app.route('/trash')
+@admin_required
+def trash():
+    """View deleted investors — trash bin, kept for 60 days."""
+    from datetime import timedelta
+    deleted = Investor.query.filter_by(is_deleted=True).order_by(Investor.deleted_at.desc()).all()
+    now = datetime.utcnow()
+    trash_items = []
+    for inv in deleted:
+        days_left = 60 - (now - inv.deleted_at).days if inv.deleted_at else 60
+        trash_items.append({'inv': inv, 'days_left': max(0, days_left)})
+    return render_template('trash.html', trash_items=trash_items)
+
+
+@app.route('/investor/<int:investor_id>/restore', methods=['POST'])
+@admin_required
+def restore_investor(investor_id):
+    """Restore investor from trash."""
+    investor = Investor.query.get_or_404(investor_id)
+    if not investor.is_deleted:
+        flash('Investor is not in trash.', 'error')
+        return redirect(url_for('dashboard'))
+    investor.is_deleted = False
+    investor.deleted_at = None
+    investor.deleted_by = None
+    investor.status = 'Active'
+    audit('EDIT', 'Investor', investor.name, investor.id,
+          f'RESTORED from trash by {session.get("username", "unknown")}')
+    db.session.commit()
+    flash(f'{investor.name} restored successfully!', 'success')
+    return redirect(url_for('trash'))
+
+
+@app.route('/investor/<int:investor_id>/purge', methods=['POST'])
+@admin_required
+def purge_investor(investor_id):
+    """Permanently delete investor from trash (admin only)."""
+    investor = Investor.query.get_or_404(investor_id)
+    if not investor.is_deleted:
+        flash('Investor is not in trash.', 'error')
+        return redirect(url_for('trash'))
+    audit('DELETE', 'Investor', investor.name, investor.id,
+          f'PERMANENT DELETE by {session.get("username", "unknown")}')
     db.session.delete(investor)
     db.session.commit()
-    return redirect(url_for('dashboard'))
+    flash(f'{investor.name} permanently deleted.', 'warning')
+    return redirect(url_for('trash'))
 
 @app.route('/monthly/<int:year>/<int:month>')
 @login_required

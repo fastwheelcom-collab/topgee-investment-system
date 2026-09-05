@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trash — TopGee It</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+  .trash-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .trash-badge { background: #ef4444; color: #fff; border-radius: 20px; padding: 2px 12px; font-size: 12px; font-weight: 700; }
+  .days-chip { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .days-ok { background: rgba(16,185,129,0.15); color: #10b981; }
+  .days-warn { background: rgba(245,158,11,0.15); color: #f59e0b; }
+  .days-urgent { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .info-box { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3); border-radius: 12px; padding: 14px 18px; margin-bottom: 24px; font-size: 13px; color: var(--text-secondary); }
+  .info-box strong { color: #ef4444; }
+  .empty-trash { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+  .empty-trash .icon { font-size: 48px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-brand">🗑️ TopGee It — Trash</div>
+  <div class="nav-links">
+    <a href="{{ url_for('dashboard') }}" class="nav-home">🏠 Home</a>
+    <a href="{{ url_for('analytics') }}">Analytics</a>
+    <a href="{{ url_for('reports_dashboard') }}">Reports</a>
+    <a href="{{ url_for('trash') }}" style="color: #ef4444; font-weight: 700;">🗑️ Trash</a>
+  </div>
+</nav>
+
+<div class="container" style="max-width: 900px; margin: 0 auto; padding: 32px 20px;">
+
+  <div class="trash-header">
+    <h1 style="margin: 0; font-size: 24px;">🗑️ Deleted Investors</h1>
+    {% if trash_items %}
+    <span class="trash-badge">{{ trash_items|length }} item{{ 's' if trash_items|length != 1 }}</span>
+    {% endif %}
+  </div>
+
+  <div class="info-box">
+    <strong>⚠️ Soft Delete Protection:</strong> Deleted investors are kept here for <strong>60 days</strong> before permanent deletion.
+    You can <strong>restore</strong> any investor within this period. After 60 days they are permanently removed.
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}" style="margin-bottom: 16px;">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  {% if trash_items %}
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Investor</th>
+          <th>Capital</th>
+          <th>Deleted By</th>
+          <th>Deleted At</th>
+          <th>Days Left</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in trash_items %}
+        <tr>
+          <td>
+            <strong>{{ item.inv.name }}</strong>
+            {% if item.inv.category %}<br><small style="color: var(--text-secondary);">{{ item.inv.category }}</small>{% endif %}
+          </td>
+          <td>{{ '{:,.0f}'.format(item.inv.investment_amount) }} AED</td>
+          <td>{{ item.inv.deleted_by or '—' }}</td>
+          <td>{{ item.inv.deleted_at.strftime('%d %b %Y %H:%M') if item.inv.deleted_at else '—' }}</td>
+          <td>
+            <span class="days-chip {% if item.days_left > 30 %}days-ok{% elif item.days_left > 7 %}days-warn{% else %}days-urgent{% endif %}">
+              {{ item.days_left }} days
+            </span>
+          </td>
+          <td>
+            <div style="display: flex; gap: 8px;">
+              <form method="POST" action="{{ url_for('restore_investor', investor_id=item.inv.id) }}" style="display:inline;">
+                <button type="submit" class="btn-primary btn-sm" style="background: #10b981;" onclick="return confirm('Restore {{ item.inv.name }}?')">
+                  ♻️ Restore
+                </button>
+              </form>
+              <form method="POST" action="{{ url_for('purge_investor', investor_id=item.inv.id) }}" style="display:inline;">
+                <button type="submit" class="btn-sm" style="background: #ef4444; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;" onclick="return confirm('⚠️ PERMANENTLY delete {{ item.inv.name }}? This CANNOT be undone!')">
+                  🗑️ Purge
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% else %}
+  <div class="empty-trash">
+    <div class="icon">🗑️</div>
+    <h3 style="color: var(--text-primary);">Trash is empty</h3>
+    <p>Deleted investors will appear here and be kept for 60 days.</p>
+  </div>
+  {% endif %}
+
+</div>
+</body>
+</html>
