@@ -4027,7 +4027,7 @@ def capital_returns():
         total_returned = sum(r.amount for r in returns)
         remaining = original - total_returned
         pct = (total_returned / original * 100) if original else 0
-        badge_50 = total_returned >= original * 0.5
+        badge_50 = original > 0 and total_returned >= original * 0.5
         profit_basis = remaining if badge_50 else original
         summaries.append({
             'investor': inv,

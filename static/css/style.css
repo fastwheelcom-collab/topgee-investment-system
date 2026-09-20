@@ -39,7 +39,7 @@ body {
 .navbar {
     background: var(--bg-card);
     border-bottom: 1px solid var(--border);
-    padding: 1rem 0;
+    padding: 0.5rem 0;
     position: sticky;
     top: 0;
     z-index: 100;
@@ -68,9 +68,9 @@ body {
 /* Base nav link — solid filled box, white text always */
 .nav-links a {
     text-decoration: none;
-    padding: 0.4rem 0.9rem;
+    padding: 0.28rem 0.55rem;
     border-radius: 7px;
-    font-size: 0.84rem;
+    font-size: 0.74rem;
     font-weight: 700;
     white-space: nowrap;
     border: none;
@@ -1142,3 +1142,7 @@ footer {
         padding: 0.75rem;
     }
 }
+
+/* Capital Returns nav */
+.nav-links a.nav-capital { background: #0891b2; }
+.nav-links a.nav-capital.active { background: #0e7490 !important; }
