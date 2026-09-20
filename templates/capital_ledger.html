@@ -218,6 +218,7 @@
                 </p>
             </div>
             <div class="header-right">
+                <a href="{{ url_for('capital_returns_ledger_pdf', investor_id=investor.id) }}" class="btn-print" style="background:#dc2626;margin-right:6px;">⬇️ PDF</a>
                 <button class="btn-print" onclick="window.print()">🖨️ Print</button>
                 <a href="{{ url_for('capital_returns') }}" class="btn-back">← Back</a>
             </div>

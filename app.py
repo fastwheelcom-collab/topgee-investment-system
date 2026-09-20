@@ -4155,6 +4155,193 @@ def capital_returns_ledger(investor_id):
     )
 
 
+@app.route('/capital-returns/ledger/<int:investor_id>/pdf')
+@admin_required
+def capital_returns_ledger_pdf(investor_id):
+    """Download capital ledger as PDF using ReportLab."""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+    from io import BytesIO
+    import calendar
+
+    investor = Investor.query.get_or_404(investor_id)
+    returns = CapitalReturn.query.filter_by(investor_id=investor_id).order_by(CapitalReturn.return_date.asc()).all()
+    transactions = InvestmentTransaction.query.filter_by(investor_id=investor_id).order_by(InvestmentTransaction.id.asc()).all()
+    monthly_rois = ManualROI.query.filter_by(investor_id=investor_id).order_by(ManualROI.year.desc(), ManualROI.month.desc()).all()
+
+    original_capital = investor.total_capital
+    total_returned = sum(r.amount for r in returns)
+    remaining_capital = original_capital - total_returned
+    pct_returned = (total_returned / original_capital * 100) if original_capital > 0 else 0
+    total_profit_paid = sum(r.investor_share or 0 for r in monthly_rois)
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+        leftMargin=15*mm, rightMargin=15*mm,
+        topMargin=15*mm, bottomMargin=15*mm)
+
+    styles = getSampleStyleSheet()
+    title_style   = ParagraphStyle('title',  fontSize=16, fontName='Helvetica-Bold', spaceAfter=2)
+    sub_style     = ParagraphStyle('sub',    fontSize=9,  fontName='Helvetica',      textColor=colors.grey, spaceAfter=10)
+    section_style = ParagraphStyle('sec',    fontSize=11, fontName='Helvetica-Bold', spaceBefore=14, spaceAfter=6)
+    normal        = ParagraphStyle('norm',   fontSize=9,  fontName='Helvetica')
+
+    BLUE  = colors.HexColor('#1e40af')
+    LGRAY = colors.HexColor('#f3f4f6')
+    DGRAY = colors.HexColor('#374151')
+    GREEN = colors.HexColor('#065f46')
+    RED   = colors.HexColor('#991b1b')
+
+    def fmt(n): return f"AED {n:,.2f}"
+    def section(title): return [Spacer(1, 4*mm), Paragraph(title, section_style), HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#d1d5db')), Spacer(1, 2*mm)]
+
+    story = []
+
+    # Header
+    story.append(Paragraph(f"Capital Ledger — {investor.name}", title_style))
+    roi_rate = f"{investor.investor_roi_percent}%" if investor.investor_roi_percent else "—"
+    story.append(Paragraph(f"ROI Rate: {roi_rate}  |  Generated: {datetime.utcnow().strftime('%d %b %Y, %H:%M')} UTC", sub_style))
+
+    # Summary table
+    summary_data = [
+        ['Original Capital', 'Total Returned', 'Remaining Capital', '% Returned', 'Total Profit Paid'],
+        [fmt(original_capital), fmt(total_returned), fmt(remaining_capital),
+         f"{pct_returned:.1f}%", fmt(total_profit_paid)],
+    ]
+    st = Table(summary_data, colWidths=[36*mm]*5)
+    st.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), BLUE),
+        ('TEXTCOLOR',  (0,0), (-1,0), colors.white),
+        ('FONTNAME',   (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE',   (0,0), (-1,-1), 8),
+        ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN',     (0,0), (-1,-1), 'MIDDLE'),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white]),
+        ('FONTNAME',   (0,1), (-1,1), 'Helvetica-Bold'),
+        ('TEXTCOLOR',  (0,1), (-1,1), BLUE),
+        ('GRID',       (0,0), (-1,-1), 0.4, colors.HexColor('#e5e7eb')),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+    ]))
+    story.append(Spacer(1, 3*mm))
+    story.append(st)
+
+    # Capital Return History
+    story += section("💰 Capital Return History")
+    if returns:
+        running = original_capital
+        cr_data = [['#', 'Date', 'Amount Returned (AED)', 'Balance After (AED)', 'Notes']]
+        for i, r in enumerate(returns, 1):
+            running -= r.amount
+            cr_data.append([
+                str(i),
+                r.return_date.strftime('%d %b %Y'),
+                f"{r.amount:,.2f}",
+                f"{running:,.2f}",
+                r.notes or '—'
+            ])
+        cr_data.append(['', 'Total', f"{total_returned:,.2f}", '', ''])
+        ct = Table(cr_data, colWidths=[10*mm, 28*mm, 42*mm, 42*mm, 58*mm])
+        ct.setStyle(TableStyle([
+            ('BACKGROUND',    (0,0), (-1,0), DGRAY),
+            ('TEXTCOLOR',     (0,0), (-1,0), colors.white),
+            ('FONTNAME',      (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE',      (0,0), (-1,-1), 8),
+            ('ALIGN',         (2,0), (3,-1), 'RIGHT'),
+            ('ROWBACKGROUNDS',(0,1), (-1,-2), [colors.white, LGRAY]),
+            ('BACKGROUND',    (0,-1), (-1,-1), colors.HexColor('#dbeafe')),
+            ('FONTNAME',      (0,-1), (-1,-1), 'Helvetica-Bold'),
+            ('GRID',          (0,0), (-1,-1), 0.4, colors.HexColor('#e5e7eb')),
+            ('TOPPADDING',    (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ]))
+        story.append(ct)
+    else:
+        story.append(Paragraph("No capital return entries yet.", normal))
+
+    # Monthly ROI Ledger
+    story += section("📊 Monthly Profit Ledger (ROI)")
+    if monthly_rois:
+        roi_data = [['Month', 'Year', 'Total ROI', 'Investor Share (AED)', 'Sales Share (AED)', 'Notes']]
+        for r in monthly_rois:
+            mon = calendar.month_abbr[r.month] if r.month else '—'
+            roi_data.append([
+                mon, str(r.year),
+                f"{r.total_roi_generated:,.2f}" if r.total_roi_generated else '—',
+                f"{r.investor_share:,.2f}" if r.investor_share else '—',
+                f"{r.sales_share:,.2f}" if r.sales_share else '—',
+                r.notes if hasattr(r, 'notes') and r.notes else '—',
+            ])
+        roi_data.append(['', 'Total', '', f"{total_profit_paid:,.2f}", '', ''])
+        rt = Table(roi_data, colWidths=[18*mm, 14*mm, 30*mm, 40*mm, 40*mm, 38*mm])
+        rt.setStyle(TableStyle([
+            ('BACKGROUND',    (0,0), (-1,0), colors.HexColor('#065f46')),
+            ('TEXTCOLOR',     (0,0), (-1,0), colors.white),
+            ('FONTNAME',      (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE',      (0,0), (-1,-1), 8),
+            ('ALIGN',         (2,0), (4,-1), 'RIGHT'),
+            ('ROWBACKGROUNDS',(0,1), (-1,-2), [colors.white, LGRAY]),
+            ('BACKGROUND',    (0,-1), (-1,-1), colors.HexColor('#d1fae5')),
+            ('FONTNAME',      (0,-1), (-1,-1), 'Helvetica-Bold'),
+            ('GRID',          (0,0), (-1,-1), 0.4, colors.HexColor('#e5e7eb')),
+            ('TOPPADDING',    (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ]))
+        story.append(rt)
+    else:
+        story.append(Paragraph("No monthly ROI records found.", normal))
+
+    # All Transactions
+    story += section("📋 All Transactions")
+    if transactions:
+        tx_data = [['#', 'Date', 'Type', 'Amount (AED)', 'Payout Month', 'Notes']]
+        tx_total = 0
+        for i, t in enumerate(transactions, 1):
+            mon_str = f"{calendar.month_abbr[t.payout_month]} {t.payout_year}" if (t.payout_month and t.payout_year) else '—'
+            tx_data.append([
+                str(i),
+                t.created_at.strftime('%d %b %Y') if hasattr(t, 'created_at') and t.created_at else '—',
+                t.transaction_type,
+                f"{t.amount:,.2f}",
+                mon_str,
+                t.notes or '—',
+            ])
+            tx_total += t.amount
+        tx_data.append(['', '', 'Total', f"{tx_total:,.2f}", '', ''])
+        tt = Table(tx_data, colWidths=[10*mm, 24*mm, 32*mm, 32*mm, 28*mm, 54*mm])
+        tt.setStyle(TableStyle([
+            ('BACKGROUND',    (0,0), (-1,0), DGRAY),
+            ('TEXTCOLOR',     (0,0), (-1,0), colors.white),
+            ('FONTNAME',      (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE',      (0,0), (-1,-1), 8),
+            ('ALIGN',         (3,0), (3,-1), 'RIGHT'),
+            ('ROWBACKGROUNDS',(0,1), (-1,-2), [colors.white, LGRAY]),
+            ('BACKGROUND',    (0,-1), (-1,-1), colors.HexColor('#fef3c7')),
+            ('FONTNAME',      (0,-1), (-1,-1), 'Helvetica-Bold'),
+            ('GRID',          (0,0), (-1,-1), 0.4, colors.HexColor('#e5e7eb')),
+            ('TOPPADDING',    (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ]))
+        story.append(tt)
+    else:
+        story.append(Paragraph("No transactions found.", normal))
+
+    # Footer
+    story.append(Spacer(1, 8*mm))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#d1d5db')))
+    story.append(Paragraph("TopGee Investment System — Confidential", ParagraphStyle('footer', fontSize=7, textColor=colors.grey, alignment=TA_CENTER)))
+
+    doc.build(story)
+    buffer.seek(0)
+
+    filename = f"Capital_Ledger_{investor.name.replace(' ', '_')}_{datetime.utcnow().strftime('%Y%m%d')}.pdf"
+    return send_file(buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     print("\n" + "="*60)
