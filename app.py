@@ -4023,7 +4023,7 @@ def capital_returns():
     summaries = []
     for inv in investors:
         returns = CapitalReturn.query.filter_by(investor_id=inv.id).order_by(CapitalReturn.return_date.desc()).all()
-        original = inv.investment_amount
+        original = inv.total_capital  # use total_capital (investment + deposits - withdrawals)
         total_returned = sum(r.amount for r in returns)
         remaining = original - total_returned
         pct = (total_returned / original * 100) if original else 0
@@ -4122,7 +4122,7 @@ def capital_returns_ledger(investor_id):
     monthly_rois = ManualROI.query.filter_by(investor_id=investor_id).order_by(ManualROI.year.desc(), ManualROI.month.desc()).all()
 
     # Capital calculations
-    original_capital = investor.investment_amount
+    original_capital = investor.total_capital  # same as All Investors page
     total_returned = sum(r.amount for r in returns)
     remaining_capital = original_capital - total_returned
     pct_returned = (total_returned / original_capital * 100) if original_capital > 0 else 0
