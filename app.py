@@ -639,12 +639,12 @@ def ensure_db_ready():
                 with db.engine.connect() as conn:
                     conn.execute(db.text("""
                         CREATE TABLE IF NOT EXISTS capital_returns (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id SERIAL PRIMARY KEY,
                             investor_id INTEGER NOT NULL REFERENCES investors(id),
                             amount FLOAT NOT NULL,
                             return_date DATE NOT NULL,
                             notes VARCHAR(500) DEFAULT '',
-                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                         )
                     """))
                     conn.commit()
