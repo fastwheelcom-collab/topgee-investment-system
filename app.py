@@ -549,7 +549,7 @@ class ForexMonthlyProfit(db.Model):
 class CapitalReturn(db.Model):
     __tablename__ = 'capital_returns'
     id = db.Column(db.Integer, primary_key=True)
-    investor_id = db.Column(db.Integer, db.ForeignKey('investors.id'), nullable=False)
+    investor_id = db.Column(db.Integer, db.ForeignKey('investor.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     return_date = db.Column(db.Date, nullable=False)
     notes = db.Column(db.String(500), default='')
