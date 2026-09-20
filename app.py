@@ -554,7 +554,6 @@ class CapitalReturn(db.Model):
     return_date = db.Column(db.Date, nullable=False)
     notes = db.Column(db.String(500), default='')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    investor = db.relationship('Investor', backref='capital_returns')
 
 class ForexInvestorPayout(db.Model):
     __tablename__ = 'forex_investor_payouts'
@@ -4075,7 +4074,8 @@ def capital_returns_add():
 def capital_returns_delete(entry_id):
     """Delete a capital return entry."""
     entry = CapitalReturn.query.get_or_404(entry_id)
-    inv_name = entry.investor.name if entry.investor else str(entry.investor_id)
+    inv = Investor.query.get(entry.investor_id)
+    inv_name = inv.name if inv else str(entry.investor_id)
     try:
         db.session.delete(entry)
         db.session.commit()
