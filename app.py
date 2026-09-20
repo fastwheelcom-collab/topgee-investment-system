@@ -4088,6 +4088,73 @@ def capital_returns_delete(entry_id):
     return redirect(url_for('capital_returns'))
 
 
+@app.route('/capital-returns/<int:entry_id>/edit', methods=['POST'])
+@admin_required
+def capital_returns_edit(entry_id):
+    """Edit a capital return entry."""
+    entry = CapitalReturn.query.get_or_404(entry_id)
+    try:
+        entry.amount = float(request.form['amount'])
+        entry.return_date = datetime.strptime(request.form['return_date'], '%Y-%m-%d').date()
+        entry.notes = request.form.get('notes', '').strip()
+        db.session.commit()
+        inv = Investor.query.get(entry.investor_id)
+        audit('EDIT', 'CapitalReturn', inv.name if inv else str(entry.investor_id), entry_id,
+              f'Amount: AED {entry.amount:,.2f} on {entry.return_date}')
+        flash('Capital return updated successfully.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error updating entry: {e}', 'error')
+    return redirect(url_for('capital_returns'))
+
+
+@app.route('/capital-returns/ledger/<int:investor_id>')
+@admin_required
+def capital_returns_ledger(investor_id):
+    """Per-investor capital ledger page."""
+    investor = Investor.query.get_or_404(investor_id)
+    returns = CapitalReturn.query.filter_by(investor_id=investor_id).order_by(CapitalReturn.return_date.asc()).all()
+
+    # All investment transactions for this investor
+    transactions = InvestmentTransaction.query.filter_by(investor_id=investor_id).order_by(InvestmentTransaction.id.asc()).all()
+
+    # Monthly ROI records
+    monthly_rois = ManualROI.query.filter_by(investor_id=investor_id).order_by(ManualROI.year.desc(), ManualROI.month.desc()).all()
+
+    # Capital calculations
+    original_capital = investor.investment_amount
+    total_returned = sum(r.amount for r in returns)
+    remaining_capital = original_capital - total_returned
+    pct_returned = (total_returned / original_capital * 100) if original_capital > 0 else 0
+    badge_50 = original_capital > 0 and total_returned >= original_capital * 0.5
+
+    # Total profit (sum of investor_share from ManualROI)
+    total_profit_paid = sum(r.investor_share or 0 for r in monthly_rois)
+
+    # Running balance for capital returns
+    running_capital = original_capital
+    returns_with_balance = []
+    for r in returns:
+        running_capital -= r.amount
+        returns_with_balance.append({
+            'entry': r,
+            'balance_after': running_capital
+        })
+
+    return render_template('capital_ledger.html',
+        investor=investor,
+        returns=returns_with_balance,
+        transactions=transactions,
+        monthly_rois=monthly_rois,
+        original_capital=original_capital,
+        total_returned=total_returned,
+        remaining_capital=remaining_capital,
+        pct_returned=pct_returned,
+        badge_50=badge_50,
+        total_profit_paid=total_profit_paid,
+    )
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     print("\n" + "="*60)

@@ -81,6 +81,14 @@
         .toggle-detail:hover { text-decoration: underline; }
         .btn-del-sm { background: #fee2e2; color: #dc2626; border: none; border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
         .btn-del-sm:hover { background: #fca5a5; }
+        .btn-edit-sm { background: #dbeafe; color: #1d4ed8; border: none; border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 700; cursor: pointer; margin-right: 4px; }
+        .btn-edit-sm:hover { background: #bfdbfe; }
+        .btn-ledger-sm { background: #d1fae5; color: #065f46; border: none; border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 700; cursor: pointer; margin-right: 4px; text-decoration: none; display: inline-block; }
+        .btn-ledger-sm:hover { background: #a7f3d0; }
+        .btn-edit-sm { background: #dbeafe; color: #1d4ed8; border: none; border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 700; cursor: pointer; margin-right: 4px; }
+        .btn-edit-sm:hover { background: #bfdbfe; }
+        .btn-ledger-sm { background: #d1fae5; color: #065f46; border: none; border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 700; cursor: pointer; margin-right: 4px; text-decoration: none; display: inline-block; }
+        .btn-ledger-sm:hover { background: #a7f3d0; }
         .page-actions { display: flex; align-items: center; justify-content: space-between; margin: 24px 0 16px; }
         .page-actions h2 { margin: 0; font-size: 1.5rem; font-weight: 700; }
         .btn-add-return { background: #1e40af; color: #fff; border: none; border-radius: 8px; padding: 9px 20px; font-weight: 700; font-size: 14px; cursor: pointer; text-decoration: none; display: inline-block; }
@@ -158,6 +166,7 @@
                             </td>
                             <td>{{ "{:,.2f}".format(s.profit_basis) }}</td>
                             <td>
+                                <a href="{{ url_for('capital_returns_ledger', investor_id=s.investor.id) }}" class="btn-ledger-sm">📋 Ledger</a>
                                 {% if s.returns %}
                                 <button class="toggle-detail" onclick="toggleDetail('detail-{{ s.investor.id }}', this)">▶ Details ({{ s.returns|length }})</button>
                                 {% else %}
@@ -185,6 +194,10 @@
                                                 <td style="text-align:right;font-weight:600;">{{ "{:,.2f}".format(r.amount) }}</td>
                                                 <td style="color:var(--text-secondary,#6b7280);">{{ r.notes or '—' }}</td>
                                                 <td style="text-align:center;">
+                                                    <button type="button" class="btn-edit-sm"
+                                                        onclick="openEditModal({{ r.id }}, {{ r.investor_id }}, '{{ r.return_date }}', {{ r.amount }}, '{{ r.notes|replace("'", "\\'") }}')">
+                                                        ✏️ Edit
+                                                    </button>
                                                     <form method="POST" action="{{ url_for('capital_returns_delete', entry_id=r.id) }}"
                                                           onsubmit="return confirm('Delete this return entry of AED {{ '{:,.2f}'.format(r.amount) }}?');"
                                                           style="display:inline;">
@@ -218,6 +231,26 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <!-- Edit Return Modal -->
+    <div class="modal-overlay" id="editReturnModal">
+        <div class="modal-box">
+            <h3>✏️ Edit Capital Return</h3>
+            <form method="POST" id="editReturnForm" action="">
+                <input type="hidden" name="_method" value="POST">
+                <label>Amount (AED)</label>
+                <input type="number" name="amount" id="edit_amount" step="0.01" min="0.01" required>
+                <label>Return Date</label>
+                <input type="date" name="return_date" id="edit_return_date" required>
+                <label>Notes (optional)</label>
+                <textarea name="notes" id="edit_notes"></textarea>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="document.getElementById('editReturnModal').classList.remove('open')">Cancel</button>
+                    <button type="submit" class="btn-submit">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -277,6 +310,17 @@
 
         // Close modal on overlay click
         document.getElementById('addReturnModal').addEventListener('click', function(e) {
+            if (e.target === this) this.classList.remove('open');
+        });
+
+        function openEditModal(id, investorId, date, amount, notes) {
+            document.getElementById('editReturnForm').action = '/capital-returns/' + id + '/edit';
+            document.getElementById('edit_amount').value = amount;
+            document.getElementById('edit_return_date').value = date;
+            document.getElementById('edit_notes').value = notes;
+            document.getElementById('editReturnModal').classList.add('open');
+        }
+        document.getElementById('editReturnModal').addEventListener('click', function(e) {
             if (e.target === this) this.classList.remove('open');
         });
     </script>

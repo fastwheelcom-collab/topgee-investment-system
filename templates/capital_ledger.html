@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capital Ledger – {{ investor.name }} - TopGee It</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .ledger-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 24px 0 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .ledger-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .ledger-header .header-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .btn-back {
+            background: #f3f4f6;
+            color: #374151;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-back:hover { background: #e5e7eb; }
+        .btn-print {
+            background: #1e40af;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-print:hover { background: #1d3a9e; }
+
+        /* Summary cards */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+        .summary-card {
+            background: #fff;
+            border: 1px solid var(--border, #e5e7eb);
+            border-radius: 12px;
+            padding: 16px 18px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.06);
+        }
+        .summary-card .card-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: var(--text-secondary, #6b7280);
+            margin-bottom: 6px;
+        }
+        .summary-card .card-value {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #111827;
+        }
+        .summary-card .card-value.green { color: #059669; }
+        .summary-card .card-value.blue  { color: #1d4ed8; }
+        .summary-card .card-value.red   { color: #dc2626; }
+        .summary-card .card-value.amber { color: #d97706; }
+        .summary-card .card-sub {
+            font-size: 11px;
+            color: var(--text-secondary, #9ca3af);
+            margin-top: 4px;
+        }
+
+        /* Progress bar */
+        .pct-bar-wrap {
+            background: var(--border, #e5e7eb);
+            border-radius: 99px;
+            height: 8px;
+            width: 100%;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        .pct-bar {
+            height: 100%;
+            border-radius: 99px;
+            background: #3b82f6;
+            transition: width .4s;
+        }
+        .pct-bar.over50 { background: #10b981; }
+        .pct-bar.over90 { background: #ef4444; }
+
+        /* Section headings */
+        .ledger-section { margin-bottom: 36px; }
+        .ledger-section h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin: 0 0 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border, #e5e7eb);
+            color: #1e293b;
+        }
+        .ledger-section .empty-note {
+            color: var(--text-secondary, #9ca3af);
+            font-size: 14px;
+            padding: 12px 0;
+        }
+
+        /* Tables */
+        .ledger-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13.5px;
+        }
+        .ledger-table th {
+            background: var(--bg-hover, #f3f4f6);
+            text-align: left;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: var(--text-secondary, #6b7280);
+            padding: 9px 14px;
+            border-bottom: 1px solid var(--border, #e5e7eb);
+        }
+        .ledger-table td {
+            padding: 9px 14px;
+            border-bottom: 1px solid var(--border, #e5e7eb);
+            vertical-align: middle;
+        }
+        .ledger-table tr:last-child td { border-bottom: none; }
+        .ledger-table tbody tr:hover { background: var(--bg-hover, #f9fafb); }
+        .ledger-table tfoot td {
+            background: var(--bg-hover, #f3f4f6);
+            font-weight: 700;
+            border-top: 2px solid var(--border, #e5e7eb);
+        }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .balance-positive { color: #059669; font-weight: 700; }
+        .balance-zero     { color: #d97706; font-weight: 700; }
+        .balance-negative { color: #dc2626; font-weight: 700; }
+        .badge-50 {
+            display: inline-block;
+            background: #10b981;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 20px;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+
+        @media print {
+            .navbar, .btn-back, .btn-print, .ledger-header .header-right { display: none !important; }
+            .ledger-header { margin-top: 0; }
+            body { font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1>🏦 TopGee It</h1>
+            <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
+            <div class="nav-links">
+                <a href="{{ url_for('home') }}" style="background:#374151;color:#fff;padding:6px 12px;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;">🏠 Home</a>
+                <a href="{{ url_for('dashboard') }}" class="nav-investors">All Investors</a>
+                <a href="{{ url_for('analytics_dashboard') }}" class="nav-dashboard">Dashboard</a>
+                <a href="{{ url_for('reports_dashboard') }}" class="nav-reports">Reports</a>
+                <a href="{{ url_for('sales_reps') }}" class="nav-sales">Sales Team</a>
+                {% if is_admin %}<a href="{{ url_for('capital_returns') }}" class="nav-capital active">💰 Capital Returns</a>{% endif %}
+                <a href="{{ url_for('trash') }}" style="background:#7f1d1d;color:#fca5a5;padding:6px 12px;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;">🗑️ Trash</a>
+                {% if is_admin %}<a href="{{ url_for('add_investor') }}" class="btn-green">+ Add Investor</a>{% endif %}
+                <a href="{{ url_for('backup') }}" class="nav-backup">Backup</a>
+                {% if is_admin %}<a href="{{ url_for('users') }}" class="nav-users">Users</a>{% endif %}
+                <a href="{{ url_for('audit_log') }}" class="nav-audit">Audit Log</a>
+                <a href="{{ url_for('change_password') }}" class="nav-password">Password</a>
+                <div style="position:relative;display:inline-block;" id="profileMenu"><button onclick="toggleProfile()" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:4px 12px 4px 4px;font-weight:700;font-size:.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:8px;">{% if current_user_pic %}<img src="{{ url_for('static', filename='profile_pics/' + current_user_pic) }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.7);">{% else %}<span style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);display:inline-flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;">{{ current_user[0].upper() if current_user else "?" }}</span>{% endif %}{{ current_user }} ▾</button><div id="profileDropdown" style="display:none;position:absolute;right:0;top:110%;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);min-width:160px;z-index:999;overflow:hidden;"><a href="{{ url_for('profile') }}" style="display:block;padding:12px 16px;color:#374151;text-decoration:none;font-weight:600;border-bottom:1px solid #f3f4f6;">👤 My Profile</a><a href="{{ url_for('change_password') }}" style="display:block;padding:12px 16px;color:#374151;text-decoration:none;font-weight:600;border-bottom:1px solid #f3f4f6;">🔑 Change Password</a><a href="{{ url_for('logout') }}" style="display:block;padding:12px 16px;color:#dc2626;text-decoration:none;font-weight:700;">🚪 Logout</a></div></div><script>function toggleProfile(){var d=document.getElementById("profileDropdown");d.style.display=d.style.display=="none"?"block":"none";}document.addEventListener("click",function(e){if(!document.getElementById("profileMenu").contains(e.target)){document.getElementById("profileDropdown").style.display="none";}});</script>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" style="margin-top:16px;">{{ message }}</div>
+        {% endfor %}
+        {% endwith %}
+
+        <!-- Page Header -->
+        <div class="ledger-header">
+            <div>
+                <h2>📋 Capital Ledger — {{ investor.name }}
+                    {% if badge_50 %}<span class="badge-50">50%+ Returned</span>{% endif %}
+                </h2>
+                <p style="margin:4px 0 0;color:var(--text-secondary,#6b7280);font-size:13px;">
+                    Joined: {{ investor.start_date.strftime('%d %b %Y') if investor.start_date else '—' }}
+                    &nbsp;·&nbsp; ROI Rate: {{ investor.roi_percentage }}%
+                </p>
+            </div>
+            <div class="header-right">
+                <button class="btn-print" onclick="window.print()">🖨️ Print</button>
+                <a href="{{ url_for('capital_returns') }}" class="btn-back">← Back</a>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card">
+                <div class="card-label">Original Capital</div>
+                <div class="card-value blue">AED {{ "{:,.2f}".format(original_capital) }}</div>
+            </div>
+            <div class="summary-card">
+                <div class="card-label">Total Returned</div>
+                <div class="card-value green">AED {{ "{:,.2f}".format(total_returned) }}</div>
+                <div class="card-sub">{{ returns|length }} payment{{ 's' if returns|length != 1 else '' }}</div>
+            </div>
+            <div class="summary-card">
+                <div class="card-label">Remaining Capital</div>
+                <div class="card-value {% if remaining_capital <= 0 %}green{% else %}amber{% endif %}">
+                    AED {{ "{:,.2f}".format(remaining_capital) }}
+                </div>
+            </div>
+            <div class="summary-card">
+                <div class="card-label">% Returned</div>
+                <div class="card-value {% if pct_returned >= 100 %}green{% elif pct_returned >= 50 %}amber{% else %}blue{% endif %}">
+                    {{ "{:.1f}".format(pct_returned) }}%
+                </div>
+                <div class="pct-bar-wrap">
+                    <div class="pct-bar {% if pct_returned >= 90 %}over90{% elif pct_returned >= 50 %}over50{% endif %}"
+                         style="width:{{ [pct_returned, 100]|min }}%;"></div>
+                </div>
+            </div>
+            <div class="summary-card">
+                <div class="card-label">Total Profit Paid</div>
+                <div class="card-value green">AED {{ "{:,.2f}".format(total_profit_paid) }}</div>
+                <div class="card-sub">from {{ monthly_rois|length }} ROI month{{ 's' if monthly_rois|length != 1 else '' }}</div>
+            </div>
+        </div>
+
+        <!-- Section 1: Capital Return History -->
+        <div class="ledger-section section">
+            <h3>💰 Capital Return History</h3>
+            {% if returns %}
+            <div class="table-container">
+                <table class="ledger-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date</th>
+                            <th class="text-right">Amount Returned (AED)</th>
+                            <th class="text-right">Balance After (AED)</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in returns %}
+                        <tr>
+                            <td style="color:var(--text-secondary,#9ca3af);">{{ loop.index }}</td>
+                            <td>{{ row.entry.return_date.strftime('%d %b %Y') }}</td>
+                            <td class="text-right" style="font-weight:600;color:#059669;">
+                                {{ "{:,.2f}".format(row.entry.amount) }}
+                            </td>
+                            <td class="text-right">
+                                <span class="{% if row.balance_after > 0 %}balance-positive{% elif row.balance_after == 0 %}balance-zero{% else %}balance-negative{% endif %}">
+                                    {{ "{:,.2f}".format(row.balance_after) }}
+                                </span>
+                            </td>
+                            <td style="color:var(--text-secondary,#6b7280);">{{ row.entry.notes or '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2">Total</td>
+                            <td class="text-right">{{ "{:,.2f}".format(total_returned) }}</td>
+                            <td class="text-right">
+                                <span class="{% if remaining_capital > 0 %}balance-positive{% elif remaining_capital == 0 %}balance-zero{% else %}balance-negative{% endif %}">
+                                    {{ "{:,.2f}".format(remaining_capital) }}
+                                </span>
+                            </td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <p class="empty-note">No capital return entries yet.</p>
+            {% endif %}
+        </div>
+
+        <!-- Section 2: Monthly Profit Ledger (ROI) -->
+        <div class="ledger-section section">
+            <h3>📊 Monthly Profit Ledger (ROI)</h3>
+            {% if monthly_rois %}
+            <div class="table-container">
+                <table class="ledger-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Month / Year</th>
+                            <th class="text-right">Total ROI Generated (AED)</th>
+                            <th class="text-right">Investor Share (AED)</th>
+                            <th class="text-right">Sales Share (AED)</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for roi in monthly_rois %}
+                        <tr>
+                            <td style="color:var(--text-secondary,#9ca3af);">{{ loop.index }}</td>
+                            <td style="font-weight:600;">{{ roi.month_name }}</td>
+                            <td class="text-right">{{ "{:,.2f}".format(roi.total_roi_generated or 0) }}</td>
+                            <td class="text-right" style="color:#059669;font-weight:600;">
+                                {{ "{:,.2f}".format(roi.investor_share or 0) }}
+                            </td>
+                            <td class="text-right" style="color:#7c3aed;">
+                                {{ "{:,.2f}".format(roi.sales_share or 0) }}
+                            </td>
+                            <td style="color:var(--text-secondary,#6b7280);">{{ roi.notes or '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3">Total</td>
+                            <td class="text-right">{{ "{:,.2f}".format(total_profit_paid) }}</td>
+                            <td class="text-right">
+                                {{ "{:,.2f}".format(monthly_rois | sum(attribute='sales_share') | float) }}
+                            </td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <p class="empty-note">No monthly ROI records found for this investor.</p>
+            {% endif %}
+        </div>
+
+        <!-- Section 3: All Transactions -->
+        <div class="ledger-section section">
+            <h3>📋 All Transactions</h3>
+            {% if transactions %}
+            <div class="table-container">
+                <table class="ledger-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th class="text-right">Amount (AED)</th>
+                            <th>Payout Month</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tx in transactions %}
+                        <tr>
+                            <td style="color:var(--text-secondary,#9ca3af);">{{ loop.index }}</td>
+                            <td>{{ tx.transaction_date.strftime('%d %b %Y') if tx.transaction_date else '—' }}</td>
+                            <td>
+                                <span style="
+                                    display:inline-block;
+                                    padding:2px 8px;
+                                    border-radius:20px;
+                                    font-size:11px;
+                                    font-weight:700;
+                                    background:{% if tx.transaction_type == 'Deposit' %}#dbeafe{% elif tx.transaction_type == 'Withdrawal' %}#fee2e2{% elif 'Payout' in tx.transaction_type %}#d1fae5{% else %}#f3f4f6{% endif %};
+                                    color:{% if tx.transaction_type == 'Deposit' %}#1d4ed8{% elif tx.transaction_type == 'Withdrawal' %}#dc2626{% elif 'Payout' in tx.transaction_type %}#065f46{% else %}#374151{% endif %};
+                                ">{{ tx.transaction_type }}</span>
+                            </td>
+                            <td class="text-right" style="font-weight:600;">
+                                {{ "{:,.2f}".format(tx.amount) }}
+                            </td>
+                            <td style="color:var(--text-secondary,#6b7280);">
+                                {% if tx.payout_month and tx.payout_year %}
+                                    {{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][tx.payout_month - 1] }} {{ tx.payout_year }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td style="color:var(--text-secondary,#6b7280);">{{ tx.notes or '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3">Total ({{ transactions|length }} transactions)</td>
+                            <td class="text-right">
+                                {{ "{:,.2f}".format(transactions | sum(attribute='amount') | float) }}
+                            </td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <p class="empty-note">No transaction records found for this investor.</p>
+            {% endif %}
+        </div>
+
+    </div>
+</body>
+</html>
