@@ -546,6 +546,16 @@ class ForexMonthlyProfit(db.Model):
         return self.MONTH_NAMES[self.month] if 0 < self.month <= 12 else str(self.month)
 
 
+class CapitalReturn(db.Model):
+    __tablename__ = 'capital_returns'
+    id = db.Column(db.Integer, primary_key=True)
+    investor_id = db.Column(db.Integer, db.ForeignKey('investors.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    return_date = db.Column(db.Date, nullable=False)
+    notes = db.Column(db.String(500), default='')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    investor = db.relationship('Investor', backref='capital_returns')
+
 class ForexInvestorPayout(db.Model):
     __tablename__ = 'forex_investor_payouts'
     id              = db.Column(db.Integer, primary_key=True)
@@ -623,6 +633,24 @@ def ensure_db_ready():
                         print(f'✅ Added {table}.{col}')
                 except Exception:
                     pass  # already exists
+
+            # Ensure capital_returns table exists (standalone migration)
+            try:
+                with db.engine.connect() as conn:
+                    conn.execute(db.text("""
+                        CREATE TABLE IF NOT EXISTS capital_returns (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            investor_id INTEGER NOT NULL REFERENCES investors(id),
+                            amount FLOAT NOT NULL,
+                            return_date DATE NOT NULL,
+                            notes VARCHAR(500) DEFAULT '',
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """))
+                    conn.commit()
+                    print('✅ capital_returns table ready')
+            except Exception as cr_e:
+                print(f'⚠️ capital_returns table init skipped: {cr_e}')
 
             # Backfill: set tg_percent=5.0 only where it is NULL (won't touch custom values like 6.5)
             try:
@@ -3984,6 +4012,80 @@ def forex_dashboard_data():
         'total_net': total_net,
         'this_month_paid': this_month_paid,
     })
+
+
+# ============= CAPITAL RETURNS ROUTES =============
+
+@app.route('/capital-returns')
+@admin_required
+def capital_returns():
+    """List all investors with their capital return summary."""
+    investors = Investor.query.filter_by(is_deleted=False).order_by(Investor.name).all()
+    summaries = []
+    for inv in investors:
+        returns = CapitalReturn.query.filter_by(investor_id=inv.id).order_by(CapitalReturn.return_date.desc()).all()
+        original = inv.investment_amount
+        total_returned = sum(r.amount for r in returns)
+        remaining = original - total_returned
+        pct = (total_returned / original * 100) if original else 0
+        badge_50 = total_returned >= original * 0.5
+        profit_basis = remaining if badge_50 else original
+        summaries.append({
+            'investor': inv,
+            'original': original,
+            'total_returned': total_returned,
+            'remaining': remaining,
+            'pct': pct,
+            'badge_50': badge_50,
+            'profit_basis': profit_basis,
+            'returns': returns,
+        })
+    return render_template('capital_returns.html', summaries=summaries, investors=investors)
+
+
+@app.route('/capital-returns/add', methods=['POST'])
+@admin_required
+def capital_returns_add():
+    """Add a capital return entry."""
+    try:
+        investor_id = int(request.form['investor_id'])
+        amount = float(request.form['amount'])
+        return_date = datetime.strptime(request.form['return_date'], '%Y-%m-%d').date()
+        notes = request.form.get('notes', '').strip()
+        entry = CapitalReturn(
+            investor_id=investor_id,
+            amount=amount,
+            return_date=return_date,
+            notes=notes,
+        )
+        db.session.add(entry)
+        db.session.commit()
+        inv = Investor.query.get(investor_id)
+        audit('ADD', 'CapitalReturn', inv.name if inv else str(investor_id), investor_id,
+              f'Amount: AED {amount:,.2f} on {return_date}')
+        flash(f'Capital return of AED {amount:,.2f} recorded successfully.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error recording return: {e}', 'error')
+    return redirect(url_for('capital_returns'))
+
+
+@app.route('/capital-returns/<int:entry_id>/delete', methods=['POST'])
+@admin_required
+def capital_returns_delete(entry_id):
+    """Delete a capital return entry."""
+    entry = CapitalReturn.query.get_or_404(entry_id)
+    inv_name = entry.investor.name if entry.investor else str(entry.investor_id)
+    try:
+        db.session.delete(entry)
+        db.session.commit()
+        audit('DELETE', 'CapitalReturn', inv_name, entry_id,
+              f'Amount: AED {entry.amount:,.2f} on {entry.return_date}')
+        flash('Capital return entry deleted.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting entry: {e}', 'error')
+    return redirect(url_for('capital_returns'))
 
 
 if __name__ == '__main__':
