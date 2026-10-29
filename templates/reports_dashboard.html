@@ -431,6 +431,10 @@
                 <div style="font-size:.75rem;opacity:.85;text-transform:uppercase;letter-spacing:.5px;">Total Paid (All Time)</div>
                 <div style="font-size:1.1rem;font-weight:800;margin-top:4px;">{{ "{:,.0f}".format(sr.total_sales_paid) }} AED</div>
             </div>
+            <div style="background:linear-gradient(135deg,#dc2626,#b91c1c);border-radius:12px;padding:16px;color:#fff;">
+                <div style="font-size:.75rem;opacity:.85;text-transform:uppercase;letter-spacing:.5px;">⚠️ Unpaid (Outstanding)</div>
+                <div style="font-size:1.1rem;font-weight:800;margin-top:4px;">{{ "{:,.0f}".format(sr.total_unpaid) }} AED</div>
+            </div>
         </div>
 
         <div class="table-container">
@@ -439,6 +443,7 @@
                     <th>Investor</th><th>Capital (AED)</th>
                     {% if has_date_filter %}<th style="background:#7c3aed;color:#fff;">📅 Paid in Range</th>{% endif %}
                     <th>Total Paid (All Time)</th>
+                    <th style="background:#dc2626;color:#fff;">⚠️ Unpaid</th>
                 </tr></thead>
                 <tbody>
                     {% for r in sr.investors %}
@@ -449,6 +454,7 @@
                         <td style="color:#7c3aed;font-weight:700;">{{ "{:,.0f}".format(r.total_sales_paid_filtered) }}</td>
                         {% endif %}
                         <td class="hi">{{ "{:,.0f}".format(r.total_sales_paid) }}</td>
+                        <td style="color:{% if r.outstanding > 0 %}#dc2626{% else %}#16a34a{% endif %};font-weight:700;">{{ "{:,.0f}".format(r.outstanding) }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -460,6 +466,7 @@
                         <td style="color:#7c3aed;font-weight:800;"><strong>{{ "{:,.0f}".format(sr.total_sales_paid_filtered) }}</strong></td>
                         {% endif %}
                         <td class="hi"><strong>{{ "{:,.0f}".format(sr.total_sales_paid) }}</strong></td>
+                        <td style="color:#dc2626;font-weight:800;"><strong>{{ "{:,.0f}".format(sr.total_unpaid) }}</strong></td>
                     </tr>
                 </tfoot>
             </table>
@@ -477,6 +484,7 @@
                 <th>Sales Rep</th><th>Investors</th><th>Total Capital</th>
                 {% if has_date_filter %}<th style="background:#7c3aed;color:#fff;">📅 Paid in Range</th>{% endif %}
                 <th>Total Paid (All Time)</th>
+                <th style="background:#dc2626;color:#fff;">⚠️ Unpaid</th>
             </tr></thead>
             <tbody>
                 {% for sr in sales_rep_rows %}
@@ -488,6 +496,7 @@
                     <td style="color:#7c3aed;font-weight:700;">{{ "{:,.0f}".format(sr.total_sales_paid_filtered) }}</td>
                     {% endif %}
                     <td class="hi">{{ "{:,.0f}".format(sr.total_sales_paid) }}</td>
+                    <td style="color:{% if sr.total_unpaid > 0 %}#dc2626{% else %}#16a34a{% endif %};font-weight:700;">{{ "{:,.0f}".format(sr.total_unpaid) }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -500,6 +509,7 @@
                     <td style="color:#7c3aed;font-weight:800;"><strong>{{ "{:,.0f}".format(sales_rep_rows|sum(attribute='total_sales_paid_filtered')) }}</strong></td>
                     {% endif %}
                     <td class="hi"><strong>{{ "{:,.0f}".format(sales_rep_rows|sum(attribute='total_sales_paid')) }}</strong></td>
+                    <td style="color:#dc2626;font-weight:800;"><strong>{{ "{:,.0f}".format(sales_rep_rows|sum(attribute='total_unpaid')) }}</strong></td>
                 </tr>
             </tfoot>
         </table>
