@@ -441,20 +441,20 @@
             <table>
                 <thead><tr>
                     <th>Investor</th><th>Capital (AED)</th>
+                    <th style="background:#dc2626;color:#fff;">⚠️ Unpaid</th>
                     {% if has_date_filter %}<th style="background:#7c3aed;color:#fff;">📅 Paid in Range</th>{% endif %}
                     <th>Total Paid (All Time)</th>
-                    <th style="background:#dc2626;color:#fff;">⚠️ Unpaid</th>
                 </tr></thead>
                 <tbody>
                     {% for r in sr.investors %}
                     <tr>
                         <td><a href="{{ url_for('investor_detail', investor_id=r.inv.id) }}" class="client-link">{{ r.inv.name }}</a></td>
                         <td><strong>{{ "{:,.0f}".format(r.capital) }}</strong></td>
+                        <td style="color:{% if r.outstanding > 0 %}#dc2626{% else %}#16a34a{% endif %};font-weight:700;">{{ "{:,.0f}".format(r.outstanding) }}</td>
                         {% if has_date_filter %}
                         <td style="color:#7c3aed;font-weight:700;">{{ "{:,.0f}".format(r.total_sales_paid_filtered) }}</td>
                         {% endif %}
                         <td class="hi">{{ "{:,.0f}".format(r.total_sales_paid) }}</td>
-                        <td style="color:{% if r.outstanding > 0 %}#dc2626{% else %}#16a34a{% endif %};font-weight:700;">{{ "{:,.0f}".format(r.outstanding) }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -462,11 +462,11 @@
                     <tr>
                         <td><strong>TOTAL</strong></td>
                         <td><strong>{{ "{:,.0f}".format(sr.total_capital) }}</strong></td>
+                        <td style="color:#dc2626;font-weight:800;"><strong>{{ "{:,.0f}".format(sr.total_unpaid) }}</strong></td>
                         {% if has_date_filter %}
                         <td style="color:#7c3aed;font-weight:800;"><strong>{{ "{:,.0f}".format(sr.total_sales_paid_filtered) }}</strong></td>
                         {% endif %}
                         <td class="hi"><strong>{{ "{:,.0f}".format(sr.total_sales_paid) }}</strong></td>
-                        <td style="color:#dc2626;font-weight:800;"><strong>{{ "{:,.0f}".format(sr.total_unpaid) }}</strong></td>
                     </tr>
                 </tfoot>
             </table>
@@ -482,9 +482,9 @@
         <table id="reportTable">
             <thead><tr>
                 <th>Sales Rep</th><th>Investors</th><th>Total Capital</th>
+                <th style="background:#dc2626;color:#fff;">⚠️ Unpaid</th>
                 {% if has_date_filter %}<th style="background:#7c3aed;color:#fff;">📅 Paid in Range</th>{% endif %}
                 <th>Total Paid (All Time)</th>
-                <th style="background:#dc2626;color:#fff;">⚠️ Unpaid</th>
             </tr></thead>
             <tbody>
                 {% for sr in sales_rep_rows %}
@@ -492,11 +492,11 @@
                     <td><strong>{{ sr.rep.name }}</strong></td>
                     <td>{{ sr.investor_count }}</td>
                     <td>{{ "{:,.0f}".format(sr.total_capital) }}</td>
+                    <td style="color:{% if sr.total_unpaid > 0 %}#dc2626{% else %}#16a34a{% endif %};font-weight:700;">{{ "{:,.0f}".format(sr.total_unpaid) }}</td>
                     {% if has_date_filter %}
                     <td style="color:#7c3aed;font-weight:700;">{{ "{:,.0f}".format(sr.total_sales_paid_filtered) }}</td>
                     {% endif %}
                     <td class="hi">{{ "{:,.0f}".format(sr.total_sales_paid) }}</td>
-                    <td style="color:{% if sr.total_unpaid > 0 %}#dc2626{% else %}#16a34a{% endif %};font-weight:700;">{{ "{:,.0f}".format(sr.total_unpaid) }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -505,11 +505,11 @@
                     <td><strong>ALL REPS TOTAL</strong></td>
                     <td>{{ sales_rep_rows|sum(attribute='investor_count') }}</td>
                     <td>{{ "{:,.0f}".format(sales_rep_rows|sum(attribute='total_capital')) }}</td>
+                    <td style="color:#dc2626;font-weight:800;"><strong>{{ "{:,.0f}".format(sales_rep_rows|sum(attribute='total_unpaid')) }}</strong></td>
                     {% if has_date_filter %}
                     <td style="color:#7c3aed;font-weight:800;"><strong>{{ "{:,.0f}".format(sales_rep_rows|sum(attribute='total_sales_paid_filtered')) }}</strong></td>
                     {% endif %}
                     <td class="hi"><strong>{{ "{:,.0f}".format(sales_rep_rows|sum(attribute='total_sales_paid')) }}</strong></td>
-                    <td style="color:#dc2626;font-weight:800;"><strong>{{ "{:,.0f}".format(sales_rep_rows|sum(attribute='total_unpaid')) }}</strong></td>
                 </tr>
             </tfoot>
         </table>
