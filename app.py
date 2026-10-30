@@ -2651,84 +2651,88 @@ def set_theme(theme):
     return redirect(request.referrer or url_for('theme_preview'))
 
 # Initialize database tables on startup
-print("📊 Initializing database...")
-with app.app_context():
-    try:
-        db.create_all()
-        print("✅ Database tables created/verified")
-        
-        # Ensure GlobalRevenue singleton exists
-        from sqlalchemy.exc import OperationalError
+try:
+    print("📊 Initializing database...")
+    with app.app_context():
         try:
-            global_revenue = GlobalRevenue.query.first()
-            if not global_revenue:
-                global_revenue = GlobalRevenue(total_revenue=0)
-                db.session.add(global_revenue)
-                db.session.commit()
-                print("✅ GlobalRevenue initialized")
-        except OperationalError as e:
-            print(f"⚠️ GlobalRevenue check failed: {e}")
+            db.create_all()
+            print("✅ Database tables created/verified")
 
-        # ── Safe column migrations ──────────────────────────────────
-        # Use PostgreSQL-compatible types when on Render, SQLite types locally
-        _is_pg = 'postgresql' in app.config['SQLALCHEMY_DATABASE_URI']
-        _bool_type  = 'BOOLEAN DEFAULT FALSE' if _is_pg else 'BOOLEAN DEFAULT 0'
-        _dt_type    = 'TIMESTAMP'             if _is_pg else 'DATETIME'
-        startup_migrations = [
-            ('revenue_history', 'revenue_usd',        'FLOAT'),
-            ('revenue_history', 'exchange_rate_used', 'FLOAT'),
-            ('revenue_history', 'capital_aed',        'FLOAT'),
-            ('revenue_history', 'capital_usd',        'FLOAT'),
-            ('revenue_history', 'capital_pct',        'FLOAT'),
-            ('investor',        'tg_percent',         'FLOAT DEFAULT 5.0'),
-            ('investor',        'is_deleted',         _bool_type),
-            ('investor',        'deleted_at',         _dt_type),
-            ('investor',        'deleted_by',         'VARCHAR(200)'),
-            ('user_account',    'profile_pic',        'VARCHAR(256)'),
-            ('trading_accounts','account_holder',     'VARCHAR(100)'),
-            ('trading_accounts','deposit_via',        'VARCHAR(30)'),
-            ('trading_accounts','account_number',     'VARCHAR(60)'),
-        ]
-        from sqlalchemy import inspect as sa_inspect
-        inspector = sa_inspect(db.engine)
-        existing_tables = inspector.get_table_names()
-        for tbl, col, typ in startup_migrations:
-            if tbl not in existing_tables:
-                continue
-            existing_cols = [c['name'] for c in inspector.get_columns(tbl)]
-            if col not in existing_cols:
-                try:
-                    with db.engine.connect() as conn:
-                        conn.execute(db.text(f'ALTER TABLE {tbl} ADD COLUMN {col} {typ}'))
-                        conn.commit()
-                        print(f'✅ Migrated {tbl}.{col}')
-                except Exception as me:
-                    print(f'⚠️ Migration {tbl}.{col}: {me}')
+            # Ensure GlobalRevenue singleton exists
+            from sqlalchemy.exc import OperationalError
+            try:
+                global_revenue = GlobalRevenue.query.first()
+                if not global_revenue:
+                    global_revenue = GlobalRevenue(total_revenue=0)
+                    db.session.add(global_revenue)
+                    db.session.commit()
+                    print("✅ GlobalRevenue initialized")
+            except OperationalError as e:
+                print(f"⚠️ GlobalRevenue check failed: {e}")
 
-        # ── Rename username → email in user_account ────────────────
-        try:
-            if 'user_account' in existing_tables:
-                ua_cols = [c['name'] for c in inspector.get_columns('user_account')]
-                if 'username' in ua_cols and 'email' not in ua_cols:
-                    with db.engine.connect() as conn:
-                        # Add email column first
-                        conn.execute(db.text('ALTER TABLE user_account ADD COLUMN email VARCHAR(200)'))
-                        # Copy data from username to email
-                        conn.execute(db.text('UPDATE user_account SET email = username'))
-                        conn.commit()
-                        print('✅ Migrated user_account: added email column, copied from username')
-                elif 'email' not in ua_cols:
-                    with db.engine.connect() as conn:
-                        conn.execute(db.text('ALTER TABLE user_account ADD COLUMN email VARCHAR(200)'))
-                        conn.commit()
-                        print('✅ Added email column to user_account')
-        except Exception as me:
-            print(f'⚠️ username→email migration: {me}')
+            # ── Safe column migrations ──────────────────────────────────
+            # Use PostgreSQL-compatible types when on Render, SQLite types locally
+            _is_pg = 'postgresql' in app.config['SQLALCHEMY_DATABASE_URI']
+            _bool_type  = 'BOOLEAN DEFAULT FALSE' if _is_pg else 'BOOLEAN DEFAULT 0'
+            _dt_type    = 'TIMESTAMP'             if _is_pg else 'DATETIME'
+            startup_migrations = [
+                ('revenue_history', 'revenue_usd',        'FLOAT'),
+                ('revenue_history', 'exchange_rate_used', 'FLOAT'),
+                ('revenue_history', 'capital_aed',        'FLOAT'),
+                ('revenue_history', 'capital_usd',        'FLOAT'),
+                ('revenue_history', 'capital_pct',        'FLOAT'),
+                ('investor',        'tg_percent',         'FLOAT DEFAULT 5.0'),
+                ('investor',        'is_deleted',         _bool_type),
+                ('investor',        'deleted_at',         _dt_type),
+                ('investor',        'deleted_by',         'VARCHAR(200)'),
+                ('user_account',    'profile_pic',        'VARCHAR(256)'),
+                ('trading_accounts','account_holder',     'VARCHAR(100)'),
+                ('trading_accounts','deposit_via',        'VARCHAR(30)'),
+                ('trading_accounts','account_number',     'VARCHAR(60)'),
+            ]
+            from sqlalchemy import inspect as sa_inspect
+            inspector = sa_inspect(db.engine)
+            existing_tables = inspector.get_table_names()
+            for tbl, col, typ in startup_migrations:
+                if tbl not in existing_tables:
+                    continue
+                existing_cols = [c['name'] for c in inspector.get_columns(tbl)]
+                if col not in existing_cols:
+                    try:
+                        with db.engine.connect() as conn:
+                            conn.execute(db.text(f'ALTER TABLE {tbl} ADD COLUMN {col} {typ}'))
+                            conn.commit()
+                            print(f'✅ Migrated {tbl}.{col}')
+                    except Exception as me:
+                        print(f'⚠️ Migration {tbl}.{col}: {me}')
 
-    except Exception as e:
-        print(f"❌ Database initialization error: {e}")
-        import traceback
-        traceback.print_exc()
+            # ── Rename username → email in user_account ────────────────
+            try:
+                if 'user_account' in existing_tables:
+                    ua_cols = [c['name'] for c in inspector.get_columns('user_account')]
+                    if 'username' in ua_cols and 'email' not in ua_cols:
+                        with db.engine.connect() as conn:
+                            # Add email column first
+                            conn.execute(db.text('ALTER TABLE user_account ADD COLUMN email VARCHAR(200)'))
+                            # Copy data from username to email
+                            conn.execute(db.text('UPDATE user_account SET email = username'))
+                            conn.commit()
+                            print('✅ Migrated user_account: added email column, copied from username')
+                    elif 'email' not in ua_cols:
+                        with db.engine.connect() as conn:
+                            conn.execute(db.text('ALTER TABLE user_account ADD COLUMN email VARCHAR(200)'))
+                            conn.commit()
+                            print('✅ Added email column to user_account')
+            except Exception as me:
+                print(f'⚠️ username→email migration: {me}')
+
+        except Exception as e:
+            print(f"❌ Database initialization error: {e}")
+            import traceback
+            traceback.print_exc()
+except Exception as _startup_err:
+    print(f"⚠️ DB startup init skipped (will retry on first request): {_startup_err}")
+
 
 # ══════════════════════════════════════════════════
 # USERS MANAGEMENT (admin only)
