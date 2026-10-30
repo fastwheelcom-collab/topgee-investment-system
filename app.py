@@ -1780,6 +1780,7 @@ def reports_dashboard():
             'total_sales_monthly':      sum(r['sales_monthly'] for r in ri),
             'total_sales_paid':         sum(r['total_sales_paid'] for r in ri),
             'total_sales_paid_filtered':sum(r['total_sales_paid_filtered'] for r in ri),
+            'total_unpaid':             sum(r['outstanding'] for r in ri),
             'investors':                ri,
         })
     if rep_id_filt:
