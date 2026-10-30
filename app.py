@@ -2651,7 +2651,17 @@ def set_theme(theme):
         flash(f"Theme changed to {theme.title()}!", 'success')
     return redirect(request.referrer or url_for('theme_preview'))
 
-# DB initialized on first request via @app.before_request
+# Initialize database tables on startup
+print("📊 Initializing database...")
+try:
+    with app.app_context():
+        try:
+            db.create_all()
+            print("✅ Database tables created/verified")
+        except Exception as e:
+            print(f"❌ Database initialization error: {e}")
+except Exception as e:
+    print(f"⚠️ Startup DB skipped: {e}")
 
 # ══════════════════════════════════════════════════
 # USERS MANAGEMENT (admin only)
