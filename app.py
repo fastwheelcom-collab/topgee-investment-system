@@ -25,6 +25,9 @@ if database_url:
     print(f"🔵 Using PostgreSQL: {database_url[:50]}...")
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    # Force psycopg2 driver (not psycopg3)
+    if database_url.startswith('postgresql://') and '+' not in database_url.split('://')[0]:
+        database_url = database_url.replace('postgresql://', 'postgresql+psycopg2://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 else:
     # Local SQLite
